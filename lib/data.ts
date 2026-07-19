@@ -1,0 +1,68 @@
+import { createClient } from "@/lib/supabase/server";
+import type {
+  Beneficiary,
+  Client,
+  ExchangeRate,
+  Remittance,
+  Settlement,
+} from "@/lib/types";
+
+// Funciones de lectura para Server Components.
+
+export async function getRemittances(limit?: number): Promise<Remittance[]> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("remittances")
+    .select("*, client:clients(*), beneficiary:beneficiaries(*)")
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (limit) query = query.limit(limit);
+  const { data } = await query;
+  return (data as Remittance[]) ?? [];
+}
+
+export async function getRemittance(id: string): Promise<Remittance | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("remittances")
+    .select("*, client:clients(*), beneficiary:beneficiaries(*)")
+    .eq("id", id)
+    .single();
+  return (data as Remittance) ?? null;
+}
+
+export async function getClients(): Promise<Client[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("clients")
+    .select("*")
+    .order("name", { ascending: true });
+  return (data as Client[]) ?? [];
+}
+
+export async function getBeneficiaries(): Promise<Beneficiary[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("beneficiaries")
+    .select("*")
+    .order("name", { ascending: true });
+  return (data as Beneficiary[]) ?? [];
+}
+
+export async function getExchangeRates(): Promise<ExchangeRate[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("exchange_rates")
+    .select("*")
+    .order("currency", { ascending: true });
+  return (data as ExchangeRate[]) ?? [];
+}
+
+export async function getSettlements(): Promise<Settlement[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("settlements")
+    .select("*")
+    .order("date", { ascending: false });
+  return (data as Settlement[]) ?? [];
+}

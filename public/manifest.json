@@ -1,0 +1,10 @@
+{
+  "name": "Remesas",
+  "short_name": "Remesas",
+  "description": "Gestión de envíos, comisiones y cuentas del negocio.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": []
+}

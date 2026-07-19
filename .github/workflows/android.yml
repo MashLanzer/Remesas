@@ -1,0 +1,51 @@
+name: Build Android APK
+
+# Genera un APK (contenedor de la web) cuando lo lances manualmente o al crear un tag.
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "URL de producción que cargará el APK (Vercel)"
+        required: true
+        default: "https://remesas.vercel.app"
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Añadir plataforma Android y sincronizar
+        env:
+          CAP_SERVER_URL: ${{ github.event.inputs.server_url || 'https://remesas.vercel.app' }}
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Construir APK (debug)
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Subir APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: remesas-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
