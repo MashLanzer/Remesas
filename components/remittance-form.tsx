@@ -223,13 +223,23 @@ export function RemittanceForm({
       </Card>
 
       {/* Resumen en vivo */}
-      <Card className="space-y-2 border-border bg-muted">
-        <SummaryRow label="Cobras al cliente" value={usd(summary.totalReceived)} strong />
-        <SummaryRow label="Comisión" value={usd(effectiveCommission)} />
-        <SummaryRow label="Ganancia total" value={usd(summary.totalProfit)} />
-        <div className="my-1 border-t border-border" />
-        <SummaryRow label="Tu parte" value={usd(summary.myShare)} tone="positive" />
-        <SummaryRow label="Parte del socio" value={usd(summary.partnerShare)} />
+      <Card className="overflow-hidden p-0">
+        <div className="hero-gradient p-4 text-white">
+          <p className="text-xs font-medium text-white/75">Cobras al cliente</p>
+          <p className="tabular text-3xl font-extrabold">
+            {usd(summary.totalReceived)}
+          </p>
+        </div>
+        <div className="space-y-2 p-4">
+          <SummaryRow label="Comisión" value={usd(effectiveCommission)} />
+          <SummaryRow label="Ganancia total" value={usd(summary.totalProfit)} />
+          <div className="my-1 border-t border-border" />
+          <SummaryRow label="Tu parte" value={usd(summary.myShare)} tone="positive" />
+          <SummaryRow
+            label="Parte del socio"
+            value={usd(summary.partnerShare)}
+          />
+        </div>
       </Card>
 
       <Button type="submit" className="w-full">

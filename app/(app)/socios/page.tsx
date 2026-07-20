@@ -14,47 +14,69 @@ export default async function SociosPage() {
 
   const balance = calcPartnerBalance(remittances, settlements);
   const owedToPartner = balance > 0;
+  const settled = Math.abs(balance) < 0.01;
 
-  // Desglose informativo
   const totalDelivered = remittances.reduce((s, r) => s + Number(r.amount_usd), 0);
-  const partnerProfit = remittances.reduce((s, r) => s + Number(r.partner_share), 0);
+  const partnerProfit = remittances.reduce(
+    (s, r) => s + Number(r.partner_share),
+    0
+  );
   const sentToCuba = settlements
     .filter((s) => s.direction === "us_to_cuba")
     .reduce((s, x) => s + Number(x.amount), 0);
 
+  const totalOwed = totalDelivered + partnerProfit;
+  const pctSettled =
+    totalOwed > 0 ? Math.min((sentToCuba / totalOwed) * 100, 100) : 0;
+
   return (
-    <div>
+    <div className="space-y-5">
       <PageHeader title="Cuenta de socios" subtitle="Saldo con tu amigo en Cuba" />
 
-      <Card
+      {/* Saldo destacado */}
+      <div
         className={
-          "mb-4 text-center " +
-          (Math.abs(balance) < 0.01
-            ? "border-border bg-muted"
+          "rounded-3xl p-5 text-white shadow-xl " +
+          (settled
+            ? "hero-gradient shadow-primary/20"
             : owedToPartner
-            ? "border-destructive/30 bg-destructive/10"
-            : "border-income/30 bg-income/10")
+            ? "bg-gradient-to-br from-rose-500 to-rose-700 shadow-rose-500/20"
+            : "hero-gradient shadow-primary/20")
         }
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {Math.abs(balance) < 0.01
+        <p className="text-sm font-medium text-white/75">
+          {settled
             ? "Cuentas saldadas"
             : owedToPartner
             ? "Le debes a tu socio"
             : "Tu socio te debe"}
         </p>
-        <p
-          className={
-            "mt-1 text-3xl font-bold " +
-            (owedToPartner ? "text-destructive" : "text-income")
-          }
-        >
+        <p className="tabular mt-1 text-4xl font-extrabold">
           {usd(Math.abs(balance))}
         </p>
-      </Card>
 
-      <Card className="mb-6 space-y-2.5">
-        <Row label="Total entregado en Cuba (capital del socio)" value={usd(totalDelivered)} />
+        {!settled && (
+          <div className="mt-4">
+            <div className="mb-1 flex justify-between text-xs text-white/80">
+              <span>Saldado</span>
+              <span>{Math.round(pctSettled)}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-white/90"
+                style={{ width: `${pctSettled}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desglose */}
+      <Card className="space-y-2.5">
+        <Row
+          label="Total entregado en Cuba (capital del socio)"
+          value={usd(totalDelivered)}
+        />
         <Row label="+ Ganancia del socio acumulada" value={usd(partnerProfit)} />
         <Row label="− Ya enviado a Cuba (liquidaciones)" value={usd(sentToCuba)} />
         <div className="my-1 border-t border-border" />
@@ -80,8 +102,8 @@ function Row({
       <span className="text-muted-foreground">{label}</span>
       <span
         className={
-          "whitespace-nowrap " +
-          (strong ? "font-semibold text-foreground" : "text-foreground")
+          "tabular whitespace-nowrap " +
+          (strong ? "font-bold text-foreground" : "text-foreground")
         }
       >
         {value}
