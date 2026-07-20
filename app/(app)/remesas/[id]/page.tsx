@@ -5,6 +5,7 @@ import { getRemittance } from "@/lib/data";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
+import { ShareReceipt } from "@/components/share-receipt";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +87,21 @@ export default async function RemesaDetailPage({
           <p className="mt-1 text-sm text-foreground">{r.notes}</p>
         </Card>
       )}
+
+      <div className="mb-4">
+        <ShareReceipt
+          text={[
+            "🧾 Comprobante de remesa",
+            `Fecha: ${formatDate(r.date)}`,
+            `Beneficiario: ${r.beneficiary?.name || "—"}${
+              r.beneficiary?.province ? " · " + r.beneficiary.province : ""
+            }`,
+            `Monto: ${usd(r.amount_usd)}`,
+            `Entregado: ${localAmount(r.local_amount)} ${r.delivery_currency}`,
+            `Estado: ${r.status}`,
+          ].join("\n")}
+        />
+      </div>
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Cambiar estado
