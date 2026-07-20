@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Send, Handshake, BarChart3, ArrowRight, Wallet } from "lucide-react";
+import { Plus, Send, BarChart3, ArrowRight, Wallet } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,7 @@ const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
 const actions = [
   { href: "/remesas/nueva", label: "Nueva", icon: Plus },
   { href: "/remesas", label: "Remesas", icon: Send },
-  { href: "/socios", label: "Socios", icon: Handshake },
+  { href: "/socios", label: "Cuentas", icon: Wallet },
   { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
@@ -153,7 +153,7 @@ export function DashboardView({
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium text-muted-foreground">
-            {partnerBalance >= 0 ? "Le debes al socio" : "El socio te debe"}
+            {partnerBalance >= 0 ? "Por enviar a Cuba" : "A tu favor"}
           </p>
           <p
             className={

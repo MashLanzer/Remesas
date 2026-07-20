@@ -7,7 +7,7 @@ import {
   LayoutDashboard,
   Send,
   Users,
-  Handshake,
+  Wallet,
   BarChart3,
 } from "lucide-react";
 
@@ -15,7 +15,7 @@ const items = [
   { href: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/remesas", label: "Remesas", icon: Send },
   { href: "/agenda", label: "Agenda", icon: Users },
-  { href: "/socios", label: "Socios", icon: Handshake },
+  { href: "/socios", label: "Cuentas", icon: Wallet },
   { href: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 

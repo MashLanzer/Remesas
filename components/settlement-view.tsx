@@ -7,7 +7,15 @@ import { createSettlement, deleteSettlement } from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import type { Settlement } from "@/lib/types";
 
-export function SettlementView({ settlements }: { settlements: Settlement[] }) {
+export function SettlementView({
+  settlements,
+  suggested = 0,
+  toCubaLabel = "a Cuba",
+}: {
+  settlements: Settlement[];
+  suggested?: number;
+  toCubaLabel?: string;
+}) {
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -18,7 +26,7 @@ export function SettlementView({ settlements }: { settlements: Settlement[] }) {
         onClick={() => setShowForm((s) => !s)}
       >
         <Plus className="h-4 w-4" />
-        {showForm ? "Cerrar" : "Registrar liquidación"}
+        {showForm ? "Cerrar" : "Registrar pago"}
       </Button>
 
       {showForm && (
@@ -34,14 +42,25 @@ export function SettlementView({ settlements }: { settlements: Settlement[] }) {
               <Field label="Fecha">
                 <Input type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} />
               </Field>
-              <Field label="Monto (USD)">
-                <Input type="number" name="amount" step="0.01" min="0" required placeholder="0.00" />
+              <Field
+                label="Monto (USD)"
+                hint={suggested > 0 ? `Para saldar: ${usd(suggested)}` : undefined}
+              >
+                <Input
+                  type="number"
+                  name="amount"
+                  step="0.01"
+                  min="0"
+                  required
+                  placeholder="0.00"
+                  defaultValue={suggested > 0 ? String(suggested) : ""}
+                />
               </Field>
             </div>
-            <Field label="Sentido del pago" hint="Quién le pagó a quién para saldar">
+            <Field label="Sentido del pago" hint="Quién pagó a quién para saldar">
               <Select name="direction" defaultValue="us_to_cuba">
-                <option value="us_to_cuba">Yo envié a Cuba (bajo mi deuda)</option>
-                <option value="cuba_to_us">El socio me envió a mí</option>
+                <option value="us_to_cuba">Envié {toCubaLabel} (bajo el saldo)</option>
+                <option value="cuba_to_us">Recibí de Cuba</option>
               </Select>
             </Field>
             <Field label="Método">
@@ -50,7 +69,7 @@ export function SettlementView({ settlements }: { settlements: Settlement[] }) {
             <Field label="Notas">
               <Textarea name="notes" rows={2} />
             </Field>
-            <Button type="submit" className="w-full">Guardar liquidación</Button>
+            <Button type="submit" className="w-full">Guardar pago</Button>
           </form>
         </Card>
       )}
@@ -88,7 +107,7 @@ function SettlementCard({ settlement: s }: { settlement: Settlement }) {
         </span>
         <div>
           <p className="text-sm font-medium text-foreground">
-            {toCuba ? "Enviado a Cuba" : "Recibido del socio"}
+            {toCuba ? "Enviado a Cuba" : "Recibido de Cuba"}
           </p>
           <p className="text-xs text-muted-foreground">
             {formatDate(s.date)}
