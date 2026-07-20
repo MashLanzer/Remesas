@@ -147,11 +147,26 @@ export default async function AjustesPage() {
                 placeholder="Opcional"
               />
             </Field>
-            <Field label="Socio en Cuba">
+            <Field label="Contacto en Cuba">
               <Input
                 name="partner_name"
                 defaultValue={settings.partner_name ?? ""}
-                placeholder="Nombre del socio"
+                placeholder="Nombre de tu contacto"
+              />
+            </Field>
+            <Field
+              label="Recordar si el saldo pasa de ($)"
+              hint="Te avisa en Cuentas y notificaciones. Vacío = sin aviso."
+            >
+              <Input
+                type="number"
+                name="settle_threshold"
+                min="0"
+                step="0.01"
+                defaultValue={
+                  settings.settle_threshold ? String(settings.settle_threshold) : ""
+                }
+                placeholder="Ej: 500"
               />
             </Field>
 

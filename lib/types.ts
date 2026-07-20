@@ -100,6 +100,7 @@ export interface BusinessSettings {
   default_payment_method: PaymentMethod | null;
   business_name: string | null;
   partner_name: string | null;
+  settle_threshold?: number | null;
   updated_at: string;
 }
 
@@ -111,6 +112,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   default_payment_method: null,
   business_name: null,
   partner_name: null,
+  settle_threshold: null,
   updated_at: "",
 };
 
@@ -121,6 +123,7 @@ export interface Settlement {
   direction: "us_to_cuba" | "cuba_to_us"; // sentido del pago que salda la cuenta
   method: string | null;
   notes: string | null;
+  receipt_url: string | null;
   created_by: string | null;
   created_at: string;
 }

@@ -19,19 +19,20 @@ function str(v: FormDataEntryValue | null): string | null {
 async function handleReceiptUpload(
   supabase: Awaited<ReturnType<typeof createClient>>,
   formData: FormData,
+  table: "remittances" | "settlements",
   id: string
 ) {
   const file = formData.get("receipt");
   if (!(file instanceof File) || file.size === 0) return;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${id}/comprobante-${Date.now()}.${ext}`;
+  const path = `${table}/${id}/comprobante-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
     .from("receipts")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (error) return;
   const { data } = supabase.storage.from("receipts").getPublicUrl(path);
   await supabase
-    .from("remittances")
+    .from(table)
     .update({ receipt_url: data.publicUrl })
     .eq("id", id);
 }
@@ -92,7 +93,7 @@ export async function createRemittance(formData: FormData) {
       .eq("id", inserted.id);
   }
 
-  if (inserted?.id) await handleReceiptUpload(supabase, formData, inserted.id);
+  if (inserted?.id) await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
 
   revalidatePath("/remesas");
   revalidatePath("/");
@@ -147,7 +148,7 @@ export async function updateRemittance(formData: FormData) {
     .update({ client_paid: str(formData.get("client_paid")) !== "false" })
     .eq("id", id);
 
-  await handleReceiptUpload(supabase, formData, id);
+  await handleReceiptUpload(supabase, formData, "remittances", id);
 
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);
@@ -283,14 +284,29 @@ export async function createSettlement(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  await supabase.from("settlements").insert({
+  const id = str(formData.get("id"));
+  const values = {
     date: str(formData.get("date")) ?? new Date().toISOString().slice(0, 10),
     amount: num(formData.get("amount")),
     direction: str(formData.get("direction")) ?? "us_to_cuba",
     method: str(formData.get("method")),
     notes: str(formData.get("notes")),
-    created_by: user?.id ?? null,
-  });
+  };
+
+  let targetId = id;
+  if (id) {
+    await supabase.from("settlements").update(values).eq("id", id);
+  } else {
+    const { data } = await supabase
+      .from("settlements")
+      .insert({ ...values, created_by: user?.id ?? null })
+      .select("id")
+      .single();
+    targetId = data?.id ?? null;
+  }
+
+  if (targetId) await handleReceiptUpload(supabase, formData, "settlements", targetId);
+
   revalidatePath("/socios");
   revalidatePath("/");
 }
@@ -317,8 +333,17 @@ export async function updateBusinessSettings(formData: FormData) {
     partner_name: str(formData.get("partner_name")),
     updated_at: new Date().toISOString(),
   });
+  // Umbral de recordatorio (aparte, tolerante si la columna no existe — 0006).
+  const threshold = formData.get("settle_threshold");
+  if (threshold !== null && String(threshold).trim() !== "") {
+    await supabase
+      .from("business_settings")
+      .update({ settle_threshold: num(threshold) })
+      .eq("id", true);
+  }
   revalidatePath("/ajustes");
   revalidatePath("/remesas/nueva");
+  revalidatePath("/socios");
 }
 
 export async function updateProfile(formData: FormData) {

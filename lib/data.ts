@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { calcPartnerBalance } from "@/lib/calc";
 import {
   DEFAULT_SETTINGS,
   type Beneficiary,
@@ -100,7 +101,16 @@ export async function getAlertCount(): Promise<number> {
     .from("remittances")
     .select("id", { count: "exact", head: true })
     .eq("client_paid", false);
-  return (pending ?? 0) + (porCobrar ?? 0);
+
+  let saldoAlert = 0;
+  const settings = await getBusinessSettings();
+  const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;
+  if (threshold > 0) {
+    const [rem, set] = await Promise.all([getRemittances(), getSettlements()]);
+    if (calcPartnerBalance(rem, set) >= threshold) saldoAlert = 1;
+  }
+
+  return (pending ?? 0) + (porCobrar ?? 0) + saldoAlert;
 }
 
 export async function getSettlements(): Promise<Settlement[]> {

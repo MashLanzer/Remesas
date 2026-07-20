@@ -1,6 +1,18 @@
 import Link from "next/link";
-import { Send, Clock, DollarSign, CheckCircle2, ChevronRight } from "lucide-react";
-import { getRemittances } from "@/lib/data";
+import {
+  Send,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+  ChevronRight,
+  Wallet,
+} from "lucide-react";
+import {
+  getRemittances,
+  getSettlements,
+  getBusinessSettings,
+} from "@/lib/data";
+import { calcPartnerBalance } from "@/lib/calc";
 import { usd, formatDate } from "@/lib/utils";
 import { Card, PageHeader } from "@/components/ui";
 
@@ -12,14 +24,22 @@ function daysAgo(dateStr: string): number {
 }
 
 export default async function NotificacionesPage() {
-  const all = await getRemittances();
+  const [all, settlements, settings] = await Promise.all([
+    getRemittances(),
+    getSettlements(),
+    getBusinessSettings(),
+  ]);
 
   const pendientes = all
     .filter((r) => r.status === "pendiente")
     .sort((a, b) => a.date.localeCompare(b.date)); // más antiguas primero
   const porCobrar = all.filter((r) => r.client_paid === false);
 
-  const nada = pendientes.length === 0 && porCobrar.length === 0;
+  const balance = calcPartnerBalance(all, settlements);
+  const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;
+  const saldoAlto = threshold > 0 && balance >= threshold;
+
+  const nada = pendientes.length === 0 && porCobrar.length === 0 && !saldoAlto;
 
   return (
     <div>
@@ -39,6 +59,27 @@ export default async function NotificacionesPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {saldoAlto && (
+            <Link href="/socios">
+              <Card className="flex items-center justify-between border-warning/30 bg-warning/10 transition active:scale-[0.99]">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
+                    <Wallet className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-warning">
+                      Saldo pendiente alto
+                    </p>
+                    <p className="text-xs text-warning/80">
+                      {usd(balance)} · pasó tu límite de {usd(threshold)}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-warning" />
+              </Card>
+            </Link>
+          )}
+
           {pendientes.length > 0 && (
             <section>
               <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
