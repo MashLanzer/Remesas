@@ -3,6 +3,7 @@ import {
   getBusinessSettings,
   getClients,
   getExchangeRates,
+  getRemittance,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { RemittanceForm } from "@/components/remittance-form";
@@ -10,13 +11,18 @@ import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function NuevaRemesaPage() {
+export default async function NuevaRemesaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ dup?: string }>;
+}) {
+  const { dup } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [clients, beneficiaries, rates, settings, profileRes] =
+  const [clients, beneficiaries, rates, settings, profileRes, prefill] =
     await Promise.all([
       getClients(),
       getBeneficiaries(),
@@ -29,13 +35,17 @@ export default async function NuevaRemesaPage() {
             .eq("id", user.id)
             .single()
         : Promise.resolve({ data: null }),
+      dup ? getRemittance(dup) : Promise.resolve(null),
     ]);
 
   const defaultSplit = Number(profileRes.data?.default_split_percent ?? 50);
 
   return (
     <div>
-      <PageHeader title="Nueva remesa" subtitle="Registra un envío" />
+      <PageHeader
+        title={prefill ? "Duplicar remesa" : "Nueva remesa"}
+        subtitle={prefill ? "Revisa los datos copiados" : "Registra un envío"}
+      />
       <RemittanceForm
         clients={clients}
         beneficiaries={beneficiaries}
@@ -44,6 +54,7 @@ export default async function NuevaRemesaPage() {
         rules={settings}
         defaultCurrency={settings.default_currency}
         defaultPayment={settings.default_payment_method}
+        prefill={prefill ?? undefined}
       />
     </div>
   );

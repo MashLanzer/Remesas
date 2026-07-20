@@ -24,6 +24,7 @@ export function RemittanceForm({
   rates,
   defaultSplit,
   initial,
+  prefill,
   rules,
   defaultCurrency = "CUP",
   defaultPayment,
@@ -33,11 +34,13 @@ export function RemittanceForm({
   rates: ExchangeRate[];
   defaultSplit: number;
   initial?: Remittance;
+  prefill?: Remittance;
   rules?: CommissionRules;
   defaultCurrency?: string;
   defaultPayment?: string | null;
 }) {
   const isEdit = !!initial;
+  const source = initial ?? prefill; // valores para prellenar (editar o duplicar)
 
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
@@ -46,25 +49,25 @@ export function RemittanceForm({
   }, [rates]);
 
   const [amount, setAmount] = useState(
-    initial ? String(initial.amount_usd) : ""
+    source ? String(source.amount_usd) : ""
   );
   const [commission, setCommission] = useState(
-    initial ? String(initial.commission) : ""
+    source ? String(source.commission) : ""
   );
-  const [commissionTouched, setCommissionTouched] = useState(isEdit);
+  const [commissionTouched, setCommissionTouched] = useState(!!source);
   const [currency, setCurrency] = useState<string>(
-    initial?.delivery_currency ?? defaultCurrency
+    source?.delivery_currency ?? defaultCurrency
   );
   const [rate, setRate] = useState(
-    initial
-      ? String(initial.exchange_rate)
+    source
+      ? String(source.exchange_rate)
       : String(ratesByCurrency[defaultCurrency] ?? "")
   );
   const [exchangeProfit, setExchangeProfit] = useState(
-    initial && Number(initial.exchange_profit) ? String(initial.exchange_profit) : ""
+    source && Number(source.exchange_profit) ? String(source.exchange_profit) : ""
   );
   const [split, setSplit] = useState(
-    String(initial?.my_split_percent ?? defaultSplit ?? 50)
+    String(source?.my_split_percent ?? defaultSplit ?? 50)
   );
 
   const amountNum = parseFloat(amount) || 0;
@@ -105,7 +108,7 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Cliente (quien paga)">
-          <Select name="client_id" defaultValue={initial?.client_id ?? ""}>
+          <Select name="client_id" defaultValue={source?.client_id ?? ""}>
             <option value="">— Sin cliente —</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -118,7 +121,7 @@ export function RemittanceForm({
         <Field label="Beneficiario (quien recibe en Cuba)">
           <Select
             name="beneficiary_id"
-            defaultValue={initial?.beneficiary_id ?? ""}
+            defaultValue={source?.beneficiary_id ?? ""}
           >
             <option value="">— Sin beneficiario —</option>
             {beneficiaries.map((b) => (
@@ -167,7 +170,7 @@ export function RemittanceForm({
         <Field label="Método de pago recibido">
           <Select
             name="payment_method"
-            defaultValue={initial?.payment_method ?? defaultPayment ?? ""}
+            defaultValue={source?.payment_method ?? defaultPayment ?? ""}
           >
             <option value="">— Selecciona —</option>
             {PAYMENT_METHODS.map((m) => (
@@ -262,12 +265,22 @@ export function RemittanceForm({
           </Select>
         </Field>
 
+        <Field label="¿El cliente ya te pagó?">
+          <Select
+            name="client_paid"
+            defaultValue={source?.client_paid === false ? "false" : "true"}
+          >
+            <option value="true">Sí, ya cobrado</option>
+            <option value="false">No, aún debe</option>
+          </Select>
+        </Field>
+
         <Field label="Notas">
           <Textarea
             name="notes"
             rows={2}
             placeholder="Referencia, detalles…"
-            defaultValue={initial?.notes ?? ""}
+            defaultValue={source?.notes ?? ""}
           />
         </Field>
       </Card>

@@ -5,7 +5,12 @@ import { RemesasList } from "@/components/remesas-list";
 
 export const dynamic = "force-dynamic";
 
-export default async function RemesasPage() {
+export default async function RemesasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; estado?: string }>;
+}) {
+  const { q, estado } = await searchParams;
   const all = await getRemittances();
 
   return (
@@ -19,7 +24,11 @@ export default async function RemesasPage() {
           </LinkButton>
         }
       />
-      <RemesasList remittances={all} />
+      <RemesasList
+        remittances={all}
+        initialQuery={q ?? ""}
+        initialEstado={estado ?? "todas"}
+      />
     </div>
   );
 }

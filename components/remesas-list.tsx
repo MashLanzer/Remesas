@@ -2,9 +2,18 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus, Search, Send, Check } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Send,
+  Check,
+  Download,
+  ArrowUpDown,
+  Calendar,
+  Undo2,
+} from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
-import { usd, formatDate } from "@/lib/utils";
+import { usd, formatDate, localAmount } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { updateRemittanceStatus } from "@/app/actions";
 import type { Remittance, RemittanceStatus } from "@/lib/types";
@@ -20,6 +29,7 @@ const filters: { key: string; label: string }[] = [
   { key: "pendiente", label: "Pendientes" },
   { key: "entregado", label: "Entregadas" },
   { key: "liquidado", label: "Liquidadas" },
+  { key: "por_cobrar", label: "Por cobrar" },
 ];
 
 function dateLabel(dateStr: string): string {
@@ -31,33 +41,78 @@ function dateLabel(dateStr: string): string {
   return formatDate(dateStr);
 }
 
-export function RemesasList({ remittances }: { remittances: Remittance[] }) {
-  const [estado, setEstado] = useState("todas");
-  const [q, setQ] = useState("");
+function csvCell(v: string | number | null | undefined): string {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+export function RemesasList({
+  remittances,
+  initialQuery = "",
+  initialEstado = "todas",
+}: {
+  remittances: Remittance[];
+  initialQuery?: string;
+  initialEstado?: string;
+}) {
+  const [estado, setEstado] = useState(initialEstado);
+  const [q, setQ] = useState(initialQuery);
+  const [sort, setSort] = useState<"fecha" | "monto" | "ganancia">("fecha");
+  const [showDates, setShowDates] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return remittances.filter((r) => {
-      if (estado !== "todas" && r.status !== estado) return false;
-      if (!term) return true;
-      const hay = [
-        r.beneficiary?.name,
-        r.client?.name,
-        r.beneficiary?.province,
-        r.payment_method,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(term);
+    const out = remittances.filter((r) => {
+      if (estado === "por_cobrar") {
+        if (r.client_paid !== false) return false;
+      } else if (estado !== "todas") {
+        if (r.status !== estado) return false;
+      }
+      if (from && r.date < from) return false;
+      if (to && r.date > to) return false;
+      if (term) {
+        const hay = [
+          r.beneficiary?.name,
+          r.client?.name,
+          r.beneficiary?.province,
+          r.payment_method,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
     });
-  }, [remittances, estado, q]);
+    out.sort((a, b) => {
+      if (sort === "monto") return Number(b.amount_usd) - Number(a.amount_usd);
+      if (sort === "ganancia")
+        return Number(b.total_profit) - Number(a.total_profit);
+      return (
+        b.date.localeCompare(a.date) ||
+        (b.created_at || "").localeCompare(a.created_at || "")
+      );
+    });
+    return out;
+  }, [remittances, estado, q, from, to, sort]);
 
   const totalSent = list.reduce((s, r) => s + Number(r.amount_usd), 0);
   const totalProfit = list.reduce((s, r) => s + Number(r.total_profit), 0);
 
-  // Agrupar por fecha (la lista ya viene ordenada desc por fecha).
+  // Total por moneda de entrega
+  const byCurrency = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const r of list)
+      m[r.delivery_currency] =
+        (m[r.delivery_currency] || 0) + Number(r.local_amount);
+    return Object.entries(m);
+  }, [list]);
+
+  // Agrupar por fecha solo cuando el orden es por fecha.
   const groups = useMemo(() => {
+    if (sort !== "fecha") return [{ label: "", items: list }];
     const out: { label: string; items: Remittance[] }[] = [];
     for (const r of list) {
       const label = dateLabel(r.date);
@@ -66,7 +121,56 @@ export function RemesasList({ remittances }: { remittances: Remittance[] }) {
       else out.push({ label, items: [r] });
     }
     return out;
-  }, [list]);
+  }, [list, sort]);
+
+  function exportCsv() {
+    const headers = [
+      "Fecha",
+      "Cliente",
+      "Beneficiario",
+      "Monto USD",
+      "Comisión",
+      "Total cobrado",
+      "Método",
+      "Moneda",
+      "Monto local",
+      "Ganancia",
+      "Tu parte",
+      "Estado",
+      "Cobrado",
+    ];
+    const rows = list.map((r) =>
+      [
+        r.date,
+        r.client?.name,
+        r.beneficiary?.name,
+        r.amount_usd,
+        r.commission,
+        r.total_received,
+        r.payment_method,
+        r.delivery_currency,
+        r.local_amount,
+        r.total_profit,
+        r.my_share,
+        r.status,
+        r.client_paid === false ? "No" : "Sí",
+      ]
+        .map(csvCell)
+        .join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob(["﻿" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "remesas.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div>
@@ -81,7 +185,7 @@ export function RemesasList({ remittances }: { remittances: Remittance[] }) {
         />
       </div>
 
-      {/* Filtros */}
+      {/* Filtros de estado */}
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
         {filters.map((f) => (
           <button
@@ -99,9 +203,68 @@ export function RemesasList({ remittances }: { remittances: Remittance[] }) {
         ))}
       </div>
 
-      {/* Barra de totales del filtro */}
+      {/* Controles: orden, fechas, exportar */}
+      <div className="mb-3 flex items-center gap-2">
+        <div className="relative flex-1">
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+            className="w-full rounded-xl border border-input bg-card py-2 pl-8 pr-3 text-xs font-medium text-foreground outline-none"
+          >
+            <option value="fecha">Más recientes</option>
+            <option value="monto">Mayor monto</option>
+            <option value="ganancia">Mayor ganancia</option>
+          </select>
+        </div>
+        <button
+          onClick={() => setShowDates((s) => !s)}
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-xl border transition",
+            showDates || from || to
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-muted-foreground"
+          )}
+          aria-label="Filtrar por fecha"
+        >
+          <Calendar className="h-4 w-4" />
+        </button>
+        <button
+          onClick={exportCsv}
+          disabled={list.length === 0}
+          className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition disabled:opacity-40"
+          aria-label="Exportar CSV"
+        >
+          <Download className="h-4 w-4" />
+        </button>
+      </div>
+
+      {showDates && (
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          <label className="text-xs text-muted-foreground">
+            Desde
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground outline-none"
+            />
+          </label>
+          <label className="text-xs text-muted-foreground">
+            Hasta
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground outline-none"
+            />
+          </label>
+        </div>
+      )}
+
+      {/* Totales del filtro */}
       {list.length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-3 grid grid-cols-2 gap-3">
           <div className="rounded-xl border border-border bg-card px-3 py-2">
             <p className="text-[11px] font-medium text-muted-foreground">
               Enviado ({list.length})
@@ -121,12 +284,29 @@ export function RemesasList({ remittances }: { remittances: Remittance[] }) {
         </div>
       )}
 
+      {/* Total por moneda */}
+      {byCurrency.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {byCurrency.map(([cur, amt]) => (
+            <span
+              key={cur}
+              className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
+            >
+              Entregado{" "}
+              <span className="font-semibold text-foreground">
+                {localAmount(amt)} {cur}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
       {list.length === 0 ? (
         <EmptyState
-          title={q ? "Sin resultados" : "No hay remesas aquí"}
+          title={q || from || to ? "Sin resultados" : "No hay remesas aquí"}
           description={
-            q
-              ? "Prueba con otro nombre."
+            q || from || to
+              ? "Prueba con otros filtros."
               : "Cuando registres envíos aparecerán en esta lista."
           }
           action={
@@ -142,11 +322,13 @@ export function RemesasList({ remittances }: { remittances: Remittance[] }) {
         />
       ) : (
         <div className="space-y-4">
-          {groups.map((g) => (
-            <div key={g.label}>
-              <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {g.label}
-              </p>
+          {groups.map((g, gi) => (
+            <div key={g.label || gi}>
+              {g.label && (
+                <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {g.label}
+                </p>
+              )}
               <div className="space-y-2">
                 {g.items.map((r) => (
                   <RemesaCard key={r.id} r={r} />
@@ -162,6 +344,17 @@ export function RemesasList({ remittances }: { remittances: Remittance[] }) {
 
 function RemesaCard({ r }: { r: Remittance }) {
   const [pending, start] = useTransition();
+  const [undo, setUndo] = useState(false);
+
+  function deliver() {
+    setUndo(true);
+    start(() => updateRemittanceStatus(r.id, "entregado"));
+    setTimeout(() => setUndo(false), 6000);
+  }
+  function undoDeliver() {
+    setUndo(false);
+    start(() => updateRemittanceStatus(r.id, "pendiente"));
+  }
 
   return (
     <Card className="p-3.5">
@@ -177,8 +370,9 @@ function RemesaCard({ r }: { r: Remittance }) {
             <p className="truncate text-sm font-semibold text-foreground">
               {r.beneficiary?.name || r.client?.name || "Remesa"}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {r.payment_method || "Sin método"}
+            <p className="truncate text-xs text-muted-foreground">
+              {formatDate(r.date)}
+              {r.payment_method ? ` · ${r.payment_method}` : ""}
             </p>
           </div>
         </Link>
@@ -186,7 +380,10 @@ function RemesaCard({ r }: { r: Remittance }) {
           <span className="tabular text-sm font-bold text-foreground">
             {usd(r.amount_usd)}
           </span>
-          <Badge tone={statusTone[r.status]}>{r.status}</Badge>
+          <div className="flex items-center gap-1">
+            {r.client_paid === false && <Badge tone="amber">Por cobrar</Badge>}
+            <Badge tone={statusTone[r.status]}>{r.status}</Badge>
+          </div>
         </div>
       </div>
 
@@ -194,16 +391,24 @@ function RemesaCard({ r }: { r: Remittance }) {
         <span className="text-muted-foreground">
           Ganancia {usd(r.total_profit)} · Tu parte {usd(r.my_share)}
         </span>
-        {r.status === "pendiente" && (
+        {undo ? (
           <button
             disabled={pending}
-            onClick={() =>
-              start(() => updateRemittanceStatus(r.id, "entregado"))
-            }
-            className="inline-flex items-center gap-1 rounded-full bg-income/10 px-2.5 py-1 font-semibold text-income transition active:scale-95 disabled:opacity-50"
+            onClick={undoDeliver}
+            className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-semibold text-muted-foreground transition active:scale-95 disabled:opacity-50"
           >
-            <Check className="h-3.5 w-3.5" /> Entregar
+            <Undo2 className="h-3.5 w-3.5" /> Deshacer
           </button>
+        ) : (
+          r.status === "pendiente" && (
+            <button
+              disabled={pending}
+              onClick={deliver}
+              className="inline-flex items-center gap-1 rounded-full bg-income/10 px-2.5 py-1 font-semibold text-income transition active:scale-95 disabled:opacity-50"
+            >
+              <Check className="h-3.5 w-3.5" /> Entregar
+            </button>
+          )
         )}
       </div>
     </Card>

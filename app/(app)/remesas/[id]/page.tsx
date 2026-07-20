@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil, MessageCircle } from "lucide-react";
+import { ArrowLeft, Pencil, MessageCircle, Copy, Users } from "lucide-react";
 import { getRemittance } from "@/lib/data";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
 import { ShareReceipt } from "@/components/share-receipt";
+import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,20 @@ export default async function RemesaDetailPage({
         >
           <ArrowLeft className="h-4 w-4" /> Remesas
         </Link>
-        <Link
-          href={`/remesas/${r.id}/editar`}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
-        >
-          <Pencil className="h-3.5 w-3.5" /> Editar
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/remesas/nueva?dup=${r.id}`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+          >
+            <Copy className="h-3.5 w-3.5" /> Duplicar
+          </Link>
+          <Link
+            href={`/remesas/${r.id}/editar`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Editar
+          </Link>
+        </div>
       </div>
 
       <div className="mb-4 flex items-start justify-between">
@@ -75,6 +84,20 @@ export default async function RemesaDetailPage({
           <Row label="Provincia" value={r.beneficiary.province} />
         )}
         <Row label="Método de pago" value={r.payment_method || "—"} />
+        {r.beneficiary?.name && (
+          <Link
+            href={`/remesas?q=${encodeURIComponent(r.beneficiary.name)}`}
+            className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-primary"
+          >
+            <Users className="h-3.5 w-3.5" /> Ver remesas de{" "}
+            {r.beneficiary.name}
+          </Link>
+        )}
+      </Card>
+
+      {/* Cobro al cliente */}
+      <Card className="mb-4">
+        <ClientPaidToggle id={r.id} paid={r.client_paid !== false} />
       </Card>
 
       <Card className="mb-4 space-y-2.5">

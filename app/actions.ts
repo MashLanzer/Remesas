@@ -36,26 +36,39 @@ export async function createRemittance(formData: FormData) {
     mySplitPercent,
   });
 
-  await supabase.from("remittances").insert({
-    date: str(formData.get("date")) ?? new Date().toISOString().slice(0, 10),
-    client_id: str(formData.get("client_id")),
-    beneficiary_id: str(formData.get("beneficiary_id")),
-    amount_usd: amountUsd,
-    commission: c.commission,
-    total_received: c.totalReceived,
-    payment_method: str(formData.get("payment_method")),
-    delivery_currency: str(formData.get("delivery_currency")) ?? "CUP",
-    exchange_rate: exchangeRate,
-    local_amount: c.localAmount,
-    exchange_profit: exchangeProfit,
-    total_profit: c.totalProfit,
-    my_split_percent: mySplitPercent,
-    my_share: c.myShare,
-    partner_share: c.partnerShare,
-    status: str(formData.get("status")) ?? "pendiente",
-    notes: str(formData.get("notes")),
-    created_by: user?.id ?? null,
-  });
+  const { data: inserted } = await supabase
+    .from("remittances")
+    .insert({
+      date: str(formData.get("date")) ?? new Date().toISOString().slice(0, 10),
+      client_id: str(formData.get("client_id")),
+      beneficiary_id: str(formData.get("beneficiary_id")),
+      amount_usd: amountUsd,
+      commission: c.commission,
+      total_received: c.totalReceived,
+      payment_method: str(formData.get("payment_method")),
+      delivery_currency: str(formData.get("delivery_currency")) ?? "CUP",
+      exchange_rate: exchangeRate,
+      local_amount: c.localAmount,
+      exchange_profit: exchangeProfit,
+      total_profit: c.totalProfit,
+      my_split_percent: mySplitPercent,
+      my_share: c.myShare,
+      partner_share: c.partnerShare,
+      status: str(formData.get("status")) ?? "pendiente",
+      notes: str(formData.get("notes")),
+      created_by: user?.id ?? null,
+    })
+    .select("id")
+    .single();
+
+  // "Cobrado del cliente" se escribe aparte para no romper si la columna
+  // aún no existe (requiere la migración 0003).
+  if (inserted?.id && str(formData.get("client_paid")) === "false") {
+    await supabase
+      .from("remittances")
+      .update({ client_paid: false })
+      .eq("id", inserted.id);
+  }
 
   revalidatePath("/remesas");
   revalidatePath("/");
@@ -104,10 +117,23 @@ export async function updateRemittance(formData: FormData) {
     })
     .eq("id", id);
 
+  // Cobrado del cliente (aparte, tolerante si la columna no existe).
+  await supabase
+    .from("remittances")
+    .update({ client_paid: str(formData.get("client_paid")) !== "false" })
+    .eq("id", id);
+
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);
   revalidatePath("/");
   redirect(`/remesas/${id}`);
+}
+
+export async function setClientPaid(id: string, paid: boolean) {
+  const supabase = await createClient();
+  await supabase.from("remittances").update({ client_paid: paid }).eq("id", id);
+  revalidatePath("/remesas");
+  revalidatePath(`/remesas/${id}`);
 }
 
 export async function updateRemittanceStatus(id: string, status: string) {

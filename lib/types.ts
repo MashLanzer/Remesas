@@ -79,6 +79,7 @@ export interface Remittance {
   my_share: number;
   partner_share: number;
   status: RemittanceStatus;
+  client_paid: boolean;
   notes: string | null;
   created_by: string | null;
   created_at: string;
