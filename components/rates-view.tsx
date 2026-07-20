@@ -1,15 +1,27 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Minus, Plus, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
+import {
+  Check,
+  Minus,
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  Sparkles,
+} from "lucide-react";
 import { Card } from "@/components/ui";
-import { upsertRate } from "@/app/actions";
+import { upsertRate, toggleCurrencyActive } from "@/app/actions";
 import { formatDate, localAmount, cn } from "@/lib/utils";
 import {
   DELIVERY_CURRENCIES,
   type ExchangeRate,
   type RateHistory,
 } from "@/lib/types";
+import { RateImport } from "@/components/rate-import";
 
 const STALE_DAYS = 3;
 
@@ -23,9 +35,9 @@ export function RatesView({
   const byCurrency: Record<string, ExchangeRate | undefined> = {};
   for (const r of rates) byCurrency[r.currency] = r;
 
-  const histByCurrency: Record<string, number[]> = {};
+  const histByCurrency: Record<string, RateHistory[]> = {};
   for (const h of history) {
-    (histByCurrency[h.currency] ??= []).push(Number(h.rate));
+    (histByCurrency[h.currency] ??= []).push(h);
   }
 
   return (
@@ -38,6 +50,9 @@ export function RatesView({
           history={histByCurrency[c] ?? []}
         />
       ))}
+
+      <RateImport />
+
       <p className="pt-2 text-center text-xs text-muted-foreground">
         1 USD = tasa · unidades locales. Ajústala al mercado del día.
       </p>
@@ -50,6 +65,11 @@ function daysSince(dateStr: string): number {
   return Math.floor((Date.now() - t) / 86400000);
 }
 
+function roundStep(v: number): number {
+  const step = v >= 100 ? 5 : v >= 10 ? 1 : 0.1;
+  return Math.round(v / step) * step;
+}
+
 function RateRow({
   currency,
   rate,
@@ -57,115 +77,240 @@ function RateRow({
 }: {
   currency: string;
   rate?: ExchangeRate;
-  history: number[];
+  history: RateHistory[];
 }) {
   const [pending, start] = useTransition();
   const initial = rate ? String(rate.rate) : "";
   const [value, setValue] = useState(initial);
+  const [expanded, setExpanded] = useState(false);
 
+  const active = rate?.active !== false;
   const dirty = value !== initial;
   const stale = rate ? daysSince(rate.updated_at) >= STALE_DAYS : false;
 
-  // Variación respecto al cambio anterior guardado en el historial
-  const prev = history.length >= 2 ? history[history.length - 2] : null;
   const currentRate = rate ? Number(rate.rate) : null;
+  const prev =
+    history.length >= 2 ? Number(history[history.length - 2].rate) : null;
   const delta =
     prev != null && currentRate != null && prev !== 0
       ? ((currentRate - prev) / prev) * 100
       : null;
 
+  const market = rate?.market_rate ? Number(rate.market_rate) : null;
+  const spread =
+    market != null && market !== 0 && currentRate != null
+      ? ((currentRate - market) / market) * 100
+      : null;
+
   function bump(step: number) {
     const n = (parseFloat(value) || 0) + step;
-    setValue(String(Math.max(n, 0)));
+    setValue(String(Math.max(Number(n.toFixed(4)), 0)));
+  }
+  function round() {
+    setValue(String(roundStep(parseFloat(value) || 0)));
   }
 
   return (
-    <Card className="p-3.5">
+    <Card className={cn("p-3.5", !active && "opacity-55")}>
       <form
         action={(fd) => start(() => upsertRate(fd))}
-        className="flex items-center gap-3"
+        className="space-y-2.5"
       >
         <input type="hidden" name="currency" value={currency} />
 
-        <div className="w-20 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-sm font-semibold text-foreground">{currency}</p>
-            {delta != null && Math.abs(delta) >= 0.01 && (
-              <span
-                className={cn(
-                  "flex items-center text-[10px] font-semibold",
-                  delta >= 0 ? "text-income" : "text-destructive"
-                )}
-              >
-                {delta >= 0 ? (
-                  <TrendingUp className="h-2.5 w-2.5" />
-                ) : (
-                  <TrendingDown className="h-2.5 w-2.5" />
-                )}
-                {Math.abs(delta).toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <p
+        {/* Cabecera: moneda + variación + sparkline + ocultar */}
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-foreground">{currency}</p>
+          {delta != null && Math.abs(delta) >= 0.01 && (
+            <span
+              className={cn(
+                "flex items-center text-[10px] font-semibold",
+                delta >= 0 ? "text-income" : "text-destructive"
+              )}
+            >
+              {delta >= 0 ? (
+                <TrendingUp className="h-2.5 w-2.5" />
+              ) : (
+                <TrendingDown className="h-2.5 w-2.5" />
+              )}
+              {Math.abs(delta).toFixed(1)}%
+            </span>
+          )}
+          {!active && (
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
+              oculta
+            </span>
+          )}
+          {history.length >= 2 && (
+            <Sparkline values={history.slice(-10).map((h) => Number(h.rate))} />
+          )}
+          <span
             className={cn(
-              "flex items-center gap-0.5 text-[10px]",
+              "ml-auto flex items-center gap-0.5 text-[10px]",
               stale ? "text-warning" : "text-muted-foreground"
             )}
           >
             {stale && <AlertCircle className="h-2.5 w-2.5" />}
             {rate ? formatDate(rate.updated_at) : "nueva"}
-          </p>
+          </span>
+          <HideButton currency={currency} active={active} />
         </div>
 
-        {history.length >= 2 && <Sparkline values={history.slice(-10)} />}
+        {/* Edición: ± tasa redondeo guardar */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => bump(-1)}
+            className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-95"
+            aria-label="Bajar"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <input
+            type="number"
+            name="rate"
+            step="0.0001"
+            min="0"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="w-full min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2 text-center text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+          />
+          <button
+            type="button"
+            onClick={() => bump(1)}
+            className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-95"
+            aria-label="Subir"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={round}
+            className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-95"
+            aria-label="Redondear"
+            title="Redondear"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="submit"
+            disabled={pending || !dirty}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition disabled:opacity-40"
+            aria-label="Guardar tasa"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => bump(-1)}
-          className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-95"
-          aria-label="Bajar"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </button>
-
-        <input
-          type="number"
-          name="rate"
-          step="0.0001"
-          min="0"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          className="w-full min-w-0 flex-1 rounded-xl border border-input bg-background px-3 py-2 text-center text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-        />
-
-        <button
-          type="button"
-          onClick={() => bump(1)}
-          className="flex h-9 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-95"
-          aria-label="Subir"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-
-        <button
-          type="submit"
-          disabled={pending || !dirty}
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-primary-foreground transition disabled:opacity-40",
-            "bg-primary"
+        {/* Tasa de mercado + spread */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="shrink-0 text-muted-foreground">Mercado</span>
+          <input
+            type="number"
+            name="market_rate"
+            step="0.0001"
+            min="0"
+            defaultValue={market != null ? String(market) : ""}
+            placeholder="opcional"
+            className="w-24 rounded-lg border border-input bg-background px-2 py-1 text-center text-foreground outline-none focus:border-ring"
+          />
+          {spread != null && (
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                spread >= 0
+                  ? "bg-income/10 text-income"
+                  : "bg-destructive/10 text-destructive"
+              )}
+            >
+              {spread >= 0 ? "+" : ""}
+              {spread.toFixed(1)}% vs mercado
+            </span>
           )}
-          aria-label="Guardar tasa"
-        >
-          <Check className="h-4 w-4" />
-        </button>
+          {history.length >= 1 && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="ml-auto flex items-center gap-0.5 text-muted-foreground"
+            >
+              Historial
+              <ChevronDown
+                className={cn("h-3.5 w-3.5 transition", expanded && "rotate-180")}
+              />
+            </button>
+          )}
+        </div>
+
+        {/* Historial expandible */}
+        {expanded && history.length >= 1 && (
+          <div className="space-y-2 border-t border-border pt-2.5">
+            {history.length >= 2 && (
+              <BigChart values={history.map((h) => Number(h.rate))} />
+            )}
+            <div className="space-y-1">
+              {[...history].reverse().slice(0, 12).map((h, i, arr) => {
+                const before = arr[i + 1] ? Number(arr[i + 1].rate) : null;
+                const d =
+                  before != null && before !== 0
+                    ? ((Number(h.rate) - before) / before) * 100
+                    : null;
+                return (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between text-[11px]"
+                  >
+                    <span className="text-muted-foreground">
+                      {formatDate(h.changed_at)}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="tabular font-medium text-foreground">
+                        {localAmount(Number(h.rate))}
+                      </span>
+                      {d != null && Math.abs(d) >= 0.01 && (
+                        <span
+                          className={cn(
+                            "tabular w-12 text-right",
+                            d >= 0 ? "text-income" : "text-destructive"
+                          )}
+                        >
+                          {d >= 0 ? "+" : ""}
+                          {d.toFixed(1)}%
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </form>
     </Card>
   );
 }
 
+function HideButton({ currency, active }: { currency: string; active: boolean }) {
+  const [pending, start] = useTransition();
+  return (
+    <form action={(fd) => start(() => toggleCurrencyActive(fd))}>
+      <input type="hidden" name="currency" value={currency} />
+      <input type="hidden" name="active" value={active ? "false" : "true"} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground transition active:scale-90 disabled:opacity-50"
+        aria-label={active ? "Ocultar moneda" : "Mostrar moneda"}
+        title={active ? "Ocultar" : "Mostrar"}
+      >
+        {active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+      </button>
+    </form>
+  );
+}
+
 function Sparkline({ values }: { values: number[] }) {
-  const W = 48;
-  const H = 24;
+  const W = 44;
+  const H = 20;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = max - min || 1;
@@ -194,6 +339,31 @@ function Sparkline({ values }: { values: number[] }) {
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function BigChart({ values }: { values: number[] }) {
+  const W = 300;
+  const H = 70;
+  const pad = 4;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const n = values.length;
+  const x = (i: number) => pad + (i / Math.max(n - 1, 1)) * (W - pad * 2);
+  const y = (v: number) => H - pad - ((v - min) / span) * (H - pad * 2);
+  const d = values
+    .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`)
+    .join(" ");
+  const up = values[n - 1] >= values[0];
+  const stroke = up ? "hsl(var(--income))" : "hsl(var(--destructive))";
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="none">
+      <path d={d} fill="none" stroke={stroke} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      {values.map((v, i) => (
+        <circle key={i} cx={x(i)} cy={y(v)} r={2} fill={stroke} />
+      ))}
     </svg>
   );
 }

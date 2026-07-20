@@ -288,6 +288,66 @@ export async function upsertRate(formData: FormData) {
     await supabase.from("rate_history").insert({ currency, rate });
   }
 
+  // Tasa de mercado / referencia (aparte, tolerante — columna 0009).
+  const marketRaw = formData.get("market_rate");
+  if (marketRaw !== null) {
+    const trimmed = String(marketRaw).trim();
+    await supabase
+      .from("exchange_rates")
+      .update({ market_rate: trimmed === "" ? null : num(marketRaw) })
+      .eq("currency", currency);
+  }
+
+  revalidatePath("/tasas");
+  revalidatePath("/remesas/nueva");
+}
+
+export async function toggleCurrencyActive(formData: FormData) {
+  const supabase = await createClient();
+  const currency = str(formData.get("currency"));
+  const active = String(formData.get("active")) === "true";
+  if (!currency) return;
+  // Tolerante si la columna 'active' no existe todavía (0009).
+  await supabase
+    .from("exchange_rates")
+    .update({ active })
+    .eq("currency", currency);
+  revalidatePath("/tasas");
+  revalidatePath("/remesas/nueva");
+}
+
+export async function importRates(formData: FormData) {
+  const supabase = await createClient();
+  const raw = String(formData.get("raw") ?? "");
+  const valid = ["CUP", "USD", "MLC", "EUR"];
+  const seen = new Set<string>();
+  // Reconoce líneas tipo "CUP 440", "MLC: 260", "eur = 0.92"
+  for (const line of raw.split(/[\n,;]+/)) {
+    const m = line.trim().match(/([A-Za-z]{3})\s*[:=]?\s*([\d.,]+)/);
+    if (!m) continue;
+    const currency = m[1].toUpperCase();
+    if (!valid.includes(currency) || seen.has(currency)) continue;
+    const rate = parseFloat(m[2].replace(",", "."));
+    if (isNaN(rate) || rate <= 0) continue;
+    seen.add(currency);
+
+    const { data: existing } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("currency", currency)
+      .single();
+    const changed = !existing || Number(existing.rate) !== rate;
+
+    await supabase
+      .from("exchange_rates")
+      .upsert(
+        { currency, rate, updated_at: new Date().toISOString() },
+        { onConflict: "currency" }
+      );
+    if (changed) {
+      await supabase.from("rate_history").insert({ currency, rate });
+    }
+  }
   revalidatePath("/tasas");
   revalidatePath("/remesas/nueva");
 }

@@ -6,11 +6,13 @@ import {
   CheckCircle2,
   ChevronRight,
   Wallet,
+  TrendingUp,
 } from "lucide-react";
 import {
   getRemittances,
   getSettlements,
   getBusinessSettings,
+  getExchangeRates,
 } from "@/lib/data";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd, formatDate } from "@/lib/utils";
@@ -24,10 +26,11 @@ function daysAgo(dateStr: string): number {
 }
 
 export default async function NotificacionesPage() {
-  const [all, settlements, settings] = await Promise.all([
+  const [all, settlements, settings, rates] = await Promise.all([
     getRemittances(),
     getSettlements(),
     getBusinessSettings(),
+    getExchangeRates(),
   ]);
 
   const pendientes = all
@@ -39,7 +42,13 @@ export default async function NotificacionesPage() {
   const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;
   const saldoAlto = threshold > 0 && balance >= threshold;
 
-  const nada = pendientes.length === 0 && porCobrar.length === 0 && !saldoAlto;
+  const staleRates = rates.filter(
+    (r) => r.active !== false && daysAgo(r.updated_at.slice(0, 10)) >= 3
+  );
+  const tasasViejas = staleRates.length > 0;
+
+  const nada =
+    pendientes.length === 0 && porCobrar.length === 0 && !saldoAlto && !tasasViejas;
 
   return (
     <div>
@@ -76,6 +85,29 @@ export default async function NotificacionesPage() {
                   </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-warning" />
+              </Card>
+            </Link>
+          )}
+
+          {tasasViejas && (
+            <Link href="/tasas">
+              <Card className="flex items-center justify-between border-info/30 bg-info/10 transition active:scale-[0.99]">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
+                    <TrendingUp className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-info">
+                      Actualiza las tasas
+                    </p>
+                    <p className="text-xs text-info/80">
+                      {staleRates.map((r) => r.currency).join(", ")} ·{" "}
+                      {staleRates.length === 1 ? "lleva" : "llevan"} 3+ días sin
+                      cambios
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-info" />
               </Card>
             </Link>
           )}

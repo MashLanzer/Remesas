@@ -15,8 +15,15 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
     return m;
   }, [rates]);
 
+  const available = useMemo(() => {
+    const hidden = new Set(
+      rates.filter((r) => r.active === false).map((r) => r.currency)
+    );
+    return DELIVERY_CURRENCIES.filter((c) => !hidden.has(c));
+  }, [rates]);
+
   const [amount, setAmount] = useState("100");
-  const [currency, setCurrency] = useState("CUP");
+  const [currency, setCurrency] = useState<string>(available[0] ?? "CUP");
   // false: USD → moneda local · true: moneda local → USD
   const [inverse, setInverse] = useState(false);
 
@@ -67,7 +74,7 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
             onChange={(e) => setCurrency(e.target.value)}
             className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
           >
-            {DELIVERY_CURRENCIES.map((c) => (
+            {available.map((c) => (
               <option key={c} value={c}>
                 {c} · {localAmount(ratesByCurrency[c] ?? 0)}
               </option>

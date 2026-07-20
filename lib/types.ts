@@ -61,6 +61,8 @@ export interface ExchangeRate {
   id: string;
   currency: DeliveryCurrency;
   rate: number; // cuántas unidades locales = 1 USD
+  market_rate?: number | null; // tasa de referencia del mercado (opcional)
+  active?: boolean; // si está oculta/bloqueada
   updated_at: string;
 }
 

@@ -52,6 +52,16 @@ export function RemittanceForm({
     return m;
   }, [rates]);
 
+  // Monedas visibles: activas + la que ya tenga la remesa (aunque esté oculta)
+  const currencyOptions = useMemo(() => {
+    const hidden = new Set(
+      rates.filter((r) => r.active === false).map((r) => r.currency)
+    );
+    return DELIVERY_CURRENCIES.filter(
+      (c) => !hidden.has(c) || c === source?.delivery_currency
+    );
+  }, [rates, source?.delivery_currency]);
+
   const [amount, setAmount] = useState(
     source ? String(source.amount_usd) : ""
   );
@@ -202,7 +212,7 @@ export function RemittanceForm({
               value={currency}
               onChange={(e) => onCurrencyChange(e.target.value)}
             >
-              {DELIVERY_CURRENCIES.map((c) => (
+              {currencyOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>

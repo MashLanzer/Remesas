@@ -120,7 +120,17 @@ export async function getAlertCount(): Promise<number> {
     if (calcPartnerBalance(rem, set) >= threshold) saldoAlert = 1;
   }
 
-  return (pending ?? 0) + (porCobrar ?? 0) + saldoAlert;
+  // Tasas sin actualizar hace 3+ días (cuenta como 1 aviso).
+  let ratesAlert = 0;
+  const rates = await getExchangeRates();
+  const stale = rates.some(
+    (r) =>
+      r.active !== false &&
+      Math.floor((Date.now() - new Date(r.updated_at).getTime()) / 86400000) >= 3
+  );
+  if (stale) ratesAlert = 1;
+
+  return (pending ?? 0) + (porCobrar ?? 0) + saldoAlert + ratesAlert;
 }
 
 export async function getSettlements(): Promise<Settlement[]> {
