@@ -81,7 +81,7 @@ function SettlementCard({ settlement: s }: { settlement: Settlement }) {
         <span
           className={
             "flex h-9 w-9 items-center justify-center rounded-full " +
-            (toCuba ? "bg-info/10 text-info" : "bg-emerald-100 text-income")
+            (toCuba ? "bg-info/10 text-info" : "bg-income/10 text-income")
           }
         >
           {toCuba ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
