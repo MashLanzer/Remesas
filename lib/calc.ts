@@ -34,14 +34,25 @@ export function calcCommission(
   return round2(Number(rules.commission_flat) || 0);
 }
 
-/** Total que se le cobra al cliente = monto del envío + comisión. */
-export function calcTotalReceived(amountUsd: number, commission: number): number {
-  return round2((Number(amountUsd) || 0) + (Number(commission) || 0));
+/**
+ * Total que se le cobra al cliente = el monto del envío.
+ * La comisión NO se suma aparte: se descuenta de ese monto (ver calcDelivered).
+ */
+export function calcTotalReceived(amountUsd: number): number {
+  return round2(Number(amountUsd) || 0);
 }
 
-/** Monto que recibe la familia en moneda local = monto USD * tasa. */
-export function calcLocalAmount(amountUsd: number, rate: number): number {
-  return round2((Number(amountUsd) || 0) * (Number(rate) || 0));
+/**
+ * Lo que realmente se entrega a la familia en USD = monto del envío − comisión.
+ * La comisión sale del dinero que manda el cliente, no es un cargo extra.
+ */
+export function calcDelivered(amountUsd: number, commission: number): number {
+  return round2((Number(amountUsd) || 0) - (Number(commission) || 0));
+}
+
+/** Monto que recibe la familia en moneda local = (USD entregado) * tasa. */
+export function calcLocalAmount(deliveredUsd: number, rate: number): number {
+  return round2((Number(deliveredUsd) || 0) * (Number(rate) || 0));
 }
 
 /** Ganancia total = comisión + ganancia por diferencial de cambio (spread). */
@@ -77,11 +88,21 @@ export interface RemittanceInputs {
 
 export function computeRemittance(inputs: RemittanceInputs) {
   const commission = Number(inputs.commission) || 0;
-  const totalReceived = calcTotalReceived(inputs.amountUsd, commission);
-  const localAmount = calcLocalAmount(inputs.amountUsd, inputs.exchangeRate);
+  // El cliente paga el monto completo; la comisión se descuenta de ahí.
+  const totalReceived = calcTotalReceived(inputs.amountUsd);
+  const deliveredUsd = calcDelivered(inputs.amountUsd, commission);
+  const localAmount = calcLocalAmount(deliveredUsd, inputs.exchangeRate);
   const totalProfit = calcTotalProfit(commission, inputs.exchangeProfit);
   const { myShare, partnerShare } = calcShares(totalProfit, inputs.mySplitPercent);
-  return { commission, totalReceived, localAmount, totalProfit, myShare, partnerShare };
+  return {
+    commission,
+    deliveredUsd,
+    totalReceived,
+    localAmount,
+    totalProfit,
+    myShare,
+    partnerShare,
+  };
 }
 
 /**
@@ -97,14 +118,19 @@ export function computeRemittance(inputs: RemittanceInputs) {
  *   < 0  -> tu amigo te debe a ti.
  */
 export function calcPartnerBalance(
-  remittances: Pick<Remittance, "amount_usd" | "partner_share" | "status">[],
+  remittances: Pick<
+    Remittance,
+    "amount_usd" | "commission" | "partner_share" | "status"
+  >[],
   settlements: Pick<Settlement, "amount" | "direction">[]
 ): number {
   let owedToPartner = 0;
 
   for (const r of remittances) {
-    // Se cuenta lo entregado (capital del amigo) + su parte de ganancia.
-    owedToPartner += (Number(r.amount_usd) || 0) + (Number(r.partner_share) || 0);
+    // Capital que adelanta el amigo = lo entregado a la familia (monto − comisión).
+    // A eso se suma su parte de la ganancia.
+    const delivered = (Number(r.amount_usd) || 0) - (Number(r.commission) || 0);
+    owedToPartner += delivered + (Number(r.partner_share) || 0);
   }
 
   for (const s of settlements) {

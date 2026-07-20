@@ -150,7 +150,10 @@ export function RemittanceForm({
           </Select>
         </Field>
 
-        <Field label="Monto del envío (USD)" hint="Lo que se entrega a la familia">
+        <Field
+          label="Monto del envío (USD)"
+          hint="Lo que paga el cliente. La comisión se descuenta de aquí."
+        >
           <Input
             type="number"
             name="amount_usd"
@@ -238,6 +241,9 @@ export function RemittanceForm({
           <p className="text-lg font-semibold text-foreground">
             {localAmount(summary.localAmount)} {currency}
           </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {usd(summary.deliveredUsd)} después de comisión
+          </p>
         </div>
 
         <Field
@@ -259,8 +265,8 @@ export function RemittanceForm({
       {/* Reparto y estado */}
       <Card className="space-y-4">
         <Field
-          label={`Tu parte de la ganancia (%) — el resto es del socio`}
-          hint={`Tú ${split || 0}% · Socio ${100 - (parseFloat(split) || 0)}%`}
+          label={`Tu parte de la ganancia (%) — el resto es de Cuba`}
+          hint={`Tú ${split || 0}% · Cuba ${100 - (parseFloat(split) || 0)}%`}
         >
           <Input
             type="number"
@@ -327,14 +333,15 @@ export function RemittanceForm({
           </p>
         </div>
         <div className="space-y-2 p-4">
-          <SummaryRow label="Comisión" value={usd(effectiveCommission)} />
-          <SummaryRow label="Ganancia total" value={usd(summary.totalProfit)} />
-          <div className="my-1 border-t border-border" />
-          <SummaryRow label="Tu parte" value={usd(summary.myShare)} tone="positive" />
+          <SummaryRow label="− Comisión" value={usd(effectiveCommission)} />
           <SummaryRow
-            label="Parte del socio"
-            value={usd(summary.partnerShare)}
+            label="= Se entrega a la familia"
+            value={usd(summary.deliveredUsd)}
           />
+          <div className="my-1 border-t border-border" />
+          <SummaryRow label="Ganancia total" value={usd(summary.totalProfit)} />
+          <SummaryRow label="Tu parte" value={usd(summary.myShare)} tone="positive" />
+          <SummaryRow label="Parte de Cuba" value={usd(summary.partnerShare)} />
         </div>
       </Card>
 

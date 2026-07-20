@@ -101,9 +101,12 @@ export default async function RemesaDetailPage({
       </Card>
 
       <Card className="mb-4 space-y-2.5">
-        <Row label="Monto del envío" value={usd(r.amount_usd)} />
-        <Row label="Comisión" value={usd(r.commission)} />
-        <Row label="Cobrado al cliente" value={usd(r.total_received)} strong />
+        <Row label="Monto del envío (paga el cliente)" value={usd(r.amount_usd)} strong />
+        <Row label="− Comisión" value={usd(r.commission)} />
+        <Row
+          label="= Se entrega a la familia"
+          value={usd(Number(r.amount_usd) - Number(r.commission))}
+        />
         <div className="my-1 border-t border-border" />
         <Row
           label={`Entregado (${r.delivery_currency})`}
@@ -121,7 +124,7 @@ export default async function RemesaDetailPage({
         <div className="my-1 border-t border-income/30" />
         <Row label={`Tu parte (${r.my_split_percent}%)`} value={usd(r.my_share)} />
         <Row
-          label={`Parte del socio (${100 - Number(r.my_split_percent)}%)`}
+          label={`Parte de Cuba (${100 - Number(r.my_split_percent)}%)`}
           value={usd(r.partner_share)}
         />
       </Card>

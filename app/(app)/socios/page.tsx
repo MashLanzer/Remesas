@@ -22,7 +22,10 @@ export default async function CuentasPage() {
   const owed = balance > 0;
   const settled = Math.abs(balance) < 0.01;
 
-  const totalDelivered = remittances.reduce((s, r) => s + Number(r.amount_usd), 0);
+  const totalDelivered = remittances.reduce(
+    (s, r) => s + (Number(r.amount_usd) - Number(r.commission)),
+    0
+  );
   const partnerProfit = remittances.reduce((s, r) => s + Number(r.partner_share), 0);
   const myProfit = remittances.reduce((s, r) => s + Number(r.my_share), 0);
   const sentToCuba = settlements
@@ -41,7 +44,8 @@ export default async function CuentasPage() {
       date: r.date,
       kind: "remesa" as const,
       label: r.beneficiary?.name || r.client?.name || "Remesa",
-      delta: Number(r.amount_usd) + Number(r.partner_share),
+      delta:
+        Number(r.amount_usd) - Number(r.commission) + Number(r.partner_share),
     })),
     ...settlements.map((s) => ({
       id: `s-${s.id}`,
