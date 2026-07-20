@@ -12,6 +12,9 @@
     "cap:android": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/browser": "^6.0.4",
+    "@capacitor/core": "^6.1.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "clsx": "^2.1.1",
@@ -24,7 +27,6 @@
   "devDependencies": {
     "@capacitor/android": "^6.1.2",
     "@capacitor/cli": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
     "@types/node": "^20.16.11",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",

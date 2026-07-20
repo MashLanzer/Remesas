@@ -1,17 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Send } from "lucide-react";
+
+// Esquema de deep link para volver a la app (APK) tras el login.
+const NATIVE_REDIRECT = "com.remesas.app://auth/callback";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // En el APK, escucha el "deep link" de vuelta desde la pestaña de Google
+  // y completa la sesión.
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+
+    (async () => {
+      const { Capacitor } = await import("@capacitor/core");
+      if (!Capacitor.isNativePlatform()) return;
+
+      const { App } = await import("@capacitor/app");
+      const handle = await App.addListener("appUrlOpen", async ({ url }) => {
+        try {
+          const parsed = new URL(url);
+          const code = parsed.searchParams.get("code");
+          const { Browser } = await import("@capacitor/browser");
+          await Browser.close().catch(() => {});
+          if (!code) return;
+
+          const supabase = createClient();
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            setError(error.message);
+            setLoading(false);
+            return;
+          }
+          // Sesión lista: recarga a la app.
+          window.location.href = "/";
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Error de login");
+          setLoading(false);
+        }
+      });
+      cleanup = () => {
+        handle.remove();
+      };
+    })();
+
+    return () => cleanup?.();
+  }, []);
+
   async function signInWithGoogle() {
     setLoading(true);
     setError(null);
+
+    const { Capacitor } = await import("@capacitor/core");
     const supabase = createClient();
+
+    // === APK (nativo): abre la pestaña segura de Google y vuelve por deep link ===
+    if (Capacitor.isNativePlatform()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: NATIVE_REDIRECT,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error || !data?.url) {
+        setError(error?.message ?? "No se pudo iniciar el login");
+        setLoading(false);
+        return;
+      }
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: data.url, presentationStyle: "popover" });
+      // El resto lo maneja el listener de appUrlOpen (arriba).
+      return;
+    }
+
+    // === Web: redirección normal ===
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ||
       (typeof window !== "undefined" ? window.location.origin : "");
