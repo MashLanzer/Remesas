@@ -101,23 +101,37 @@ export function ContactActions({
                       ))}
                     </Select>
                   </Field>
+                  <Field label="Cómo recibe">
+                    <Select
+                      name="preferred_delivery"
+                      defaultValue={beneficiary?.preferred_delivery ?? ""}
+                    >
+                      <option value="">—</option>
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Tarjeta CUP">Tarjeta CUP</option>
+                      <option value="MLC">MLC</option>
+                      <option value="Transferencia">Transferencia</option>
+                    </Select>
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <Field label="Carnet (CI)">
                     <Input name="id_card" defaultValue={beneficiary?.id_card ?? ""} />
                   </Field>
+                  <Field label="Cliente asociado">
+                    <Select
+                      name="client_id"
+                      defaultValue={beneficiary?.client_id ?? ""}
+                    >
+                      <option value="">— Ninguno —</option>
+                      {(clients ?? []).map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
                 </div>
-                <Field label="Cliente asociado">
-                  <Select
-                    name="client_id"
-                    defaultValue={beneficiary?.client_id ?? ""}
-                  >
-                    <option value="">— Ninguno —</option>
-                    {(clients ?? []).map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
               </>
             )}
 

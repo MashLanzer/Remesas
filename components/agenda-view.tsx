@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronRight, Pin } from "lucide-react";
 import {
   Card,
   Button,
+  Badge,
   Field,
   Input,
   Select,
@@ -13,11 +14,16 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { createClientRecord, createBeneficiary } from "@/app/actions";
-import { usd } from "@/lib/utils";
+import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { DELIVERY_CURRENCIES, type Beneficiary, type Client } from "@/lib/types";
 
-export type ContactStat = { count: number; total: number };
+export type ContactStat = {
+  count: number;
+  total: number;
+  last?: string;
+  owed?: number;
+};
 
 export function AgendaView({
   clients,
@@ -37,28 +43,35 @@ export function AgendaView({
 
   const term = q.trim().toLowerCase();
 
+  function sortFn<T extends { id: string; name: string; pinned?: boolean }>(
+    stats: Record<string, ContactStat>
+  ) {
+    return (a: T, b: T) => {
+      const ap = a.pinned ? 1 : 0;
+      const bp = b.pinned ? 1 : 0;
+      if (ap !== bp) return bp - ap; // favoritos arriba
+      if (sort === "actividad")
+        return (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0);
+      return a.name.localeCompare(b.name);
+    };
+  }
+
   const fClients = useMemo(() => {
     const arr = clients.filter((c) =>
       [c.name, c.phone, c.country].filter(Boolean).join(" ").toLowerCase().includes(term)
     );
-    arr.sort((a, b) =>
-      sort === "actividad"
-        ? (clientStats[b.id]?.count ?? 0) - (clientStats[a.id]?.count ?? 0)
-        : a.name.localeCompare(b.name)
-    );
+    arr.sort(sortFn(clientStats));
     return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clients, term, sort, clientStats]);
 
   const fBeneficiaries = useMemo(() => {
     const arr = beneficiaries.filter((b) =>
       [b.name, b.phone, b.province].filter(Boolean).join(" ").toLowerCase().includes(term)
     );
-    arr.sort((a, b) =>
-      sort === "actividad"
-        ? (benefStats[b.id]?.count ?? 0) - (benefStats[a.id]?.count ?? 0)
-        : a.name.localeCompare(b.name)
-    );
+    arr.sort(sortFn(benefStats));
     return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beneficiaries, term, sort, benefStats]);
 
   return (
@@ -120,6 +133,7 @@ export function AgendaView({
                 href={`/agenda/cliente/${c.id}`}
                 name={c.name}
                 sub={[c.phone, c.country].filter(Boolean).join(" · ")}
+                pinned={c.pinned}
                 stat={clientStats[c.id]}
               />
             ))}
@@ -138,6 +152,7 @@ export function AgendaView({
               href={`/agenda/beneficiario/${b.id}`}
               name={b.name}
               sub={[b.phone, b.province].filter(Boolean).join(" · ")}
+              pinned={b.pinned}
               stat={benefStats[b.id]}
             />
           ))}
@@ -175,11 +190,13 @@ function ContactCard({
   href,
   name,
   sub,
+  pinned,
   stat,
 }: {
   href: string;
   name: string;
   sub: string;
+  pinned?: boolean;
   stat?: ContactStat;
 }) {
   const initial = name.charAt(0).toUpperCase();
@@ -190,14 +207,22 @@ function ContactCard({
           {initial}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+            {pinned && <Pin className="h-3 w-3 shrink-0 fill-primary text-primary" />}
+          </div>
           <p className="truncate text-xs text-muted-foreground">
             {stat && stat.count > 0
               ? `${stat.count} remesa${stat.count > 1 ? "s" : ""} · ${usd(stat.total)}`
               : sub || "Sin remesas aún"}
+            {stat?.last ? ` · ${formatDate(stat.last)}` : ""}
           </p>
         </div>
-        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        {stat?.owed && stat.owed > 0 ? (
+          <Badge tone="amber">Debe {usd(stat.owed)}</Badge>
+        ) : (
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        )}
       </Card>
     </Link>
   );
@@ -251,18 +276,29 @@ function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () =>
               ))}
             </Select>
           </Field>
+          <Field label="Cómo recibe">
+            <Select name="preferred_delivery" defaultValue="">
+              <option value="">—</option>
+              <option value="Efectivo">Efectivo</option>
+              <option value="Tarjeta CUP">Tarjeta CUP</option>
+              <option value="MLC">MLC</option>
+              <option value="Transferencia">Transferencia</option>
+            </Select>
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <Field label="Carnet (CI)">
             <Input name="id_card" placeholder="Opcional" />
           </Field>
+          <Field label="Cliente asociado">
+            <Select name="client_id" defaultValue="">
+              <option value="">— Ninguno —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </Select>
+          </Field>
         </div>
-        <Field label="Cliente asociado">
-          <Select name="client_id" defaultValue="">
-            <option value="">— Ninguno —</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
-        </Field>
         <Button type="submit" className="w-full">Guardar beneficiario</Button>
       </form>
     </Card>

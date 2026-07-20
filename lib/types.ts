@@ -39,6 +39,7 @@ export interface Client {
   phone: string | null;
   country: string | null;
   notes: string | null;
+  pinned?: boolean;
   created_at: string;
 }
 
@@ -48,9 +49,11 @@ export interface Beneficiary {
   phone: string | null;
   province: string | null;
   preferred_currency: DeliveryCurrency | null;
+  preferred_delivery?: string | null;
   id_card: string | null;
   notes: string | null;
   client_id: string | null;
+  pinned?: boolean;
   created_at: string;
 }
 

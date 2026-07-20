@@ -218,13 +218,39 @@ export async function createBeneficiary(formData: FormData) {
     client_id: str(formData.get("client_id")),
     notes: str(formData.get("notes")),
   };
+  let targetId = id;
   if (id) {
     await supabase.from("beneficiaries").update(values).eq("id", id);
-    revalidatePath(`/agenda/beneficiario/${id}`);
   } else {
-    await supabase.from("beneficiaries").insert(values);
+    const { data } = await supabase
+      .from("beneficiaries")
+      .insert(values)
+      .select("id")
+      .single();
+    targetId = data?.id ?? null;
+  }
+
+  // Método de entrega preferido, aparte (tolerante si la columna no existe).
+  if (targetId) {
+    await supabase
+      .from("beneficiaries")
+      .update({ preferred_delivery: str(formData.get("preferred_delivery")) })
+      .eq("id", targetId);
+    revalidatePath(`/agenda/beneficiario/${targetId}`);
   }
   revalidatePath("/agenda");
+}
+
+export async function togglePin(
+  kind: "cliente" | "beneficiario",
+  id: string,
+  pinned: boolean
+) {
+  const supabase = await createClient();
+  const table = kind === "cliente" ? "clients" : "beneficiaries";
+  await supabase.from(table).update({ pinned }).eq("id", id);
+  revalidatePath("/agenda");
+  revalidatePath(`/agenda/${kind}/${id}`);
 }
 
 export async function deleteBeneficiary(id: string) {

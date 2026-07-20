@@ -6,8 +6,11 @@ import {
   Phone,
   Plus,
   Send,
+  User,
+  ChevronRight,
 } from "lucide-react";
 import {
+  getBeneficiaries,
   getBeneficiary,
   getClient,
   getClients,
@@ -16,6 +19,7 @@ import {
 import { usd, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { ContactActions } from "@/components/contact-actions";
+import { ContactTopActions } from "@/components/contact-top-actions";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -35,12 +39,14 @@ export default async function ContactoPage({
   if (kind !== "cliente" && kind !== "beneficiario") notFound();
   const isClient = kind === "cliente";
 
-  const [client, beneficiary, allRemittances, clients] = await Promise.all([
-    isClient ? getClient(id) : Promise.resolve(null),
-    !isClient ? getBeneficiary(id) : Promise.resolve(null),
-    getRemittances(),
-    !isClient ? getClients() : Promise.resolve([]),
-  ]);
+  const [client, beneficiary, allRemittances, clients, allBeneficiaries] =
+    await Promise.all([
+      isClient ? getClient(id) : Promise.resolve(null),
+      !isClient ? getBeneficiary(id) : Promise.resolve(null),
+      getRemittances(),
+      getClients(),
+      isClient ? getBeneficiaries() : Promise.resolve([]),
+    ]);
 
   const contact = isClient ? client : beneficiary;
   if (!contact) notFound();
@@ -51,6 +57,18 @@ export default async function ContactoPage({
   const count = remesas.length;
   const totalSent = remesas.reduce((s, r) => s + Number(r.amount_usd), 0);
   const totalProfit = remesas.reduce((s, r) => s + Number(r.total_profit), 0);
+  const owed = remesas
+    .filter((r) => r.client_paid === false)
+    .reduce((s, r) => s + Number(r.total_received), 0);
+
+  // Vínculos
+  const associatedBenefs = isClient
+    ? allBeneficiaries.filter((b) => b.client_id === id)
+    : [];
+  const associatedClient =
+    !isClient && beneficiary?.client_id
+      ? clients.find((c) => c.id === beneficiary.client_id) ?? null
+      : null;
 
   const phone = contact.phone ?? null;
   const phoneDigits = phone?.replace(/\D/g, "");
@@ -71,45 +89,42 @@ export default async function ContactoPage({
       </Link>
 
       {/* Cabecera */}
-      <div className="flex items-center gap-3">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-          {initial}
-        </span>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            {name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isClient ? "Cliente" : "Beneficiario"}
-            {!isClient && beneficiary?.province ? ` · ${beneficiary.province}` : ""}
-          </p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+            {initial}
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold tracking-tight text-foreground">
+              {name}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isClient ? "Cliente" : "Beneficiario"}
+              {!isClient && beneficiary?.province
+                ? ` · ${beneficiary.province}`
+                : ""}
+            </p>
+          </div>
         </div>
+        <ContactTopActions
+          kind={kind}
+          id={id}
+          pinned={!!contact.pinned}
+          name={name}
+          phone={phone}
+        />
       </div>
 
       {/* Acciones rápidas */}
       <div className="grid grid-cols-3 gap-2">
-        <QuickAction
-          href={nuevaHref}
-          icon={<Plus className="h-5 w-5" />}
-          label="Nueva remesa"
-        />
+        <QuickAction href={nuevaHref} icon={<Plus className="h-5 w-5" />} label="Nueva remesa" />
         {phoneDigits ? (
-          <QuickAction
-            href={`https://wa.me/${phoneDigits}`}
-            icon={<MessageCircle className="h-5 w-5" />}
-            label="WhatsApp"
-            external
-          />
+          <QuickAction href={`https://wa.me/${phoneDigits}`} icon={<MessageCircle className="h-5 w-5" />} label="WhatsApp" external />
         ) : (
           <QuickAction disabled icon={<MessageCircle className="h-5 w-5" />} label="WhatsApp" />
         )}
         {phone ? (
-          <QuickAction
-            href={`tel:${phone}`}
-            icon={<Phone className="h-5 w-5" />}
-            label="Llamar"
-            external
-          />
+          <QuickAction href={`tel:${phone}`} icon={<Phone className="h-5 w-5" />} label="Llamar" external />
         ) : (
           <QuickAction disabled icon={<Phone className="h-5 w-5" />} label="Llamar" />
         )}
@@ -122,6 +137,14 @@ export default async function ContactoPage({
         <Stat label="Ganancia" value={usd(totalProfit)} tone />
       </div>
 
+      {/* Por cobrar (clientes) */}
+      {isClient && owed > 0 && (
+        <Card className="flex items-center justify-between border-warning/30 bg-warning/10">
+          <p className="text-sm font-semibold text-warning">Te debe</p>
+          <p className="tabular text-lg font-bold text-warning">{usd(owed)}</p>
+        </Card>
+      )}
+
       {/* Datos */}
       <Card className="space-y-2.5">
         <Row label="Teléfono" value={phone || "—"} />
@@ -130,14 +153,61 @@ export default async function ContactoPage({
         ) : (
           <>
             <Row label="Provincia" value={beneficiary?.province || "—"} />
-            <Row
-              label="Moneda preferida"
-              value={beneficiary?.preferred_currency || "—"}
-            />
+            <Row label="Moneda preferida" value={beneficiary?.preferred_currency || "—"} />
+            <Row label="Cómo recibe" value={beneficiary?.preferred_delivery || "—"} />
             <Row label="Carnet (CI)" value={beneficiary?.id_card || "—"} />
+            {associatedClient && (
+              <Link
+                href={`/agenda/cliente/${associatedClient.id}`}
+                className="flex items-center gap-1.5 pt-1 text-xs font-semibold text-primary"
+              >
+                <User className="h-3.5 w-3.5" /> Cliente: {associatedClient.name}
+              </Link>
+            )}
           </>
         )}
       </Card>
+
+      {/* Notas */}
+      {contact.notes && (
+        <Card>
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Notas
+          </p>
+          <p className="text-sm text-foreground">{contact.notes}</p>
+        </Card>
+      )}
+
+      {/* Beneficiarios asociados (clientes) */}
+      {isClient && associatedBenefs.length > 0 && (
+        <div>
+          <h2 className="mb-2 text-sm font-bold text-foreground">
+            Beneficiarios ({associatedBenefs.length})
+          </h2>
+          <div className="space-y-2">
+            {associatedBenefs.map((b) => (
+              <Link key={b.id} href={`/agenda/beneficiario/${b.id}`}>
+                <Card className="flex items-center gap-3 p-3 transition active:scale-[0.99]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                    {b.name.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {b.name}
+                    </p>
+                    {b.province && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {b.province}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <ContactActions
         kind={kind}
@@ -148,9 +218,7 @@ export default async function ContactoPage({
 
       {/* Sus remesas */}
       <div>
-        <h2 className="mb-2 text-sm font-bold text-foreground">
-          Remesas ({count})
-        </h2>
+        <h2 className="mb-2 text-sm font-bold text-foreground">Remesas ({count})</h2>
         {count === 0 ? (
           <Card className="text-center text-sm text-muted-foreground">
             Aún no hay remesas con este contacto.
@@ -205,9 +273,7 @@ function QuickAction({
       }
     >
       {icon}
-      <span className="text-[11px] font-medium text-muted-foreground">
-        {label}
-      </span>
+      <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
     </div>
   );
   if (disabled || !href) return inner;

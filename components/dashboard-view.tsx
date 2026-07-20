@@ -22,9 +22,9 @@ const actions = [
 ];
 
 const periods = [
+  { key: "todo", label: "Todo" },
   { key: "hoy", label: "Hoy" },
   { key: "mes", label: "Este mes" },
-  { key: "todo", label: "Todo" },
 ] as const;
 
 type PeriodKey = (typeof periods)[number]["key"];
