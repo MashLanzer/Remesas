@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, MessageCircle } from "lucide-react";
 import { getRemittance } from "@/lib/data";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
@@ -51,6 +51,22 @@ export default async function RemesaDetailPage({
         </div>
         <Badge tone={statusTone[r.status]}>{r.status}</Badge>
       </div>
+
+      {r.beneficiary?.phone && (
+        <a
+          href={`https://wa.me/${r.beneficiary.phone.replace(
+            /\D/g,
+            ""
+          )}?text=${encodeURIComponent(
+            `Hola, la remesa de ${usd(r.amount_usd)} está ${r.status}.`
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-income px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
+        >
+          <MessageCircle className="h-4 w-4" /> WhatsApp al beneficiario
+        </a>
+      )}
 
       <Card className="mb-4 space-y-2.5">
         <Row label="Cliente" value={r.client?.name || "—"} />
