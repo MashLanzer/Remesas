@@ -23,7 +23,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-stretch justify-around">
         {items.map((item) => {
           const active = item.exact
@@ -36,10 +36,19 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition",
-                active ? "text-brand-600" : "text-slate-400 hover:text-slate-600"
+                active
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className="h-5 w-5" />
+              <span
+                className={cn(
+                  "flex h-8 w-14 items-center justify-center rounded-full transition",
+                  active && "bg-muted"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
               {item.label}
             </Link>
           );

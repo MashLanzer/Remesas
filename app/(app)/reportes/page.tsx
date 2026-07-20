@@ -62,7 +62,7 @@ export default async function ReportesPage() {
     <div>
       <PageHeader title="Reportes" subtitle="Ganancias y envíos por período" />
 
-      <h2 className="mb-2 text-sm font-semibold capitalize text-slate-700">
+      <h2 className="mb-2 text-sm font-semibold capitalize text-foreground">
         {monthName}
       </h2>
       <div className="mb-5 grid grid-cols-2 gap-3">
@@ -72,14 +72,14 @@ export default async function ReportesPage() {
         <Stat label="Parte del socio" value={usd(thisMonth.partner)} />
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700">Mes anterior</h2>
+      <h2 className="mb-2 text-sm font-semibold text-foreground">Mes anterior</h2>
       <Card className="mb-5 space-y-2">
         <Row label="Enviado" value={usd(lastMonth.sent)} />
         <Row label="Ganancia" value={usd(lastMonth.profit)} />
         <Row label="Tu parte" value={usd(lastMonth.mine)} />
       </Card>
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700">Histórico total</h2>
+      <h2 className="mb-2 text-sm font-semibold text-foreground">Histórico total</h2>
       <Card className="mb-5 space-y-2">
         <Row label="Remesas" value={String(total.count)} />
         <Row label="Total enviado" value={usd(total.sent)} />
@@ -88,7 +88,7 @@ export default async function ReportesPage() {
         <Row label="Parte del socio" value={usd(total.partner)} />
       </Card>
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700">Por método de pago</h2>
+      <h2 className="mb-2 text-sm font-semibold text-foreground">Por método de pago</h2>
       <Card className="space-y-2">
         {methodEntries.map(([method, data]) => (
           <Row
@@ -113,8 +113,8 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-slate-600">{label}</span>
-      <span className={strong ? "font-semibold text-slate-900" : "text-slate-900"}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={strong ? "font-semibold text-foreground" : "text-foreground"}>
         {value}
       </span>
     </div>

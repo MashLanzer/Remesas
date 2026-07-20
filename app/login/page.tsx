@@ -97,32 +97,36 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white">
-            <Send className="h-7 w-7" />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+      <div className="w-full max-w-sm animate-fade-up">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <Send className="h-8 w-8" />
           </div>
-          <h1 className="text-xl font-semibold text-slate-900">Remesas</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-serif text-4xl leading-none text-foreground">
+            Remesas
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             Gestión de envíos, comisiones y cuentas del negocio.
           </p>
         </div>
 
-        <button
-          onClick={signInWithGoogle}
-          disabled={loading}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-        >
-          <GoogleIcon />
-          {loading ? "Conectando…" : "Entrar con Google"}
-        </button>
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <button
+            onClick={signInWithGoogle}
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted active:scale-[0.98] disabled:opacity-60"
+          >
+            <GoogleIcon />
+            {loading ? "Conectando…" : "Entrar con Google"}
+          </button>
 
-        {error && (
-          <p className="mt-4 text-center text-sm text-red-600">{error}</p>
-        )}
+          {error && (
+            <p className="mt-4 text-center text-sm text-destructive">{error}</p>
+          )}
+        </div>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           Acceso solo para socios del negocio.
         </p>
       </div>

@@ -1,27 +1,29 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopBar({ email }: { email?: string | null }) {
   const initial = (email || "?").charAt(0).toUpperCase();
   return (
-    <header className="safe-top sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
             R
           </span>
-          <span className="text-sm font-semibold text-slate-900">Remesas</span>
+          <span className="font-serif text-lg text-foreground">Remesas</span>
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
           <Link
             href="/ajustes"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
             aria-label="Ajustes"
           >
             <Settings className="h-5 w-5" />
           </Link>
           <span
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-600"
+            className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground"
             title={email || ""}
           >
             {initial}

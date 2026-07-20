@@ -33,8 +33,8 @@ export function RemittanceActions({
             className={cn(
               "rounded-xl px-2 py-2.5 text-xs font-medium transition disabled:opacity-60",
               current === s.key
-                ? "bg-brand-600 text-white"
-                : "border border-slate-300 bg-white text-slate-600"
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-muted-foreground"
             )}
           >
             {s.label}

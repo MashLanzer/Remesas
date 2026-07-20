@@ -136,7 +136,7 @@ export function RemittanceForm({
 
       {/* Entrega en Cuba */}
       <Card className="space-y-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Entrega en Cuba
         </p>
 
@@ -168,9 +168,9 @@ export function RemittanceForm({
           </Field>
         </div>
 
-        <div className="rounded-xl bg-slate-50 p-3 text-center">
-          <p className="text-xs text-slate-500">Entregar a la familia</p>
-          <p className="text-lg font-semibold text-slate-900">
+        <div className="rounded-xl bg-muted p-3 text-center">
+          <p className="text-xs text-muted-foreground">Entregar a la familia</p>
+          <p className="text-lg font-semibold text-foreground">
             {localAmount(summary.localAmount)} {currency}
           </p>
         </div>
@@ -223,11 +223,11 @@ export function RemittanceForm({
       </Card>
 
       {/* Resumen en vivo */}
-      <Card className="space-y-2 border-brand-200 bg-brand-50">
+      <Card className="space-y-2 border-border bg-muted">
         <SummaryRow label="Cobras al cliente" value={usd(summary.totalReceived)} strong />
         <SummaryRow label="Comisión" value={usd(effectiveCommission)} />
         <SummaryRow label="Ganancia total" value={usd(summary.totalProfit)} />
-        <div className="my-1 border-t border-brand-200" />
+        <div className="my-1 border-t border-border" />
         <SummaryRow label="Tu parte" value={usd(summary.myShare)} tone="positive" />
         <SummaryRow label="Parte del socio" value={usd(summary.partnerShare)} />
       </Card>
@@ -252,11 +252,11 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-slate-600">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span
         className={
           (strong ? "font-semibold " : "font-medium ") +
-          (tone === "positive" ? "text-emerald-600" : "text-slate-900")
+          (tone === "positive" ? "text-income" : "text-foreground")
         }
       >
         {value}

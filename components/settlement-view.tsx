@@ -55,7 +55,7 @@ export function SettlementView({ settlements }: { settlements: Settlement[] }) {
         </Card>
       )}
 
-      <h2 className="mb-2 text-sm font-semibold text-slate-700">Historial</h2>
+      <h2 className="mb-2 text-sm font-semibold text-foreground">Historial</h2>
       {settlements.length === 0 ? (
         <EmptyState
           title="Sin liquidaciones"
@@ -81,29 +81,29 @@ function SettlementCard({ settlement: s }: { settlement: Settlement }) {
         <span
           className={
             "flex h-9 w-9 items-center justify-center rounded-full " +
-            (toCuba ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600")
+            (toCuba ? "bg-info/10 text-info" : "bg-emerald-100 text-income")
           }
         >
           {toCuba ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
         </span>
         <div>
-          <p className="text-sm font-medium text-slate-900">
+          <p className="text-sm font-medium text-foreground">
             {toCuba ? "Enviado a Cuba" : "Recibido del socio"}
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             {formatDate(s.date)}
             {s.method ? ` · ${s.method}` : ""}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-slate-900">{usd(s.amount)}</span>
+        <span className="text-sm font-semibold text-foreground">{usd(s.amount)}</span>
         <button
           disabled={pending}
           onClick={() => {
             if (confirm("¿Eliminar esta liquidación?")) start(() => deleteSettlement(s.id));
           }}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
         >
           <Trash2 className="h-4 w-4" />
         </button>

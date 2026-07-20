@@ -21,7 +21,7 @@ export default async function AjustesPage() {
       <PageHeader title="Ajustes" />
 
       <Card className="mb-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Mi perfil
         </p>
         <form action={updateProfile} className="space-y-3">
@@ -44,23 +44,23 @@ export default async function AjustesPage() {
               defaultValue={String(profile?.default_split_percent ?? 50)}
             />
           </Field>
-          <div className="text-xs text-slate-400">{user?.email}</div>
+          <div className="text-xs text-muted-foreground">{user?.email}</div>
           <Button type="submit" className="w-full">Guardar</Button>
         </form>
       </Card>
 
       <Link href="/tasas">
-        <Card className="mb-4 flex items-center justify-between transition hover:border-brand-300">
+        <Card className="mb-4 flex items-center justify-between transition hover:border-ring">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
               <TrendingUp className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-sm font-medium text-slate-900">Tasas de cambio</p>
-              <p className="text-xs text-slate-400">Ajusta las tasas del día</p>
+              <p className="text-sm font-medium text-foreground">Tasas de cambio</p>
+              <p className="text-xs text-muted-foreground">Ajusta las tasas del día</p>
             </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-slate-300" />
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </Card>
       </Link>
 

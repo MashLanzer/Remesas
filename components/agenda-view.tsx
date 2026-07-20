@@ -99,7 +99,7 @@ function TabButton({
       onClick={onClick}
       className={
         "flex-1 rounded-xl px-3 py-2 text-sm font-medium transition " +
-        (active ? "bg-brand-600 text-white" : "bg-white text-slate-600 border border-slate-200")
+        (active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border")
       }
     >
       {children}
@@ -120,8 +120,8 @@ function ContactCard({
   return (
     <Card className="flex items-center justify-between p-3.5">
       <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-slate-900">{name}</p>
-        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-400">
+        <p className="truncate text-sm font-medium text-foreground">{name}</p>
+        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
           {lines.map((l, i) => (
             <span key={i} className="inline-flex items-center gap-1">
               {i === 0 && lines[0] === l ? <Phone className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
@@ -135,7 +135,7 @@ function ContactCard({
         onClick={() => {
           if (confirm(`¿Eliminar a ${name}?`)) start(() => onDelete());
         }}
-        className="ml-2 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+        className="ml-2 rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
       >
         <Trash2 className="h-4 w-4" />
       </button>

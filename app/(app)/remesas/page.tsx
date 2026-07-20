@@ -50,8 +50,8 @@ export default async function RemesasPage({
             className={cn(
               "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition",
               estado === f.key
-                ? "bg-brand-600 text-white"
-                : "bg-white text-slate-600 border border-slate-200"
+                ? "bg-primary text-primary-foreground"
+                : "bg-card text-muted-foreground border border-border"
             )}
           >
             {f.label}
@@ -73,27 +73,27 @@ export default async function RemesasPage({
         <div className="space-y-2">
           {list.map((r) => (
             <Link key={r.id} href={`/remesas/${r.id}`}>
-              <Card className="p-3.5 transition hover:border-brand-300">
+              <Card className="p-3.5 transition hover:border-ring">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {r.beneficiary?.name || r.client?.name || "Remesa"}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                       {formatDate(r.date)}
                       {r.payment_method ? ` · ${r.payment_method}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className="text-sm font-semibold text-slate-900">
+                    <span className="text-sm font-semibold text-foreground">
                       {usd(r.amount_usd)}
                     </span>
                     <Badge tone={statusTone[r.status]}>{r.status}</Badge>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-500">
+                <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-xs text-muted-foreground">
                   <span>Ganancia {usd(r.total_profit)}</span>
-                  <span className="text-emerald-600">Tu parte {usd(r.my_share)}</span>
+                  <span className="text-income">Tu parte {usd(r.my_share)}</span>
                 </div>
               </Card>
             </Link>

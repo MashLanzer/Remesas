@@ -16,7 +16,7 @@ export function RatesView({ rates }: { rates: ExchangeRate[] }) {
       {DELIVERY_CURRENCIES.map((c) => (
         <RateRow key={c} currency={c} rate={byCurrency[c]} />
       ))}
-      <p className="pt-2 text-center text-xs text-slate-400">
+      <p className="pt-2 text-center text-xs text-muted-foreground">
         1 USD = tasa · unidades locales. Ajústala al mercado del día.
       </p>
     </div>
@@ -39,8 +39,8 @@ function RateRow({
       >
         <input type="hidden" name="currency" value={currency} />
         <div className="w-16">
-          <p className="text-sm font-semibold text-slate-900">{currency}</p>
-          <p className="text-[10px] text-slate-400">
+          <p className="text-sm font-semibold text-foreground">{currency}</p>
+          <p className="text-[10px] text-muted-foreground">
             {rate ? formatDate(rate.updated_at) : "nueva"}
           </p>
         </div>
@@ -55,7 +55,7 @@ function RateRow({
         <button
           type="submit"
           disabled={pending}
-          className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white disabled:opacity-60"
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-60"
           aria-label="Guardar tasa"
         >
           <Check className="h-4 w-4" />

@@ -30,13 +30,13 @@ export default async function SociosPage() {
         className={
           "mb-4 text-center " +
           (Math.abs(balance) < 0.01
-            ? "border-slate-200 bg-slate-50"
+            ? "border-border bg-muted"
             : owedToPartner
-            ? "border-red-200 bg-red-50"
-            : "border-emerald-200 bg-emerald-50")
+            ? "border-destructive/30 bg-destructive/10"
+            : "border-income/30 bg-income/10")
         }
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {Math.abs(balance) < 0.01
             ? "Cuentas saldadas"
             : owedToPartner
@@ -46,7 +46,7 @@ export default async function SociosPage() {
         <p
           className={
             "mt-1 text-3xl font-bold " +
-            (owedToPartner ? "text-red-600" : "text-emerald-600")
+            (owedToPartner ? "text-destructive" : "text-income")
           }
         >
           {usd(Math.abs(balance))}
@@ -57,7 +57,7 @@ export default async function SociosPage() {
         <Row label="Total entregado en Cuba (capital del socio)" value={usd(totalDelivered)} />
         <Row label="+ Ganancia del socio acumulada" value={usd(partnerProfit)} />
         <Row label="− Ya enviado a Cuba (liquidaciones)" value={usd(sentToCuba)} />
-        <div className="my-1 border-t border-slate-100" />
+        <div className="my-1 border-t border-border" />
         <Row label="= Saldo a favor del socio" value={usd(balance)} strong />
       </Card>
 
@@ -77,11 +77,11 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-slate-600">{label}</span>
+      <span className="text-muted-foreground">{label}</span>
       <span
         className={
           "whitespace-nowrap " +
-          (strong ? "font-semibold text-slate-900" : "text-slate-900")
+          (strong ? "font-semibold text-foreground" : "text-foreground")
         }
       >
         {value}

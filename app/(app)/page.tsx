@@ -52,18 +52,18 @@ export default async function DashboardPage() {
       </div>
 
       {pending.length > 0 && (
-        <Card className="mt-4 border-amber-200 bg-amber-50">
+        <Card className="mt-4 border-warning/30 bg-warning/10">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-amber-900">
+              <p className="text-sm font-medium text-warning">
                 {pending.length} remesa{pending.length > 1 ? "s" : ""} pendiente
                 {pending.length > 1 ? "s" : ""} de entregar
               </p>
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-warning">
                 {usd(pending.reduce((s, r) => s + Number(r.amount_usd), 0))} por entregar
               </p>
             </div>
-            <Link href="/remesas?estado=pendiente" className="text-amber-700">
+            <Link href="/remesas?estado=pendiente" className="text-warning">
               <ArrowRight className="h-5 w-5" />
             </Link>
           </div>
@@ -71,8 +71,8 @@ export default async function DashboardPage() {
       )}
 
       <div className="mt-6 mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-700">Últimas remesas</h2>
-        <Link href="/remesas" className="text-xs font-medium text-brand-600">
+        <h2 className="text-sm font-semibold text-foreground">Últimas remesas</h2>
+        <Link href="/remesas" className="text-xs font-medium text-foreground">
           Ver todas
         </Link>
       </div>
@@ -91,15 +91,15 @@ export default async function DashboardPage() {
         <div className="space-y-2">
           {recent.map((r) => (
             <Link key={r.id} href={`/remesas/${r.id}`}>
-              <Card className="flex items-center justify-between p-3.5 transition hover:border-brand-300">
+              <Card className="flex items-center justify-between p-3.5 transition hover:border-ring">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">
+                  <p className="truncate text-sm font-medium text-foreground">
                     {r.beneficiary?.name || r.client?.name || "Remesa"}
                   </p>
-                  <p className="text-xs text-slate-400">{formatDate(r.date)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(r.date)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-foreground">
                     {usd(r.amount_usd)}
                   </span>
                   <Badge tone={statusTone[r.status]}>{r.status}</Badge>
