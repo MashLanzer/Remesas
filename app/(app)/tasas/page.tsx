@@ -1,4 +1,4 @@
-import { getExchangeRates } from "@/lib/data";
+import { getExchangeRates, getRateHistory } from "@/lib/data";
 import { RatesView } from "@/components/rates-view";
 import { RateConverter } from "@/components/rate-converter";
 import { PageHeader } from "@/components/ui";
@@ -6,7 +6,10 @@ import { PageHeader } from "@/components/ui";
 export const dynamic = "force-dynamic";
 
 export default async function TasasPage() {
-  const rates = await getExchangeRates();
+  const [rates, history] = await Promise.all([
+    getExchangeRates(),
+    getRateHistory(),
+  ]);
   return (
     <div>
       <PageHeader
@@ -15,7 +18,7 @@ export default async function TasasPage() {
       />
       <RateConverter rates={rates} />
       <h2 className="mb-2 text-sm font-bold text-foreground">Editar tasas</h2>
-      <RatesView rates={rates} />
+      <RatesView rates={rates} history={history} />
     </div>
   );
 }

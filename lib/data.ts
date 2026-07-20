@@ -6,6 +6,7 @@ import {
   type BusinessSettings,
   type Client,
   type ExchangeRate,
+  type RateHistory,
   type Remittance,
   type Settlement,
 } from "@/lib/types";
@@ -89,6 +90,15 @@ export async function getExchangeRates(): Promise<ExchangeRate[]> {
     .select("*")
     .order("currency", { ascending: true });
   return (data as ExchangeRate[]) ?? [];
+}
+
+export async function getRateHistory(): Promise<RateHistory[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("rate_history")
+    .select("*")
+    .order("changed_at", { ascending: true });
+  return (data as RateHistory[]) ?? [];
 }
 
 export async function getAlertCount(): Promise<number> {

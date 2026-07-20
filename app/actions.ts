@@ -267,12 +267,27 @@ export async function upsertRate(formData: FormData) {
   const currency = str(formData.get("currency"));
   const rate = num(formData.get("rate"));
   if (!currency) return;
+
+  // ¿Cambió respecto a la tasa actual? (para no llenar el historial de duplicados)
+  const { data: existing } = await supabase
+    .from("exchange_rates")
+    .select("rate")
+    .eq("currency", currency)
+    .single();
+  const changed = !existing || Number(existing.rate) !== rate;
+
   await supabase
     .from("exchange_rates")
     .upsert(
       { currency, rate, updated_at: new Date().toISOString() },
       { onConflict: "currency" }
     );
+
+  // Historial de cambios (tolerante si la tabla no existe — 0008).
+  if (changed) {
+    await supabase.from("rate_history").insert({ currency, rate });
+  }
+
   revalidatePath("/tasas");
   revalidatePath("/remesas/nueva");
 }

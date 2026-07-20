@@ -64,6 +64,13 @@ export interface ExchangeRate {
   updated_at: string;
 }
 
+export interface RateHistory {
+  id: string;
+  currency: DeliveryCurrency;
+  rate: number;
+  changed_at: string;
+}
+
 export interface Remittance {
   id: string;
   date: string;
