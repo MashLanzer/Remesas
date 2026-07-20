@@ -43,10 +43,8 @@ export function Stat({
 
   return (
     <Card className="p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-1 font-serif text-3xl leading-none", toneClass)}>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className={cn("tabular mt-1 text-2xl font-bold leading-none", toneClass)}>
         {value}
       </p>
       {hint && <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>}
@@ -192,7 +190,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-12 text-center">
-      <p className="font-serif text-lg text-foreground">{title}</p>
+      <p className="text-base font-semibold text-foreground">{title}</p>
       {description && (
         <p className="mt-1 max-w-xs text-sm text-muted-foreground">
           {description}
@@ -216,7 +214,7 @@ export function PageHeader({
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
       <div>
-        <h1 className="font-serif text-3xl leading-tight text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
           {title}
         </h1>
         {subtitle && (

@@ -8,10 +8,12 @@ export function TopBar({ email }: { email?: string | null }) {
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-sm font-extrabold text-primary-foreground">
             R
           </span>
-          <span className="font-serif text-lg text-foreground">Remesas</span>
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            Remesas
+          </span>
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />

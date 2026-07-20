@@ -100,10 +100,10 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm animate-fade-up">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
             <Send className="h-8 w-8" />
           </div>
-          <h1 className="font-serif text-4xl leading-none text-foreground">
+          <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
             Remesas
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">

@@ -4,45 +4,51 @@
 
 @layer base {
   :root {
-    /* Editorial cálido — claro */
-    --background: 60 20% 99%;
-    --foreground: 20 14.3% 4.1%;
+    /* Fintech verde — claro */
+    --background: 150 30% 99%;
+    --foreground: 160 14% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 20 14.3% 4.1%;
-    --primary: 20 14.3% 4.1%;
-    --primary-foreground: 60 9.1% 97.8%;
-    --muted: 60 4.8% 95.9%;
-    --muted-foreground: 25 5.3% 44.7%;
-    --border: 20 5.9% 90%;
-    --input: 20 5.9% 90%;
-    --ring: 20 14.3% 4.1%;
+    --card-foreground: 160 14% 10%;
+    --primary: 152 62% 40%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 150 16% 95%;
+    --muted-foreground: 155 8% 44%;
+    --border: 150 14% 90%;
+    --input: 150 14% 90%;
+    --ring: 152 62% 40%;
 
-    --income: 152 76% 36%;
-    --info: 217 91% 50%;
-    --warning: 38 92% 45%;
-    --business: 263 85% 58%;
-    --destructive: 0 84.2% 60.2%;
+    --income: 152 62% 38%;
+    --info: 210 90% 52%;
+    --warning: 38 92% 48%;
+    --business: 263 80% 58%;
+    --destructive: 0 78% 55%;
+
+    --hero-from: 152 60% 42%;
+    --hero-to: 168 55% 30%;
   }
 
   .dark {
-    /* Editorial cálido — oscuro */
-    --background: 20 14.3% 4.1%;
-    --foreground: 60 9.1% 97.8%;
-    --card: 20 14% 8%;
-    --card-foreground: 60 9.1% 97.8%;
-    --primary: 60 9.1% 97.8%;
-    --primary-foreground: 20 14.3% 4.1%;
-    --muted: 12 6.5% 15.1%;
-    --muted-foreground: 24 5.4% 63.9%;
-    --border: 12 6.5% 16%;
-    --input: 12 6.5% 16%;
-    --ring: 60 9.1% 90%;
+    /* Fintech verde — oscuro (aspecto principal) */
+    --background: 160 24% 6%;
+    --foreground: 150 12% 96%;
+    --card: 158 18% 10%;
+    --card-foreground: 150 12% 96%;
+    --primary: 151 65% 47%;
+    --primary-foreground: 158 40% 8%;
+    --muted: 158 14% 15%;
+    --muted-foreground: 150 8% 64%;
+    --border: 158 14% 17%;
+    --input: 158 14% 17%;
+    --ring: 151 65% 47%;
 
-    --income: 152 60% 45%;
-    --info: 217 91% 60%;
-    --warning: 38 92% 55%;
-    --business: 263 85% 68%;
-    --destructive: 0 72% 55%;
+    --income: 151 60% 50%;
+    --info: 210 90% 62%;
+    --warning: 38 92% 58%;
+    --business: 263 80% 70%;
+    --destructive: 0 72% 58%;
+
+    --hero-from: 152 55% 34%;
+    --hero-to: 166 45% 16%;
   }
 }
 
@@ -62,13 +68,33 @@
     -webkit-font-smoothing: antialiased;
   }
   h1,
-  h2,
-  .font-serif {
-    font-family: var(--font-serif), Georgia, serif;
+  h2 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
 
-/* Respeta el área segura en móviles (notch / barra inferior) al envolver en APK */
+@layer components {
+  /* Tarjeta protagonista con degradado verde */
+  .hero-gradient {
+    background-image: radial-gradient(
+        120% 120% at 100% 0%,
+        hsl(var(--hero-from) / 0.55) 0%,
+        transparent 55%
+      ),
+      linear-gradient(
+        135deg,
+        hsl(var(--hero-from)) 0%,
+        hsl(var(--hero-to)) 100%
+      );
+  }
+  /* Números grandes tipo balance */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

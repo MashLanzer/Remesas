@@ -36,15 +36,13 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition",
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                active ? "text-primary" : "text-muted-foreground"
               )}
             >
               <span
                 className={cn(
                   "flex h-8 w-14 items-center justify-center rounded-full transition",
-                  active && "bg-muted"
+                  active && "bg-primary/12 text-primary"
                 )}
               >
                 <Icon className="h-5 w-5" />
