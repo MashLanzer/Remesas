@@ -444,5 +444,6 @@ export async function updateProfile(formData: FormData) {
       default_split_percent: num(formData.get("default_split_percent")),
     })
     .eq("id", user.id);
+  revalidatePath("/perfil");
   revalidatePath("/ajustes");
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Settings, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
+import { ProfileMenu } from "@/components/profile-menu";
 
 export function TopBar({
   email,
@@ -8,7 +9,6 @@ export function TopBar({
   email?: string | null;
   alertCount?: number;
 }) {
-  const initial = (email || "?").charAt(0).toUpperCase();
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
@@ -33,19 +33,7 @@ export function TopBar({
               </span>
             )}
           </Link>
-          <Link
-            href="/ajustes"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-            aria-label="Ajustes"
-          >
-            <Settings className="h-5 w-5" />
-          </Link>
-          <span
-            className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground"
-            title={email || ""}
-          >
-            {initial}
-          </span>
+          <ProfileMenu email={email} />
         </div>
       </div>
     </header>

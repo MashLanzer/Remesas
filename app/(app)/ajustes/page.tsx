@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { LogOut, TrendingUp, ChevronRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { TrendingUp, ChevronRight } from "lucide-react";
 import { getRemittances, getBusinessSettings } from "@/lib/data";
-import { updateProfile, updateBusinessSettings } from "@/app/actions";
+import { updateBusinessSettings } from "@/app/actions";
 import {
   Card,
   Field,
@@ -20,55 +19,14 @@ export const dynamic = "force-dynamic";
 const APP_VERSION = "1.0.0";
 
 export default async function AjustesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const [profileRes, remittances, settings] = await Promise.all([
-    user
-      ? supabase.from("profiles").select("*").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
+  const [remittances, settings] = await Promise.all([
     getRemittances(),
     getBusinessSettings(),
   ]);
-  const profile = profileRes.data;
 
   return (
     <div className="space-y-6">
       <PageHeader title="Ajustes" />
-
-      {/* Perfil */}
-      <section>
-        <SectionTitle>Perfil</SectionTitle>
-        <Card>
-          <form action={updateProfile} className="space-y-3">
-            <Field label="Nombre">
-              <Input
-                name="full_name"
-                defaultValue={profile?.full_name ?? ""}
-                placeholder="Tu nombre"
-              />
-            </Field>
-            <Field
-              label="Mi % de ganancia por defecto"
-              hint="Se usa al crear una remesa nueva. Editable en cada envío."
-            >
-              <Input
-                type="number"
-                name="default_split_percent"
-                min="0"
-                max="100"
-                defaultValue={String(profile?.default_split_percent ?? 50)}
-              />
-            </Field>
-            <div className="text-xs text-muted-foreground">{user?.email}</div>
-            <Button type="submit" className="w-full">
-              Guardar
-            </Button>
-          </form>
-        </Card>
-      </section>
 
       {/* Negocio */}
       <section>
@@ -239,12 +197,6 @@ export default async function AjustesPage() {
           <p className="text-sm font-semibold text-foreground">{APP_VERSION}</p>
         </Card>
       </section>
-
-      <form action="/auth/signout" method="post">
-        <Button type="submit" variant="secondary" className="w-full">
-          <LogOut className="h-4 w-4" /> Cerrar sesión
-        </Button>
-      </form>
     </div>
   );
 }
