@@ -211,7 +211,7 @@ export default async function AjustesPage() {
       {/* Configuración */}
       <section>
         <SectionTitle>Configuración</SectionTitle>
-        <Link href="/tasas">
+        <Link href="/tasas" className="block">
           <Card className="flex items-center justify-between transition active:scale-[0.99]">
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">

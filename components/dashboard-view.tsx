@@ -127,7 +127,7 @@ export function DashboardView({
 
       {/* Alerta de pendientes */}
       {pending.length > 0 && (
-        <Link href="/remesas?estado=pendiente">
+        <Link href="/remesas?estado=pendiente" className="block">
           <Card className="flex items-center justify-between border-warning/30 bg-warning/10">
             <div>
               <p className="text-sm font-semibold text-warning">
@@ -192,7 +192,7 @@ export function DashboardView({
         ) : (
           <div className="space-y-2">
             {recent.map((r) => (
-              <Link key={r.id} href={`/remesas/${r.id}`}>
+              <Link key={r.id} href={`/remesas/${r.id}`} className="block">
                 <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">

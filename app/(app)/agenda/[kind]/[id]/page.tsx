@@ -186,7 +186,7 @@ export default async function ContactoPage({
           </h2>
           <div className="space-y-2">
             {associatedBenefs.map((b) => (
-              <Link key={b.id} href={`/agenda/beneficiario/${b.id}`}>
+              <Link key={b.id} href={`/agenda/beneficiario/${b.id}`} className="block">
                 <Card className="flex items-center gap-3 p-3 transition active:scale-[0.99]">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                     {b.name.charAt(0).toUpperCase()}
@@ -226,7 +226,7 @@ export default async function ContactoPage({
         ) : (
           <div className="space-y-2">
             {remesas.map((r) => (
-              <Link key={r.id} href={`/remesas/${r.id}`}>
+              <Link key={r.id} href={`/remesas/${r.id}`} className="block">
                 <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">

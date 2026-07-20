@@ -69,7 +69,7 @@ export default async function NotificacionesPage() {
       ) : (
         <div className="space-y-6">
           {saldoAlto && (
-            <Link href="/socios">
+            <Link href="/socios" className="block">
               <Card className="flex items-center justify-between border-warning/30 bg-warning/10 transition active:scale-[0.99]">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
@@ -90,7 +90,7 @@ export default async function NotificacionesPage() {
           )}
 
           {tasasViejas && (
-            <Link href="/tasas">
+            <Link href="/tasas" className="block">
               <Card className="flex items-center justify-between border-info/30 bg-info/10 transition active:scale-[0.99]">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
@@ -125,7 +125,7 @@ export default async function NotificacionesPage() {
                   const d = daysAgo(r.date);
                   const urgent = d >= 3;
                   return (
-                    <Link key={r.id} href={`/remesas/${r.id}`}>
+                    <Link key={r.id} href={`/remesas/${r.id}`} className="block">
                       <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
                         <div className="flex min-w-0 items-center gap-3">
                           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
@@ -166,7 +166,7 @@ export default async function NotificacionesPage() {
               </h2>
               <div className="space-y-2">
                 {porCobrar.map((r) => (
-                  <Link key={r.id} href={`/remesas/${r.id}`}>
+                  <Link key={r.id} href={`/remesas/${r.id}`} className="block">
                     <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
                       <div className="flex min-w-0 items-center gap-3">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
