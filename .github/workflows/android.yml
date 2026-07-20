@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -38,9 +40,23 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon
 
+      - name: Renombrar APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk Remesas.apk
+
       - name: Subir APK como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: remesas-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: Remesas.apk
           if-no-files-found: error
+
+      - name: Publicar APK en Releases (descarga directa)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: Remesas · APK Android
+          body: |
+            Última versión del APK de Remesas.
+            Descarga **Remesas.apk** e instálala en tu Android
+            (activa "Instalar apps de fuentes desconocidas" si te lo pide).
+          files: Remesas.apk
