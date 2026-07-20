@@ -275,6 +275,22 @@ export function RemittanceForm({
           </Select>
         </Field>
 
+        <Field
+          label="Comprobante (foto, opcional)"
+          hint={
+            initial?.receipt_url
+              ? "Ya hay una foto guardada. Sube otra para reemplazarla."
+              : "Captura de Zelle, CashApp, etc."
+          }
+        >
+          <input
+            type="file"
+            name="receipt"
+            accept="image/*"
+            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+          />
+        </Field>
+
         <Field label="Notas">
           <Textarea
             name="notes"

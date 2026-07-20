@@ -135,6 +135,22 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
+      {r.receipt_url && (
+        <Card className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Comprobante
+          </p>
+          <a href={r.receipt_url} target="_blank" rel="noopener noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={r.receipt_url}
+              alt="Comprobante"
+              className="w-full rounded-xl border border-border"
+            />
+          </a>
+        </Card>
+      )}
+
       <div className="mb-4">
         <ShareReceipt
           text={[

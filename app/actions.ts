@@ -14,6 +14,28 @@ function str(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+// Sube la foto del comprobante (si hay) y guarda la URL. Tolerante: si el
+// bucket o la columna aún no existen (migración 0004), simplemente no hace nada.
+async function handleReceiptUpload(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  id: string
+) {
+  const file = formData.get("receipt");
+  if (!(file instanceof File) || file.size === 0) return;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `${id}/comprobante-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  await supabase
+    .from("remittances")
+    .update({ receipt_url: data.publicUrl })
+    .eq("id", id);
+}
+
 // ============ REMESAS ============
 
 export async function createRemittance(formData: FormData) {
@@ -70,6 +92,8 @@ export async function createRemittance(formData: FormData) {
       .eq("id", inserted.id);
   }
 
+  if (inserted?.id) await handleReceiptUpload(supabase, formData, inserted.id);
+
   revalidatePath("/remesas");
   revalidatePath("/");
   redirect("/remesas");
@@ -122,6 +146,8 @@ export async function updateRemittance(formData: FormData) {
     .from("remittances")
     .update({ client_paid: str(formData.get("client_paid")) !== "false" })
     .eq("id", id);
+
+  await handleReceiptUpload(supabase, formData, id);
 
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);

@@ -70,6 +70,19 @@ export async function getExchangeRates(): Promise<ExchangeRate[]> {
   return (data as ExchangeRate[]) ?? [];
 }
 
+export async function getAlertCount(): Promise<number> {
+  const supabase = await createClient();
+  const { count: pending } = await supabase
+    .from("remittances")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pendiente");
+  const { count: porCobrar } = await supabase
+    .from("remittances")
+    .select("id", { count: "exact", head: true })
+    .eq("client_paid", false);
+  return (pending ?? 0) + (porCobrar ?? 0);
+}
+
 export async function getSettlements(): Promise<Settlement[]> {
   const supabase = await createClient();
   const { data } = await supabase
