@@ -14,9 +14,9 @@ export const dynamic = "force-dynamic";
 export default async function NuevaRemesaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dup?: string }>;
+  searchParams: Promise<{ dup?: string; cliente?: string; beneficiario?: string }>;
 }) {
-  const { dup } = await searchParams;
+  const { dup, cliente, beneficiario } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -55,6 +55,8 @@ export default async function NuevaRemesaPage({
         defaultCurrency={settings.default_currency}
         defaultPayment={settings.default_payment_method}
         prefill={prefill ?? undefined}
+        defaultClientId={cliente}
+        defaultBeneficiaryId={beneficiario}
       />
     </div>
   );

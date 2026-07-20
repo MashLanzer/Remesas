@@ -52,6 +52,26 @@ export async function getClients(): Promise<Client[]> {
   return (data as Client[]) ?? [];
 }
 
+export async function getClient(id: string): Promise<Client | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return (data as Client) ?? null;
+}
+
+export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("beneficiaries")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return (data as Beneficiary) ?? null;
+}
+
 export async function getBeneficiaries(): Promise<Beneficiary[]> {
   const supabase = await createClient();
   const { data } = await supabase

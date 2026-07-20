@@ -28,6 +28,8 @@ export function RemittanceForm({
   rules,
   defaultCurrency = "CUP",
   defaultPayment,
+  defaultClientId,
+  defaultBeneficiaryId,
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
@@ -38,6 +40,8 @@ export function RemittanceForm({
   rules?: CommissionRules;
   defaultCurrency?: string;
   defaultPayment?: string | null;
+  defaultClientId?: string;
+  defaultBeneficiaryId?: string;
 }) {
   const isEdit = !!initial;
   const source = initial ?? prefill; // valores para prellenar (editar o duplicar)
@@ -108,7 +112,10 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Cliente (quien paga)">
-          <Select name="client_id" defaultValue={source?.client_id ?? ""}>
+          <Select
+            name="client_id"
+            defaultValue={source?.client_id ?? defaultClientId ?? ""}
+          >
             <option value="">— Sin cliente —</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -121,7 +128,7 @@ export function RemittanceForm({
         <Field label="Beneficiario (quien recibe en Cuba)">
           <Select
             name="beneficiary_id"
-            defaultValue={source?.beneficiary_id ?? ""}
+            defaultValue={source?.beneficiary_id ?? defaultBeneficiaryId ?? ""}
           >
             <option value="">— Sin beneficiario —</option>
             {beneficiaries.map((b) => (

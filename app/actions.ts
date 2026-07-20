@@ -182,12 +182,19 @@ export async function deleteRemittance(id: string) {
 
 export async function createClientRecord(formData: FormData) {
   const supabase = await createClient();
-  await supabase.from("clients").insert({
+  const id = str(formData.get("id"));
+  const values = {
     name: str(formData.get("name")) ?? "Sin nombre",
     phone: str(formData.get("phone")),
     country: str(formData.get("country")),
     notes: str(formData.get("notes")),
-  });
+  };
+  if (id) {
+    await supabase.from("clients").update(values).eq("id", id);
+    revalidatePath(`/agenda/cliente/${id}`);
+  } else {
+    await supabase.from("clients").insert(values);
+  }
   revalidatePath("/agenda");
 }
 
@@ -201,7 +208,8 @@ export async function deleteClientRecord(id: string) {
 
 export async function createBeneficiary(formData: FormData) {
   const supabase = await createClient();
-  await supabase.from("beneficiaries").insert({
+  const id = str(formData.get("id"));
+  const values = {
     name: str(formData.get("name")) ?? "Sin nombre",
     phone: str(formData.get("phone")),
     province: str(formData.get("province")),
@@ -209,7 +217,13 @@ export async function createBeneficiary(formData: FormData) {
     id_card: str(formData.get("id_card")),
     client_id: str(formData.get("client_id")),
     notes: str(formData.get("notes")),
-  });
+  };
+  if (id) {
+    await supabase.from("beneficiaries").update(values).eq("id", id);
+    revalidatePath(`/agenda/beneficiario/${id}`);
+  } else {
+    await supabase.from("beneficiaries").insert(values);
+  }
   revalidatePath("/agenda");
 }
 

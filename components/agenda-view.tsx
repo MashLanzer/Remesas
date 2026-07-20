@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { Plus, Trash2, Phone, MapPin, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Plus, Search, ChevronRight } from "lucide-react";
 import {
   Card,
   Button,
@@ -11,81 +12,84 @@ import {
   Textarea,
   EmptyState,
 } from "@/components/ui";
-import {
-  createClientRecord,
-  deleteClientRecord,
-  createBeneficiary,
-  deleteBeneficiary,
-} from "@/app/actions";
+import { createClientRecord, createBeneficiary } from "@/app/actions";
+import { usd } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { DELIVERY_CURRENCIES, type Beneficiary, type Client } from "@/lib/types";
+
+export type ContactStat = { count: number; total: number };
 
 export function AgendaView({
   clients,
   beneficiaries,
+  clientStats,
+  benefStats,
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
+  clientStats: Record<string, ContactStat>;
+  benefStats: Record<string, ContactStat>;
 }) {
   const [tab, setTab] = useState<"clientes" | "beneficiarios">("clientes");
   const [showForm, setShowForm] = useState(false);
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<"nombre" | "actividad">("nombre");
 
   const term = q.trim().toLowerCase();
-  const fClients = useMemo(
-    () =>
-      clients.filter((c) =>
-        [c.name, c.phone, c.country]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(term)
-      ),
-    [clients, term]
-  );
-  const fBeneficiaries = useMemo(
-    () =>
-      beneficiaries.filter((b) =>
-        [b.name, b.phone, b.province]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(term)
-      ),
-    [beneficiaries, term]
-  );
+
+  const fClients = useMemo(() => {
+    const arr = clients.filter((c) =>
+      [c.name, c.phone, c.country].filter(Boolean).join(" ").toLowerCase().includes(term)
+    );
+    arr.sort((a, b) =>
+      sort === "actividad"
+        ? (clientStats[b.id]?.count ?? 0) - (clientStats[a.id]?.count ?? 0)
+        : a.name.localeCompare(b.name)
+    );
+    return arr;
+  }, [clients, term, sort, clientStats]);
+
+  const fBeneficiaries = useMemo(() => {
+    const arr = beneficiaries.filter((b) =>
+      [b.name, b.phone, b.province].filter(Boolean).join(" ").toLowerCase().includes(term)
+    );
+    arr.sort((a, b) =>
+      sort === "actividad"
+        ? (benefStats[b.id]?.count ?? 0) - (benefStats[a.id]?.count ?? 0)
+        : a.name.localeCompare(b.name)
+    );
+    return arr;
+  }, [beneficiaries, term, sort, benefStats]);
 
   return (
     <div>
       <div className="mb-4 flex gap-2">
-        <TabButton
-          active={tab === "clientes"}
-          onClick={() => {
-            setTab("clientes");
-            setShowForm(false);
-          }}
-        >
+        <TabButton active={tab === "clientes"} onClick={() => { setTab("clientes"); setShowForm(false); }}>
           Clientes ({clients.length})
         </TabButton>
-        <TabButton
-          active={tab === "beneficiarios"}
-          onClick={() => {
-            setTab("beneficiarios");
-            setShowForm(false);
-          }}
-        >
+        <TabButton active={tab === "beneficiarios"} onClick={() => { setTab("beneficiarios"); setShowForm(false); }}>
           Beneficiarios ({beneficiaries.length})
         </TabButton>
       </div>
 
-      {/* Buscador */}
-      <div className="relative mb-3">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por nombre o teléfono…"
-          className="w-full rounded-xl border border-input bg-card py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
-        />
+      <div className="mb-3 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar…"
+            className="w-full rounded-xl border border-input bg-card py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as typeof sort)}
+          className="rounded-xl border border-input bg-card px-3 py-2.5 text-xs font-medium text-foreground outline-none"
+        >
+          <option value="nombre">A-Z</option>
+          <option value="actividad">Activos</option>
+        </select>
       </div>
 
       <Button
@@ -94,16 +98,10 @@ export function AgendaView({
         onClick={() => setShowForm((s) => !s)}
       >
         <Plus className="h-4 w-4" />
-        {showForm
-          ? "Cerrar"
-          : tab === "clientes"
-          ? "Añadir cliente"
-          : "Añadir beneficiario"}
+        {showForm ? "Cerrar" : tab === "clientes" ? "Añadir cliente" : "Añadir beneficiario"}
       </Button>
 
-      {showForm && tab === "clientes" && (
-        <ClientForm onDone={() => setShowForm(false)} />
-      )}
+      {showForm && tab === "clientes" && <ClientForm onDone={() => setShowForm(false)} />}
       {showForm && tab === "beneficiarios" && (
         <BeneficiaryForm clients={clients} onDone={() => setShowForm(false)} />
       )}
@@ -112,18 +110,17 @@ export function AgendaView({
         fClients.length === 0 ? (
           <EmptyState
             title={term ? "Sin resultados" : "Sin clientes"}
-            description={
-              term ? "Prueba con otro nombre." : "Añade a las personas que te pagan."
-            }
+            description={term ? "Prueba con otro nombre." : "Añade a las personas que te pagan."}
           />
         ) : (
           <div className="space-y-2">
             {fClients.map((c) => (
               <ContactCard
                 key={c.id}
+                href={`/agenda/cliente/${c.id}`}
                 name={c.name}
-                lines={[c.phone, c.country].filter(Boolean) as string[]}
-                onDelete={() => deleteClientRecord(c.id)}
+                sub={[c.phone, c.country].filter(Boolean).join(" · ")}
+                stat={clientStats[c.id]}
               />
             ))}
           </div>
@@ -131,22 +128,17 @@ export function AgendaView({
       ) : fBeneficiaries.length === 0 ? (
         <EmptyState
           title={term ? "Sin resultados" : "Sin beneficiarios"}
-          description={
-            term ? "Prueba con otro nombre." : "Añade a quienes reciben en Cuba."
-          }
+          description={term ? "Prueba con otro nombre." : "Añade a quienes reciben en Cuba."}
         />
       ) : (
         <div className="space-y-2">
           {fBeneficiaries.map((b) => (
             <ContactCard
               key={b.id}
+              href={`/agenda/beneficiario/${b.id}`}
               name={b.name}
-              lines={[
-                b.phone,
-                b.province,
-                b.preferred_currency ? `Prefiere ${b.preferred_currency}` : null,
-              ].filter(Boolean) as string[]}
-              onDelete={() => deleteBeneficiary(b.id)}
+              sub={[b.phone, b.province].filter(Boolean).join(" · ")}
+              stat={benefStats[b.id]}
             />
           ))}
         </div>
@@ -167,12 +159,12 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={
-        "flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition " +
-        (active
+      className={cn(
+        "flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition",
+        active
           ? "bg-primary text-primary-foreground"
-          : "bg-card text-muted-foreground border border-border")
-      }
+          : "border border-border bg-card text-muted-foreground"
+      )}
     >
       {children}
     </button>
@@ -180,61 +172,41 @@ function TabButton({
 }
 
 function ContactCard({
+  href,
   name,
-  lines,
-  onDelete,
+  sub,
+  stat,
 }: {
+  href: string;
   name: string;
-  lines: string[];
-  onDelete: () => Promise<void>;
+  sub: string;
+  stat?: ContactStat;
 }) {
-  const [pending, start] = useTransition();
   const initial = name.charAt(0).toUpperCase();
   return (
-    <Card className="flex items-center justify-between p-3.5">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+    <Link href={href}>
+      <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
           {initial}
         </span>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{name}</p>
-          <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-            {lines.map((l, i) => (
-              <span key={i} className="inline-flex items-center gap-1">
-                {i === 0 && lines[0] === l ? (
-                  <Phone className="h-3 w-3" />
-                ) : (
-                  <MapPin className="h-3 w-3" />
-                )}
-                {l}
-              </span>
-            ))}
-          </div>
+          <p className="truncate text-xs text-muted-foreground">
+            {stat && stat.count > 0
+              ? `${stat.count} remesa${stat.count > 1 ? "s" : ""} · ${usd(stat.total)}`
+              : sub || "Sin remesas aún"}
+          </p>
         </div>
-      </div>
-      <button
-        disabled={pending}
-        onClick={() => {
-          if (confirm(`¿Eliminar a ${name}?`)) start(() => onDelete());
-        }}
-        className="ml-2 rounded-lg p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </Card>
+        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+      </Card>
+    </Link>
   );
 }
 
 function ClientForm({ onDone }: { onDone: () => void }) {
   return (
     <Card className="mb-4">
-      <form
-        action={async (fd) => {
-          await createClientRecord(fd);
-          onDone();
-        }}
-        className="space-y-3"
-      >
+      <form action={async (fd) => { await createClientRecord(fd); onDone(); }} className="space-y-3">
         <Field label="Nombre">
           <Input name="name" required placeholder="Nombre del cliente" />
         </Field>
@@ -249,30 +221,16 @@ function ClientForm({ onDone }: { onDone: () => void }) {
         <Field label="Notas">
           <Textarea name="notes" rows={2} />
         </Field>
-        <Button type="submit" className="w-full">
-          Guardar cliente
-        </Button>
+        <Button type="submit" className="w-full">Guardar cliente</Button>
       </form>
     </Card>
   );
 }
 
-function BeneficiaryForm({
-  clients,
-  onDone,
-}: {
-  clients: Client[];
-  onDone: () => void;
-}) {
+function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () => void }) {
   return (
     <Card className="mb-4">
-      <form
-        action={async (fd) => {
-          await createBeneficiary(fd);
-          onDone();
-        }}
-        className="space-y-3"
-      >
+      <form action={async (fd) => { await createBeneficiary(fd); onDone(); }} className="space-y-3">
         <Field label="Nombre">
           <Input name="name" required placeholder="Nombre en Cuba" />
         </Field>
@@ -289,9 +247,7 @@ function BeneficiaryForm({
             <Select name="preferred_currency" defaultValue="">
               <option value="">—</option>
               {DELIVERY_CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
+                <option key={c} value={c}>{c}</option>
               ))}
             </Select>
           </Field>
@@ -303,15 +259,11 @@ function BeneficiaryForm({
           <Select name="client_id" defaultValue="">
             <option value="">— Ninguno —</option>
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </Select>
         </Field>
-        <Button type="submit" className="w-full">
-          Guardar beneficiario
-        </Button>
+        <Button type="submit" className="w-full">Guardar beneficiario</Button>
       </form>
     </Card>
   );
