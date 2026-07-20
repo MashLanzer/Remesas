@@ -28,11 +28,14 @@ export const viewport: Viewport = {
 };
 
 // Aplica el tema guardado antes de pintar (por defecto: oscuro, estilo fintech).
+// Se lee primero de la cookie (persiste mejor en el WebView del APK) y luego
+// de localStorage como respaldo.
 const themeScript = `
   try {
-    var t = localStorage.getItem('theme');
+    var m = document.cookie.match(/(?:^|; )theme=(dark|light)/);
+    var t = m ? m[1] : localStorage.getItem('theme');
     var d = t ? t === 'dark' : true;
-    if (d) document.documentElement.classList.add('dark');
+    document.documentElement.classList.toggle('dark', d);
   } catch (e) { document.documentElement.classList.add('dark'); }
 `;
 

@@ -16,8 +16,13 @@ export function ThemeSwitch() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
+    const val = next ? "dark" : "light";
     try {
-      localStorage.setItem("theme", next ? "dark" : "light");
+      localStorage.setItem("theme", val);
+    } catch {}
+    try {
+      // Cookie de 1 año: persiste de forma fiable en el WebView del APK.
+      document.cookie = `theme=${val}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
   }
 

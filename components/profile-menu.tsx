@@ -7,15 +7,21 @@ import { User, Settings, LogOut } from "lucide-react";
 export function ProfileMenu({ email }: { email?: string | null }) {
   const initial = (email || "?").charAt(0).toUpperCase();
   const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  function close() {
+    setOpen(false);
+    setConfirm(false);
+  }
 
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") close();
     }
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -48,27 +54,52 @@ export function ProfileMenu({ email }: { email?: string | null }) {
             )}
           </div>
 
-          <MenuItem
-            href="/perfil"
-            icon={<User className="h-4 w-4" />}
-            label="Perfil"
-            onClick={() => setOpen(false)}
-          />
-          <MenuItem
-            href="/ajustes"
-            icon={<Settings className="h-4 w-4" />}
-            label="Ajustes"
-            onClick={() => setOpen(false)}
-          />
-
-          <form action="/auth/signout" method="post" className="border-t border-border">
-            <button
-              type="submit"
-              className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-destructive transition hover:bg-muted"
-            >
-              <LogOut className="h-4 w-4" /> Cerrar sesión
-            </button>
-          </form>
+          {confirm ? (
+            <div className="p-3">
+              <p className="px-1 pb-2 text-sm font-medium text-foreground">
+                ¿Cerrar sesión?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirm(false)}
+                  className="flex-1 rounded-xl border border-border py-2 text-sm font-semibold text-foreground transition active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <form action="/auth/signout" method="post" className="flex-1">
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl bg-destructive py-2 text-sm font-semibold text-white transition active:scale-95"
+                  >
+                    Sí, salir
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <>
+              <MenuItem
+                href="/perfil"
+                icon={<User className="h-4 w-4" />}
+                label="Perfil"
+                onClick={close}
+              />
+              <MenuItem
+                href="/ajustes"
+                icon={<Settings className="h-4 w-4" />}
+                label="Ajustes"
+                onClick={close}
+              />
+              <button
+                type="button"
+                onClick={() => setConfirm(true)}
+                className="flex w-full items-center gap-3 border-t border-border px-4 py-3 text-sm font-medium text-destructive transition hover:bg-muted"
+              >
+                <LogOut className="h-4 w-4" /> Cerrar sesión
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
