@@ -110,3 +110,29 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Impresión / Exportar a PDF: solo se ve el bloque .print-report */
+.print-report {
+  display: none;
+}
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-report,
+  .print-report * {
+    visibility: visible;
+  }
+  .print-report {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 24px;
+    color: #0a0a0a;
+  }
+}

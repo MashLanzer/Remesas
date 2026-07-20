@@ -1,11 +1,15 @@
-import { getRemittances } from "@/lib/data";
+import { getRemittances, getBusinessSettings } from "@/lib/data";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { ReportesView } from "@/components/reportes-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportesPage() {
-  const all = await getRemittances();
+  const [all, settings] = await Promise.all([
+    getRemittances(),
+    getBusinessSettings(),
+  ]);
+  const monthlyGoal = settings.monthly_goal ? Number(settings.monthly_goal) : 0;
 
   if (all.length === 0) {
     return (
@@ -22,7 +26,7 @@ export default async function ReportesPage() {
   return (
     <div className="space-y-5">
       <PageHeader title="Reportes" subtitle="Ganancias y envíos por período" />
-      <ReportesView remittances={all} />
+      <ReportesView remittances={all} monthlyGoal={monthlyGoal} />
     </div>
   );
 }

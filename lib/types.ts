@@ -101,6 +101,7 @@ export interface BusinessSettings {
   business_name: string | null;
   partner_name: string | null;
   settle_threshold?: number | null;
+  monthly_goal?: number | null;
   updated_at: string;
 }
 
@@ -113,6 +114,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   business_name: null,
   partner_name: null,
   settle_threshold: null,
+  monthly_goal: null,
   updated_at: "",
 };
 

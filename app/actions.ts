@@ -341,9 +341,19 @@ export async function updateBusinessSettings(formData: FormData) {
       .update({ settle_threshold: num(threshold) })
       .eq("id", true);
   }
+  // Meta de ganancia mensual (aparte, tolerante si la columna no existe — 0007).
+  const goal = formData.get("monthly_goal");
+  if (goal !== null) {
+    const trimmed = String(goal).trim();
+    await supabase
+      .from("business_settings")
+      .update({ monthly_goal: trimmed === "" ? null : num(goal) })
+      .eq("id", true);
+  }
   revalidatePath("/ajustes");
   revalidatePath("/remesas/nueva");
   revalidatePath("/socios");
+  revalidatePath("/reportes");
 }
 
 export async function updateProfile(formData: FormData) {

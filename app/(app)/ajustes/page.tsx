@@ -169,6 +169,21 @@ export default async function AjustesPage() {
                 placeholder="Ej: 500"
               />
             </Field>
+            <Field
+              label="Meta de ganancia mensual ($)"
+              hint="Se muestra en Reportes como barra de progreso. Vacío = sin meta."
+            >
+              <Input
+                type="number"
+                name="monthly_goal"
+                min="0"
+                step="0.01"
+                defaultValue={
+                  settings.monthly_goal ? String(settings.monthly_goal) : ""
+                }
+                placeholder="Ej: 1000"
+              />
+            </Field>
 
             <Button type="submit" className="w-full">
               Guardar configuración
