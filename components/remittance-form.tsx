@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { Field, Input, Select, Textarea, Button, Card } from "@/components/ui";
-import { calcCommission, computeRemittance } from "@/lib/calc";
+import {
+  calcCommission,
+  computeRemittance,
+  type CommissionRules,
+} from "@/lib/calc";
 import { usd, localAmount } from "@/lib/utils";
 import { createRemittance, updateRemittance } from "@/app/actions";
 import {
@@ -20,12 +24,18 @@ export function RemittanceForm({
   rates,
   defaultSplit,
   initial,
+  rules,
+  defaultCurrency = "CUP",
+  defaultPayment,
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
   rates: ExchangeRate[];
   defaultSplit: number;
   initial?: Remittance;
+  rules?: CommissionRules;
+  defaultCurrency?: string;
+  defaultPayment?: string | null;
 }) {
   const isEdit = !!initial;
 
@@ -43,12 +53,12 @@ export function RemittanceForm({
   );
   const [commissionTouched, setCommissionTouched] = useState(isEdit);
   const [currency, setCurrency] = useState<string>(
-    initial?.delivery_currency ?? "CUP"
+    initial?.delivery_currency ?? defaultCurrency
   );
   const [rate, setRate] = useState(
     initial
       ? String(initial.exchange_rate)
-      : String(ratesByCurrency["CUP"] ?? "")
+      : String(ratesByCurrency[defaultCurrency] ?? "")
   );
   const [exchangeProfit, setExchangeProfit] = useState(
     initial && Number(initial.exchange_profit) ? String(initial.exchange_profit) : ""
@@ -62,7 +72,7 @@ export function RemittanceForm({
   // La comisión se calcula sola mientras no la editen a mano.
   const effectiveCommission = commissionTouched
     ? parseFloat(commission) || 0
-    : calcCommission(amountNum);
+    : calcCommission(amountNum, rules);
 
   const summary = computeRemittance({
     amountUsd: amountNum,
@@ -136,7 +146,9 @@ export function RemittanceForm({
 
         <Field
           label="Comisión (USD)"
-          hint="Automática: 10% si es ≥ $100, o $5 fijos si es menor. Puedes editarla."
+          hint={`Automática: ${rules?.commission_percent ?? 10}% si ≥ $${
+            rules?.commission_threshold ?? 100
+          }, o $${rules?.commission_flat ?? 5} fijos. Puedes editarla.`}
         >
           <Input
             type="number"
@@ -153,7 +165,10 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Método de pago recibido">
-          <Select name="payment_method" defaultValue={initial?.payment_method ?? ""}>
+          <Select
+            name="payment_method"
+            defaultValue={initial?.payment_method ?? defaultPayment ?? ""}
+          >
             <option value="">— Selecciona —</option>
             {PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>

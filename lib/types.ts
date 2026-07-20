@@ -87,6 +87,28 @@ export interface Remittance {
   beneficiary?: Beneficiary | null;
 }
 
+export interface BusinessSettings {
+  commission_threshold: number;
+  commission_percent: number;
+  commission_flat: number;
+  default_currency: DeliveryCurrency;
+  default_payment_method: PaymentMethod | null;
+  business_name: string | null;
+  partner_name: string | null;
+  updated_at: string;
+}
+
+export const DEFAULT_SETTINGS: BusinessSettings = {
+  commission_threshold: 100,
+  commission_percent: 10,
+  commission_flat: 5,
+  default_currency: "CUP",
+  default_payment_method: null,
+  business_name: null,
+  partner_name: null,
+  updated_at: "",
+};
+
 export interface Settlement {
   id: string;
   date: string;

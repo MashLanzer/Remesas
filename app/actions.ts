@@ -212,6 +212,23 @@ export async function deleteSettlement(id: string) {
 
 // ============ PERFIL / AJUSTES ============
 
+export async function updateBusinessSettings(formData: FormData) {
+  const supabase = await createClient();
+  await supabase.from("business_settings").upsert({
+    id: true,
+    commission_threshold: num(formData.get("commission_threshold")),
+    commission_percent: num(formData.get("commission_percent")),
+    commission_flat: num(formData.get("commission_flat")),
+    default_currency: str(formData.get("default_currency")) ?? "CUP",
+    default_payment_method: str(formData.get("default_payment_method")),
+    business_name: str(formData.get("business_name")),
+    partner_name: str(formData.get("partner_name")),
+    updated_at: new Date().toISOString(),
+  });
+  revalidatePath("/ajustes");
+  revalidatePath("/remesas/nueva");
+}
+
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient();
   const {

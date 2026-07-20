@@ -4,17 +4,34 @@
 
 import type { Remittance, Settlement } from "./types";
 
+export interface CommissionRules {
+  commission_threshold: number;
+  commission_percent: number;
+  commission_flat: number;
+}
+
+const DEFAULT_RULES: CommissionRules = {
+  commission_threshold: 100,
+  commission_percent: 10,
+  commission_flat: 5,
+};
+
 /**
- * Comisión automática según las reglas del negocio:
- *  - Envío de $100 o más  -> 10% del monto.
- *  - Envío de menos de $100 -> $5 fijos.
+ * Comisión automática según las reglas del negocio (configurables):
+ *  - Envío >= umbral  -> % del monto.
+ *  - Envío <  umbral  -> monto fijo.
  * El resultado es editable después en el formulario.
  */
-export function calcCommission(amountUsd: number): number {
+export function calcCommission(
+  amountUsd: number,
+  rules: CommissionRules = DEFAULT_RULES
+): number {
   const amount = Number(amountUsd) || 0;
   if (amount <= 0) return 0;
-  if (amount >= 100) return round2(amount * 0.1);
-  return 5;
+  if (amount >= (Number(rules.commission_threshold) || 0)) {
+    return round2((amount * (Number(rules.commission_percent) || 0)) / 100);
+  }
+  return round2(Number(rules.commission_flat) || 0);
 }
 
 /** Total que se le cobra al cliente = monto del envío + comisión. */

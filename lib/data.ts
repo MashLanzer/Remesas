@@ -1,11 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
-import type {
-  Beneficiary,
-  Client,
-  ExchangeRate,
-  Remittance,
-  Settlement,
+import {
+  DEFAULT_SETTINGS,
+  type Beneficiary,
+  type BusinessSettings,
+  type Client,
+  type ExchangeRate,
+  type Remittance,
+  type Settlement,
 } from "@/lib/types";
+
+export async function getBusinessSettings(): Promise<BusinessSettings> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("business_settings")
+    .select("*")
+    .eq("id", true)
+    .single();
+  return { ...DEFAULT_SETTINGS, ...(data ?? {}) } as BusinessSettings;
+}
 
 // Funciones de lectura para Server Components.
 

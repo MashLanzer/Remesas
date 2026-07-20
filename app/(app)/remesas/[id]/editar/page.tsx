@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
   getBeneficiaries,
+  getBusinessSettings,
   getClients,
   getExchangeRates,
   getRemittance,
@@ -18,12 +19,14 @@ export default async function EditarRemesaPage({
 }) {
   const { id } = await params;
 
-  const [remittance, clients, beneficiaries, rates] = await Promise.all([
-    getRemittance(id),
-    getClients(),
-    getBeneficiaries(),
-    getExchangeRates(),
-  ]);
+  const [remittance, clients, beneficiaries, rates, settings] =
+    await Promise.all([
+      getRemittance(id),
+      getClients(),
+      getBeneficiaries(),
+      getExchangeRates(),
+      getBusinessSettings(),
+    ]);
 
   if (!remittance) notFound();
 
@@ -44,6 +47,7 @@ export default async function EditarRemesaPage({
         rates={rates}
         defaultSplit={Number(remittance.my_split_percent)}
         initial={remittance}
+        rules={settings}
       />
     </div>
   );

@@ -1,4 +1,9 @@
-import { getBeneficiaries, getClients, getExchangeRates } from "@/lib/data";
+import {
+  getBeneficiaries,
+  getBusinessSettings,
+  getClients,
+  getExchangeRates,
+} from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { RemittanceForm } from "@/components/remittance-form";
 import { PageHeader } from "@/components/ui";
@@ -11,14 +16,20 @@ export default async function NuevaRemesaPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [clients, beneficiaries, rates, profileRes] = await Promise.all([
-    getClients(),
-    getBeneficiaries(),
-    getExchangeRates(),
-    user
-      ? supabase.from("profiles").select("default_split_percent").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [clients, beneficiaries, rates, settings, profileRes] =
+    await Promise.all([
+      getClients(),
+      getBeneficiaries(),
+      getExchangeRates(),
+      getBusinessSettings(),
+      user
+        ? supabase
+            .from("profiles")
+            .select("default_split_percent")
+            .eq("id", user.id)
+            .single()
+        : Promise.resolve({ data: null }),
+    ]);
 
   const defaultSplit = Number(profileRes.data?.default_split_percent ?? 50);
 
@@ -30,6 +41,9 @@ export default async function NuevaRemesaPage() {
         beneficiaries={beneficiaries}
         rates={rates}
         defaultSplit={defaultSplit}
+        rules={settings}
+        defaultCurrency={settings.default_currency}
+        defaultPayment={settings.default_payment_method}
       />
     </div>
   );

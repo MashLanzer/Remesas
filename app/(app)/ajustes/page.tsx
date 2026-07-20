@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { LogOut, TrendingUp, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getRemittances } from "@/lib/data";
-import { updateProfile } from "@/app/actions";
-import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
+import { getRemittances, getBusinessSettings } from "@/lib/data";
+import { updateProfile, updateBusinessSettings } from "@/app/actions";
+import {
+  Card,
+  Field,
+  Input,
+  Select,
+  Button,
+  PageHeader,
+} from "@/components/ui";
+import { DELIVERY_CURRENCIES, PAYMENT_METHODS } from "@/lib/types";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { ExportRemittances } from "@/components/export-remittances";
 
@@ -17,11 +25,12 @@ export default async function AjustesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [profileRes, remittances] = await Promise.all([
+  const [profileRes, remittances, settings] = await Promise.all([
     user
       ? supabase.from("profiles").select("*").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
     getRemittances(),
+    getBusinessSettings(),
   ]);
   const profile = profileRes.data;
 
@@ -56,6 +65,98 @@ export default async function AjustesPage() {
             <div className="text-xs text-muted-foreground">{user?.email}</div>
             <Button type="submit" className="w-full">
               Guardar
+            </Button>
+          </form>
+        </Card>
+      </section>
+
+      {/* Negocio */}
+      <section>
+        <SectionTitle>Negocio</SectionTitle>
+        <Card>
+          <form action={updateBusinessSettings} className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Reglas de comisión
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="Umbral $">
+                <Input
+                  type="number"
+                  name="commission_threshold"
+                  min="0"
+                  step="0.01"
+                  defaultValue={String(settings.commission_threshold)}
+                />
+              </Field>
+              <Field label="% si ≥">
+                <Input
+                  type="number"
+                  name="commission_percent"
+                  min="0"
+                  step="0.1"
+                  defaultValue={String(settings.commission_percent)}
+                />
+              </Field>
+              <Field label="Fijo si <">
+                <Input
+                  type="number"
+                  name="commission_flat"
+                  min="0"
+                  step="0.01"
+                  defaultValue={String(settings.commission_flat)}
+                />
+              </Field>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Ej: umbral 100, 10%, fijo 5 → envíos de $100+ cobran 10%, menores
+              cobran $5.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Moneda por defecto">
+                <Select
+                  name="default_currency"
+                  defaultValue={settings.default_currency}
+                >
+                  {DELIVERY_CURRENCIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Método por defecto">
+                <Select
+                  name="default_payment_method"
+                  defaultValue={settings.default_payment_method ?? ""}
+                >
+                  <option value="">—</option>
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+
+            <Field label="Nombre del negocio">
+              <Input
+                name="business_name"
+                defaultValue={settings.business_name ?? ""}
+                placeholder="Opcional"
+              />
+            </Field>
+            <Field label="Socio en Cuba">
+              <Input
+                name="partner_name"
+                defaultValue={settings.partner_name ?? ""}
+                placeholder="Nombre del socio"
+              />
+            </Field>
+
+            <Button type="submit" className="w-full">
+              Guardar configuración
             </Button>
           </form>
         </Card>
