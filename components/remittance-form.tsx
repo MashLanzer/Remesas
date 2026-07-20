@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { Field, Input, Select, Textarea, Button, Card } from "@/components/ui";
 import { calcCommission, computeRemittance } from "@/lib/calc";
 import { usd, localAmount } from "@/lib/utils";
-import { createRemittance } from "@/app/actions";
+import { createRemittance, updateRemittance } from "@/app/actions";
 import {
   DELIVERY_CURRENCIES,
   PAYMENT_METHODS,
   type Beneficiary,
   type Client,
   type ExchangeRate,
+  type Remittance,
 } from "@/lib/types";
 
 export function RemittanceForm({
@@ -18,25 +19,43 @@ export function RemittanceForm({
   beneficiaries,
   rates,
   defaultSplit,
+  initial,
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
   rates: ExchangeRate[];
   defaultSplit: number;
+  initial?: Remittance;
 }) {
+  const isEdit = !!initial;
+
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
     for (const r of rates) m[r.currency] = Number(r.rate);
     return m;
   }, [rates]);
 
-  const [amount, setAmount] = useState("");
-  const [commission, setCommission] = useState("");
-  const [commissionTouched, setCommissionTouched] = useState(false);
-  const [currency, setCurrency] = useState("CUP");
-  const [rate, setRate] = useState(String(ratesByCurrency["CUP"] ?? ""));
-  const [exchangeProfit, setExchangeProfit] = useState("");
-  const [split, setSplit] = useState(String(defaultSplit ?? 50));
+  const [amount, setAmount] = useState(
+    initial ? String(initial.amount_usd) : ""
+  );
+  const [commission, setCommission] = useState(
+    initial ? String(initial.commission) : ""
+  );
+  const [commissionTouched, setCommissionTouched] = useState(isEdit);
+  const [currency, setCurrency] = useState<string>(
+    initial?.delivery_currency ?? "CUP"
+  );
+  const [rate, setRate] = useState(
+    initial
+      ? String(initial.exchange_rate)
+      : String(ratesByCurrency["CUP"] ?? "")
+  );
+  const [exchangeProfit, setExchangeProfit] = useState(
+    initial && Number(initial.exchange_profit) ? String(initial.exchange_profit) : ""
+  );
+  const [split, setSplit] = useState(
+    String(initial?.my_split_percent ?? defaultSplit ?? 50)
+  );
 
   const amountNum = parseFloat(amount) || 0;
 
@@ -60,15 +79,23 @@ export function RemittanceForm({
   }
 
   return (
-    <form action={createRemittance} className="space-y-4">
+    <form
+      action={isEdit ? updateRemittance : createRemittance}
+      className="space-y-4"
+    >
+      {isEdit && <input type="hidden" name="id" value={initial!.id} />}
       {/* Datos del envío */}
       <Card className="space-y-4">
         <Field label="Fecha">
-          <Input type="date" name="date" defaultValue={today()} />
+          <Input
+            type="date"
+            name="date"
+            defaultValue={initial?.date ?? today()}
+          />
         </Field>
 
         <Field label="Cliente (quien paga)">
-          <Select name="client_id" defaultValue="">
+          <Select name="client_id" defaultValue={initial?.client_id ?? ""}>
             <option value="">— Sin cliente —</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -79,7 +106,10 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Beneficiario (quien recibe en Cuba)">
-          <Select name="beneficiary_id" defaultValue="">
+          <Select
+            name="beneficiary_id"
+            defaultValue={initial?.beneficiary_id ?? ""}
+          >
             <option value="">— Sin beneficiario —</option>
             {beneficiaries.map((b) => (
               <option key={b.id} value={b.id}>
@@ -123,7 +153,7 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Método de pago recibido">
-          <Select name="payment_method" defaultValue="">
+          <Select name="payment_method" defaultValue={initial?.payment_method ?? ""}>
             <option value="">— Selecciona —</option>
             {PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>
@@ -210,7 +240,7 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Estado">
-          <Select name="status" defaultValue="pendiente">
+          <Select name="status" defaultValue={initial?.status ?? "pendiente"}>
             <option value="pendiente">Pendiente</option>
             <option value="entregado">Entregado</option>
             <option value="liquidado">Liquidado</option>
@@ -218,7 +248,12 @@ export function RemittanceForm({
         </Field>
 
         <Field label="Notas">
-          <Textarea name="notes" rows={2} placeholder="Referencia, detalles…" />
+          <Textarea
+            name="notes"
+            rows={2}
+            placeholder="Referencia, detalles…"
+            defaultValue={initial?.notes ?? ""}
+          />
         </Field>
       </Card>
 
@@ -243,7 +278,7 @@ export function RemittanceForm({
       </Card>
 
       <Button type="submit" className="w-full">
-        Guardar remesa
+        {isEdit ? "Guardar cambios" : "Guardar remesa"}
       </Button>
     </form>
   );

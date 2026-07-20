@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { getRemittance } from "@/lib/data";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
@@ -27,12 +27,20 @@ export default async function RemesaDetailPage({
 
   return (
     <div>
-      <Link
-        href="/remesas"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Remesas
-      </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <Link
+          href="/remesas"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Remesas
+        </Link>
+        <Link
+          href={`/remesas/${r.id}/editar`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+        >
+          <Pencil className="h-3.5 w-3.5" /> Editar
+        </Link>
+      </div>
 
       <div className="mb-4 flex items-start justify-between">
         <div>

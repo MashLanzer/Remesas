@@ -62,6 +62,54 @@ export async function createRemittance(formData: FormData) {
   redirect("/remesas");
 }
 
+export async function updateRemittance(formData: FormData) {
+  const supabase = await createClient();
+  const id = str(formData.get("id"));
+  if (!id) return;
+
+  const amountUsd = num(formData.get("amount_usd"));
+  const commission = num(formData.get("commission"));
+  const exchangeRate = num(formData.get("exchange_rate"));
+  const exchangeProfit = num(formData.get("exchange_profit"));
+  const mySplitPercent = num(formData.get("my_split_percent"));
+
+  const c = computeRemittance({
+    amountUsd,
+    commission,
+    exchangeRate,
+    exchangeProfit,
+    mySplitPercent,
+  });
+
+  await supabase
+    .from("remittances")
+    .update({
+      date: str(formData.get("date")) ?? new Date().toISOString().slice(0, 10),
+      client_id: str(formData.get("client_id")),
+      beneficiary_id: str(formData.get("beneficiary_id")),
+      amount_usd: amountUsd,
+      commission: c.commission,
+      total_received: c.totalReceived,
+      payment_method: str(formData.get("payment_method")),
+      delivery_currency: str(formData.get("delivery_currency")) ?? "CUP",
+      exchange_rate: exchangeRate,
+      local_amount: c.localAmount,
+      exchange_profit: exchangeProfit,
+      total_profit: c.totalProfit,
+      my_split_percent: mySplitPercent,
+      my_share: c.myShare,
+      partner_share: c.partnerShare,
+      status: str(formData.get("status")) ?? "pendiente",
+      notes: str(formData.get("notes")),
+    })
+    .eq("id", id);
+
+  revalidatePath("/remesas");
+  revalidatePath(`/remesas/${id}`);
+  revalidatePath("/");
+  redirect(`/remesas/${id}`);
+}
+
 export async function updateRemittanceStatus(id: string, status: string) {
   const supabase = await createClient();
   await supabase.from("remittances").update({ status }).eq("id", id);
