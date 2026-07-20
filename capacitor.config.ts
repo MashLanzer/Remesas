@@ -4,7 +4,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // funciona como un contenedor que carga el sitio desplegado.
 // 1) Despliega en Vercel.
 // 2) Pon tu URL de producción en CAP_SERVER_URL (o edítala aquí abajo).
-const serverUrl = process.env.CAP_SERVER_URL || "https://remesas.vercel.app";
+const serverUrl = process.env.CAP_SERVER_URL || "https://remesas-nu.vercel.app";
 
 const config: CapacitorConfig = {
   appId: "com.remesas.app",
