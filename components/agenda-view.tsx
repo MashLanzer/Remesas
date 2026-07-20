@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Plus, Trash2, Phone, MapPin } from "lucide-react";
-import { Card, Button, Field, Input, Select, Textarea, EmptyState } from "@/components/ui";
+import { useMemo, useState, useTransition } from "react";
+import { Plus, Trash2, Phone, MapPin, Search } from "lucide-react";
+import {
+  Card,
+  Button,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  EmptyState,
+} from "@/components/ui";
 import {
   createClientRecord,
   deleteClientRecord,
@@ -20,16 +28,64 @@ export function AgendaView({
 }) {
   const [tab, setTab] = useState<"clientes" | "beneficiarios">("clientes");
   const [showForm, setShowForm] = useState(false);
+  const [q, setQ] = useState("");
+
+  const term = q.trim().toLowerCase();
+  const fClients = useMemo(
+    () =>
+      clients.filter((c) =>
+        [c.name, c.phone, c.country]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      ),
+    [clients, term]
+  );
+  const fBeneficiaries = useMemo(
+    () =>
+      beneficiaries.filter((b) =>
+        [b.name, b.phone, b.province]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      ),
+    [beneficiaries, term]
+  );
 
   return (
     <div>
       <div className="mb-4 flex gap-2">
-        <TabButton active={tab === "clientes"} onClick={() => { setTab("clientes"); setShowForm(false); }}>
+        <TabButton
+          active={tab === "clientes"}
+          onClick={() => {
+            setTab("clientes");
+            setShowForm(false);
+          }}
+        >
           Clientes ({clients.length})
         </TabButton>
-        <TabButton active={tab === "beneficiarios"} onClick={() => { setTab("beneficiarios"); setShowForm(false); }}>
+        <TabButton
+          active={tab === "beneficiarios"}
+          onClick={() => {
+            setTab("beneficiarios");
+            setShowForm(false);
+          }}
+        >
           Beneficiarios ({beneficiaries.length})
         </TabButton>
+      </div>
+
+      {/* Buscador */}
+      <div className="relative mb-3">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar por nombre o teléfono…"
+          className="w-full rounded-xl border border-input bg-card py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
+        />
       </div>
 
       <Button
@@ -38,7 +94,11 @@ export function AgendaView({
         onClick={() => setShowForm((s) => !s)}
       >
         <Plus className="h-4 w-4" />
-        {showForm ? "Cerrar" : tab === "clientes" ? "Añadir cliente" : "Añadir beneficiario"}
+        {showForm
+          ? "Cerrar"
+          : tab === "clientes"
+          ? "Añadir cliente"
+          : "Añadir beneficiario"}
       </Button>
 
       {showForm && tab === "clientes" && (
@@ -49,11 +109,16 @@ export function AgendaView({
       )}
 
       {tab === "clientes" ? (
-        clients.length === 0 ? (
-          <EmptyState title="Sin clientes" description="Añade a las personas que te pagan." />
+        fClients.length === 0 ? (
+          <EmptyState
+            title={term ? "Sin resultados" : "Sin clientes"}
+            description={
+              term ? "Prueba con otro nombre." : "Añade a las personas que te pagan."
+            }
+          />
         ) : (
           <div className="space-y-2">
-            {clients.map((c) => (
+            {fClients.map((c) => (
               <ContactCard
                 key={c.id}
                 name={c.name}
@@ -63,11 +128,16 @@ export function AgendaView({
             ))}
           </div>
         )
-      ) : beneficiaries.length === 0 ? (
-        <EmptyState title="Sin beneficiarios" description="Añade a quienes reciben en Cuba." />
+      ) : fBeneficiaries.length === 0 ? (
+        <EmptyState
+          title={term ? "Sin resultados" : "Sin beneficiarios"}
+          description={
+            term ? "Prueba con otro nombre." : "Añade a quienes reciben en Cuba."
+          }
+        />
       ) : (
         <div className="space-y-2">
-          {beneficiaries.map((b) => (
+          {fBeneficiaries.map((b) => (
             <ContactCard
               key={b.id}
               name={b.name}
@@ -98,8 +168,10 @@ function TabButton({
     <button
       onClick={onClick}
       className={
-        "flex-1 rounded-xl px-3 py-2 text-sm font-medium transition " +
-        (active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground border border-border")
+        "flex-1 rounded-xl px-3 py-2 text-sm font-semibold transition " +
+        (active
+          ? "bg-primary text-primary-foreground"
+          : "bg-card text-muted-foreground border border-border")
       }
     >
       {children}
@@ -117,17 +189,27 @@ function ContactCard({
   onDelete: () => Promise<void>;
 }) {
   const [pending, start] = useTransition();
+  const initial = name.charAt(0).toUpperCase();
   return (
     <Card className="flex items-center justify-between p-3.5">
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-foreground">{name}</p>
-        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-          {lines.map((l, i) => (
-            <span key={i} className="inline-flex items-center gap-1">
-              {i === 0 && lines[0] === l ? <Phone className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
-              {l}
-            </span>
-          ))}
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+          {initial}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+          <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+            {lines.map((l, i) => (
+              <span key={i} className="inline-flex items-center gap-1">
+                {i === 0 && lines[0] === l ? (
+                  <Phone className="h-3 w-3" />
+                ) : (
+                  <MapPin className="h-3 w-3" />
+                )}
+                {l}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       <button
@@ -135,7 +217,7 @@ function ContactCard({
         onClick={() => {
           if (confirm(`¿Eliminar a ${name}?`)) start(() => onDelete());
         }}
-        className="ml-2 rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+        className="ml-2 rounded-lg p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
       >
         <Trash2 className="h-4 w-4" />
       </button>
@@ -146,7 +228,13 @@ function ContactCard({
 function ClientForm({ onDone }: { onDone: () => void }) {
   return (
     <Card className="mb-4">
-      <form action={async (fd) => { await createClientRecord(fd); onDone(); }} className="space-y-3">
+      <form
+        action={async (fd) => {
+          await createClientRecord(fd);
+          onDone();
+        }}
+        className="space-y-3"
+      >
         <Field label="Nombre">
           <Input name="name" required placeholder="Nombre del cliente" />
         </Field>
@@ -161,16 +249,30 @@ function ClientForm({ onDone }: { onDone: () => void }) {
         <Field label="Notas">
           <Textarea name="notes" rows={2} />
         </Field>
-        <Button type="submit" className="w-full">Guardar cliente</Button>
+        <Button type="submit" className="w-full">
+          Guardar cliente
+        </Button>
       </form>
     </Card>
   );
 }
 
-function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () => void }) {
+function BeneficiaryForm({
+  clients,
+  onDone,
+}: {
+  clients: Client[];
+  onDone: () => void;
+}) {
   return (
     <Card className="mb-4">
-      <form action={async (fd) => { await createBeneficiary(fd); onDone(); }} className="space-y-3">
+      <form
+        action={async (fd) => {
+          await createBeneficiary(fd);
+          onDone();
+        }}
+        className="space-y-3"
+      >
         <Field label="Nombre">
           <Input name="name" required placeholder="Nombre en Cuba" />
         </Field>
@@ -187,7 +289,9 @@ function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () =>
             <Select name="preferred_currency" defaultValue="">
               <option value="">—</option>
               {DELIVERY_CURRENCIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </Select>
           </Field>
@@ -199,11 +303,15 @@ function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () =>
           <Select name="client_id" defaultValue="">
             <option value="">— Ninguno —</option>
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </Select>
         </Field>
-        <Button type="submit" className="w-full">Guardar beneficiario</Button>
+        <Button type="submit" className="w-full">
+          Guardar beneficiario
+        </Button>
       </form>
     </Card>
   );
