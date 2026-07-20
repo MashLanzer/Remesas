@@ -8,8 +8,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Aplica a todas las rutas excepto archivos estáticos e imágenes.
+     * Aplica a todas las rutas excepto:
+     *  - archivos estáticos e imágenes
+     *  - /auth/* (el callback de OAuth se maneja solo; el middleware no debe tocarlo)
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|auth|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
