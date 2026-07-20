@@ -9,22 +9,22 @@
     --foreground: 160 14% 10%;
     --card: 0 0% 100%;
     --card-foreground: 160 14% 10%;
-    --primary: 152 62% 40%;
+    --primary: 150 72% 41%;
     --primary-foreground: 0 0% 100%;
     --muted: 150 16% 95%;
     --muted-foreground: 155 8% 44%;
     --border: 150 14% 90%;
     --input: 150 14% 90%;
-    --ring: 152 62% 40%;
+    --ring: 150 72% 41%;
 
-    --income: 152 62% 38%;
+    --income: 150 70% 40%;
     --info: 210 90% 52%;
     --warning: 38 92% 48%;
     --business: 263 80% 58%;
     --destructive: 0 78% 55%;
 
-    --hero-from: 152 60% 42%;
-    --hero-to: 168 55% 30%;
+    --hero-from: 150 68% 45%;
+    --hero-to: 168 58% 30%;
   }
 
   .dark {
@@ -33,22 +33,22 @@
     --foreground: 150 12% 96%;
     --card: 158 18% 10%;
     --card-foreground: 150 12% 96%;
-    --primary: 151 65% 47%;
-    --primary-foreground: 158 40% 8%;
+    --primary: 150 80% 54%;
+    --primary-foreground: 158 45% 7%;
     --muted: 158 14% 15%;
     --muted-foreground: 150 8% 64%;
     --border: 158 14% 17%;
     --input: 158 14% 17%;
-    --ring: 151 65% 47%;
+    --ring: 150 80% 54%;
 
-    --income: 151 60% 50%;
+    --income: 150 78% 56%;
     --info: 210 90% 62%;
     --warning: 38 92% 58%;
     --business: 263 80% 70%;
     --destructive: 0 72% 58%;
 
-    --hero-from: 152 55% 34%;
-    --hero-to: 166 45% 16%;
+    --hero-from: 150 66% 42%;
+    --hero-to: 166 52% 20%;
   }
 }
 
