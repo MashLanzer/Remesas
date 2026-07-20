@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopBar({ email }: { email?: string | null }) {
   const initial = (email || "?").charAt(0).toUpperCase();
@@ -16,7 +15,6 @@ export function TopBar({ email }: { email?: string | null }) {
           </span>
         </Link>
         <div className="flex items-center gap-1">
-          <ThemeToggle />
           <Link
             href="/ajustes"
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
