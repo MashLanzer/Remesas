@@ -37,6 +37,10 @@ const themeScript = `
     var d = t ? t === 'dark' : true;
     document.documentElement.classList.toggle('dark', d);
   } catch (e) { document.documentElement.classList.add('dark'); }
+  try {
+    var dm = document.cookie.match(/(?:^|; )datamode=(low|normal)/);
+    if (dm && dm[1] === 'low') document.documentElement.classList.add('data-saver');
+  } catch (e) {}
 `;
 
 export default function RootLayout({

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { DELIVERY_CURRENCIES, PAYMENT_METHODS } from "@/lib/types";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ExportRemittances } from "@/components/export-remittances";
 
 export const dynamic = "force-dynamic";
@@ -155,6 +156,19 @@ export default async function AjustesPage() {
         <SectionTitle>Apariencia</SectionTitle>
         <Card>
           <ThemeSwitch />
+        </Card>
+      </section>
+
+      {/* Conexión */}
+      <section>
+        <SectionTitle>Conexión</SectionTitle>
+        <Card className="space-y-3">
+          <DataModeSwitch />
+          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+            Ideal si tienes internet lento o pocos datos. No descarga las fotos
+            de comprobantes hasta que las toques y evita cargar pantallas en
+            segundo plano. Se guarda solo en este teléfono.
+          </p>
         </Card>
       </section>
 

@@ -7,6 +7,7 @@ import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
+import { SmartImage } from "@/components/smart-image";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -143,14 +144,11 @@ export default async function RemesaDetailPage({
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Comprobante
           </p>
-          <a href={r.receipt_url} target="_blank" rel="noopener noreferrer">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={r.receipt_url}
-              alt="Comprobante"
-              className="w-full rounded-xl border border-border"
-            />
-          </a>
+          <SmartImage
+            src={r.receipt_url}
+            alt="Comprobante"
+            className="w-full rounded-xl border border-border"
+          />
         </Card>
       )}
 
