@@ -169,7 +169,15 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cn(fieldClass, props.className)} />;
+  return (
+    <select
+      {...props}
+      className={cn(
+        "w-full rounded-xl border border-input bg-background py-2.5 pl-3 pr-9 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20",
+        props.className
+      )}
+    />
+  );
 }
 
 export function Textarea(
