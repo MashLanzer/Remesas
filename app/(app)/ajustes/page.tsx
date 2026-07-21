@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TrendingUp, ChevronRight, Truck } from "lucide-react";
+import { TrendingUp, ChevronRight, Truck, Activity } from "lucide-react";
 import {
   getRemittances,
   getBusinessSettings,
@@ -201,6 +201,29 @@ export default async function AjustesPage() {
             segundo plano. Se guarda solo en este teléfono.
           </p>
         </Card>
+      </section>
+
+      {/* Actividad */}
+      <section>
+        <SectionTitle>Actividad</SectionTitle>
+        <Link href="/actividad" className="block">
+          <Card className="flex items-center justify-between transition active:scale-[0.99]">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
+                <Activity className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Registro de actividad
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {ctx.isOperador ? "Todo lo que hace tu equipo" : "Tu historial"}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Card>
+        </Link>
       </section>
 
       {/* Datos */}
