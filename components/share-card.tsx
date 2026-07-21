@@ -106,7 +106,34 @@ export function ShareCard({
       await toPng(node, opts).catch(() => {});
       const dataUrl = await toPng(node, opts);
 
-      // Intentar compartir como archivo (foto).
+      // === APK (nativo): escribir el PNG y compartir con el plugin nativo ===
+      const { Capacitor } = await import("@capacitor/core");
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { Filesystem, Directory } = await import("@capacitor/filesystem");
+          const { Share } = await import("@capacitor/share");
+          const base64 = dataUrl.split(",")[1];
+          const fileName = `tarjeta-giro-${Date.now()}.png`;
+          const written = await Filesystem.writeFile({
+            path: fileName,
+            data: base64,
+            directory: Directory.Cache,
+          });
+          await Share.share({
+            title: brand,
+            text: buildText(),
+            files: [written.uri],
+          });
+          setSharing(false);
+          return;
+        } catch {
+          // Si algo falla en nativo, mostramos la imagen como respaldo.
+          setImgUrl(dataUrl);
+          return;
+        }
+      }
+
+      // === Web: compartir el archivo si el navegador lo permite ===
       try {
         const blob = await (await fetch(dataUrl)).blob();
         const file = new File([blob], "tarjeta-giro.png", { type: "image/png" });
@@ -119,7 +146,7 @@ export function ShareCard({
         /* sigue al respaldo visible */
       }
 
-      // Respaldo fiable en el WebView: mostrar la imagen para guardar/compartir.
+      // Respaldo: mostrar la imagen para guardar/compartir.
       setImgUrl(dataUrl);
     } catch {
       await share();
