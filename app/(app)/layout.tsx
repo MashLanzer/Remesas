@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getAlertCount, getBusinessSettings } from "@/lib/data";
+import {
+  getAlertCount,
+  getBusinessSettings,
+  getSessionContext,
+} from "@/lib/data";
 import { BottomNav } from "@/components/nav";
 import { TopBar } from "@/components/top-bar";
 
@@ -16,6 +20,13 @@ export default async function AppLayout({
 
   if (!user) {
     redirect("/login");
+  }
+
+  // Onboarding / equipo: elegir rol y aprobación de repartidores.
+  const ctx = await getSessionContext();
+  if (ctx.needsOnboarding) redirect("/onboarding");
+  if (ctx.role === "repartidor" && ctx.memberStatus === "pending") {
+    redirect("/pendiente");
   }
 
   const [alertCount, settings, profileRes] = await Promise.all([

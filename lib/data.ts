@@ -19,6 +19,7 @@ export interface SessionContext {
   isOperador: boolean;
   tenantId: string | null; // negocio (operador) al que pertenece; null = legacy sin migrar
   memberStatus: string | null; // 'active' | 'pending' | null
+  needsOnboarding: boolean; // multi-negocio activo y aún sin rol elegido
 }
 
 // Contexto del usuario actual. Tolerante: si las columnas multi-negocio no
@@ -35,6 +36,7 @@ export async function getSessionContext(): Promise<SessionContext> {
       isOperador: true,
       tenantId: null,
       memberStatus: null,
+      needsOnboarding: false,
     };
 
   type ProfileRow = {
@@ -63,9 +65,12 @@ export async function getSessionContext(): Promise<SessionContext> {
   }
 
   const role = (row?.role as UserRole | null) ?? null;
-  const isOperador = role !== "repartidor";
+  // Sin migrar (legacy): null/operador se tratan como operador para no romper.
+  // Con multi-negocio: operador estricto; null => onboarding pendiente.
+  const isOperador = multiTenant ? role === "operador" : role !== "repartidor";
+  const needsOnboarding = multiTenant && role == null;
   const tenantId = multiTenant
-    ? (row?.operator_id ?? (isOperador ? user.id : null))
+    ? (row?.operator_id ?? (role === "operador" ? user.id : null))
     : null;
 
   return {
@@ -74,6 +79,7 @@ export async function getSessionContext(): Promise<SessionContext> {
     isOperador,
     tenantId,
     memberStatus: (row?.member_status as string) ?? null,
+    needsOnboarding,
   };
 }
 

@@ -27,6 +27,108 @@ export async function setDataModeCookie(low: boolean) {
   });
 }
 
+// ============ ONBOARDING / EQUIPO ============
+
+function genCode(len = 6): string {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // sin 0/O/1/I/L
+  let s = "";
+  for (let i = 0; i < len; i++) {
+    s += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return s;
+}
+
+// El usuario elige ser operador: crea su negocio, código, tasas y ajustes base.
+export async function becomeOperador() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Código de equipo único.
+  let code = genCode();
+  for (let i = 0; i < 5; i++) {
+    const { data: taken } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("operator_code", code)
+      .maybeSingle();
+    if (!taken) break;
+    code = genCode();
+  }
+
+  await supabase
+    .from("profiles")
+    .update({
+      role: "operador",
+      operator_id: user.id,
+      member_status: "active",
+      operator_code: code,
+    })
+    .eq("id", user.id);
+
+  // Tasas base del nuevo negocio.
+  await supabase.from("exchange_rates").upsert(
+    [
+      { operator_id: user.id, currency: "CUP", rate: 440 },
+      { operator_id: user.id, currency: "USD", rate: 1 },
+      { operator_id: user.id, currency: "MLC", rate: 1 },
+      { operator_id: user.id, currency: "EUR", rate: 0.92 },
+    ],
+    { onConflict: "operator_id,currency" }
+  );
+  // Ajustes base.
+  await supabase
+    .from("business_settings")
+    .upsert(
+      { operator_id: user.id, updated_at: new Date().toISOString() },
+      { onConflict: "operator_id" }
+    );
+
+  await logActivity("negocio.crear");
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+// El usuario se une a un operador con su código (queda pendiente de aprobación).
+export async function joinOperator(
+  _prev: { error?: string } | null,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesión no válida." };
+
+  const code = (str(formData.get("code")) ?? "").toUpperCase().replace(/\s/g, "");
+  if (!code) return { error: "Escribe el código de tu operador." };
+
+  const { data: op } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("operator_code", code)
+    .eq("role", "operador")
+    .maybeSingle();
+  if (!op) return { error: "Código no válido. Verifícalo con tu operador." };
+
+  await supabase
+    .from("profiles")
+    .update({
+      role: "repartidor",
+      operator_id: op.id,
+      member_status: "pending",
+    })
+    .eq("id", user.id);
+
+  await logActivity("repartidor.solicitud", {
+    details: { operador: (op as { full_name?: string }).full_name ?? null },
+  });
+  revalidatePath("/", "layout");
+  redirect("/pendiente");
+}
+
 // Solo el operador puede cambiar roles.
 export async function setUserRole(
   userId: string,
