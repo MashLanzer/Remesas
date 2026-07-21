@@ -88,12 +88,48 @@ export async function getRepartidores(): Promise<Profile[]> {
   const ctx = await getSessionContext();
   let q = supabase
     .from("profiles")
-    .select("id, full_name, role, phone")
+    .select("id, full_name, role, phone, member_status")
     .eq("role", "repartidor")
     .order("full_name", { ascending: true });
   if (ctx.tenantId) q = q.eq("operator_id", ctx.tenantId);
   const { data } = await q;
-  return (data as Profile[]) ?? [];
+  // Solo repartidores aprobados (o legacy sin estado) son asignables.
+  return ((data as Profile[]) ?? []).filter(
+    (p) => p.member_status == null || p.member_status === "active"
+  );
+}
+
+export interface Team {
+  code: string | null;
+  pending: Profile[];
+  members: Profile[];
+}
+
+export async function getTeam(): Promise<Team> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId)
+    return { code: null, pending: [], members: [] };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("operator_code")
+    .eq("id", ctx.userId)
+    .maybeSingle();
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name, role, phone, member_status")
+    .eq("operator_id", ctx.tenantId)
+    .eq("role", "repartidor")
+    .order("full_name", { ascending: true });
+  const list = (data as Profile[]) ?? [];
+
+  return {
+    code: (me as { operator_code?: string } | null)?.operator_code ?? null,
+    pending: list.filter((p) => p.member_status === "pending"),
+    members: list.filter((p) => p.member_status !== "pending"),
+  };
 }
 
 export async function getAllProfiles(): Promise<Profile[]> {
@@ -292,7 +328,19 @@ export async function getAlertCount(): Promise<number> {
   );
   if (stale) ratesAlert = 1;
 
-  return (pending ?? 0) + (porCobrar ?? 0) + saldoAlert + ratesAlert;
+  // Solicitudes de repartidores pendientes (solo operador).
+  let teamAlert = 0;
+  if (ctx.isOperador && ctx.tenantId) {
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("operator_id", ctx.tenantId)
+      .eq("role", "repartidor")
+      .eq("member_status", "pending");
+    teamAlert = count ?? 0;
+  }
+
+  return (pending ?? 0) + (porCobrar ?? 0) + saldoAlert + ratesAlert + teamAlert;
 }
 
 export async function getSettlements(): Promise<Settlement[]> {

@@ -28,8 +28,10 @@ export interface Profile {
   id: string;
   email?: string;
   full_name: string | null;
-  role: UserRole;
+  role: UserRole | null;
   phone?: string | null;
+  member_status?: string | null; // 'active' | 'pending'
+  operator_code?: string | null;
   default_split_percent?: number; // % que le corresponde a este usuario por defecto
   created_at?: string;
 }

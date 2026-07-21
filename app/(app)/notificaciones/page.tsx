@@ -7,12 +7,14 @@ import {
   ChevronRight,
   Wallet,
   TrendingUp,
+  Truck,
 } from "lucide-react";
 import {
   getRemittances,
   getSettlements,
   getBusinessSettings,
   getExchangeRates,
+  getTeam,
 } from "@/lib/data";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd, formatDate } from "@/lib/utils";
@@ -26,12 +28,14 @@ function daysAgo(dateStr: string): number {
 }
 
 export default async function NotificacionesPage() {
-  const [all, settlements, settings, rates] = await Promise.all([
+  const [all, settlements, settings, rates, team] = await Promise.all([
     getRemittances(),
     getSettlements(),
     getBusinessSettings(),
     getExchangeRates(),
+    getTeam(),
   ]);
+  const pendingMembers = team.pending.length;
 
   const pendientes = all
     .filter((r) => r.status === "pendiente")
@@ -48,7 +52,11 @@ export default async function NotificacionesPage() {
   const tasasViejas = staleRates.length > 0;
 
   const nada =
-    pendientes.length === 0 && porCobrar.length === 0 && !saldoAlto && !tasasViejas;
+    pendientes.length === 0 &&
+    porCobrar.length === 0 &&
+    !saldoAlto &&
+    !tasasViejas &&
+    pendingMembers === 0;
 
   return (
     <div>
@@ -68,6 +76,27 @@ export default async function NotificacionesPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {pendingMembers > 0 && (
+            <Link href="/ajustes/repartidores" className="block">
+              <Card className="flex items-center justify-between border-primary/30 bg-primary/5 transition active:scale-[0.99]">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Truck className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {pendingMembers} repartidor{pendingMembers > 1 ? "es" : ""} por aceptar
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Quieren unirse a tu equipo
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </Card>
+            </Link>
+          )}
+
           {saldoAlto && (
             <Link href="/finanzas?tab=cuentas" className="block">
               <Card className="flex items-center justify-between border-warning/30 bg-warning/10 transition active:scale-[0.99]">

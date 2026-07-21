@@ -129,23 +129,62 @@ export async function joinOperator(
   redirect("/pendiente");
 }
 
-// Solo el operador puede cambiar roles.
-export async function setUserRole(
-  userId: string,
-  role: "operador" | "repartidor"
-) {
+// El operador acepta a un repartidor pendiente de su equipo.
+export async function approveMember(userId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-  const { data: me } = await supabase
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
     .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (((me?.role as string) || "operador") === "repartidor") return;
-  await supabase.from("profiles").update({ role }).eq("id", userId);
+    .update({ member_status: "active" })
+    .eq("id", userId)
+    .eq("operator_id", ctx.tenantId)
+    .eq("role", "repartidor");
+  await logActivity("repartidor.aceptar", {
+    entityType: "repartidor",
+    entityId: userId,
+  });
+  revalidatePath("/ajustes/repartidores");
+}
+
+// El operador quita/rechaza a un repartidor. Sus datos quedan con el operador;
+// la persona se desvincula (vuelve al onboarding).
+export async function removeMember(userId: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("profiles")
+    .update({ role: null, operator_id: null, member_status: null })
+    .eq("id", userId)
+    .eq("operator_id", ctx.tenantId);
+  await logActivity("repartidor.quitar", {
+    entityType: "repartidor",
+    entityId: userId,
+  });
+  revalidatePath("/ajustes/repartidores");
+}
+
+// El operador regenera su código de equipo (el anterior deja de servir).
+export async function regenerateCode() {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.userId) return;
+  let code = genCode();
+  for (let i = 0; i < 5; i++) {
+    const { data: taken } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("operator_code", code)
+      .maybeSingle();
+    if (!taken) break;
+    code = genCode();
+  }
+  await supabase
+    .from("profiles")
+    .update({ operator_code: code })
+    .eq("id", ctx.userId);
+  await logActivity("equipo.codigo");
   revalidatePath("/ajustes/repartidores");
 }
 

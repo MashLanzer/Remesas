@@ -45,10 +45,10 @@ export default async function AjustesPage() {
                 </span>
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Repartidores
+                    Mi equipo
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Personas en Cuba y qué ve cada una
+                    Código, solicitudes y repartidores
                   </p>
                 </div>
               </div>

@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getAllProfiles, getSessionContext } from "@/lib/data";
+import { getSessionContext, getTeam } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
-import { RepartidoresManager } from "@/components/repartidores-manager";
+import { TeamManager } from "@/components/repartidores-manager";
 
 export const dynamic = "force-dynamic";
 
-export default async function RepartidoresPage() {
+export default async function EquipoPage() {
   const ctx = await getSessionContext();
   if (!ctx.isOperador) redirect("/ajustes");
 
-  const profiles = await getAllProfiles();
+  const team = await getTeam();
 
   return (
     <div>
@@ -22,10 +22,10 @@ export default async function RepartidoresPage() {
         <ArrowLeft className="h-4 w-4" /> Ajustes
       </Link>
       <PageHeader
-        title="Repartidores"
-        subtitle="Quién entrega en Cuba y qué puede ver cada uno"
+        title="Mi equipo"
+        subtitle="Tu código, solicitudes y repartidores"
       />
-      <RepartidoresManager profiles={profiles} currentUserId={ctx.userId} />
+      <TeamManager code={team.code} pending={team.pending} members={team.members} />
     </div>
   );
 }
