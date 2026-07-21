@@ -96,18 +96,43 @@
 }
 
 /* === Welcome screen (Giro) === */
-@keyframes gi-plane-in {
+/* Trayectoria de vuelo (misma para el avión y la estela). Coords 0..240. */
+:root {
+  --gi-path: path(
+    "M 8 224 C 55 178 85 150 120 150 C 180 150 180 52 120 52 C 60 52 60 132 120 132 L 120 120"
+  );
+}
+@keyframes gi-fly {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+@keyframes gi-fly-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes gi-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes gi-trail-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes gi-box-in {
   0% {
     opacity: 0;
-    transform: translate(-140px, 60px) rotate(-24deg) scale(0.7);
-  }
-  60% {
-    opacity: 1;
-    transform: translate(12px, -8px) rotate(6deg) scale(1.06);
+    transform: scale(0.4);
   }
   100% {
     opacity: 1;
-    transform: translate(0, 0) rotate(0) scale(1);
+    transform: scale(1);
   }
 }
 @keyframes gi-bob {
@@ -145,12 +170,44 @@
     transform: translateY(0);
   }
 }
-.gi-plane-in {
-  animation: gi-plane-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+.gi-stage {
+  position: relative;
+  width: 240px;
+  height: 240px;
+}
+.gi-trailsvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.gi-trail {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: gi-draw 2.6s cubic-bezier(0.45, 0, 0.25, 1) both,
+    gi-trail-fade 0.9s 2.5s forwards;
+}
+.gi-fly {
+  position: absolute;
+  top: 0;
+  left: 0;
+  offset-path: var(--gi-path);
+  offset-rotate: auto;
+  animation: gi-fly 2.6s cubic-bezier(0.45, 0, 0.25, 1) both,
+    gi-fly-fade 0.45s 2.5s forwards;
+}
+.gi-box {
+  animation: gi-box-in 0.6s 2.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .gi-bob {
-  animation: gi-bob 2.6s ease-in-out infinite;
-  animation-delay: 0.9s;
+  animation: gi-bob 2.8s ease-in-out infinite;
+  animation-delay: 3.1s;
 }
 .gi-money {
   animation-name: gi-money-up;
@@ -158,7 +215,7 @@
   animation-iteration-count: infinite;
 }
 .gi-fade-in {
-  animation: gi-fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: gi-fade-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .safe-bottom {
