@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2, X, MessageCircle, QrCode } from "lucide-react";
@@ -22,6 +22,19 @@ export function ShareCard({
   paypal?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  // Bloquea el scroll del fondo mientras el sheet está abierto.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   const title = businessName || name || "Giro";
   const subtitle = businessName && name ? name : "Envíos a Cuba";
@@ -74,7 +87,7 @@ export function ShareCard({
   }
 
   const sheet =
-    open && typeof document !== "undefined"
+    open && mounted
       ? createPortal(
           <div
             className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
