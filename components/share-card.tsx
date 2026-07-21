@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Share2, X, MessageCircle } from "lucide-react";
+import { Share2, X, MessageCircle, QrCode } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
 
 export function ShareCard({
@@ -77,9 +77,11 @@ export function ShareCard({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
+        aria-label="Mi tarjeta"
+        title="Mi tarjeta"
       >
-        <Share2 className="h-4 w-4" /> Compartir mi tarjeta
+        <QrCode className="h-5 w-5" />
       </button>
 
       {open && (

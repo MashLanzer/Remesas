@@ -2,13 +2,23 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { ProfileMenu } from "@/components/profile-menu";
 import { PaperPlane } from "@/components/paper-plane";
+import { ShareCard } from "@/components/share-card";
 
 export function TopBar({
   email,
   alertCount = 0,
+  card,
 }: {
   email?: string | null;
   alertCount?: number;
+  card?: {
+    name?: string | null;
+    businessName?: string | null;
+    phone?: string | null;
+    zelle?: string | null;
+    cashapp?: string | null;
+    paypal?: string | null;
+  };
 }) {
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -22,6 +32,7 @@ export function TopBar({
           </span>
         </Link>
         <div className="flex items-center gap-1">
+          {card && <ShareCard {...card} />}
           <Link
             href="/notificaciones"
             className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"

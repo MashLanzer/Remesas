@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { getRemittances, getBusinessSettings } from "@/lib/data";
+import { getRemittances } from "@/lib/data";
 import { updateProfile } from "@/app/actions";
 import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
-import { ShareCard } from "@/components/share-card";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -13,12 +12,11 @@ export default async function PerfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, remittances, settings] = await Promise.all([
+  const [{ data: profile }, remittances] = await Promise.all([
     user
       ? supabase.from("profiles").select("*").eq("id", user.id).single()
       : Promise.resolve({ data: null as Record<string, unknown> | null }),
     getRemittances(),
-    getBusinessSettings(),
   ]);
 
   const p = (profile ?? {}) as Record<string, string | number | null>;
@@ -107,23 +105,11 @@ export default async function PerfilPage() {
         </form>
       </Card>
 
-      {/* Tarjeta compartible */}
-      <Card className="space-y-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Tu tarjeta</p>
-          <p className="text-xs text-muted-foreground">
-            Compártela con un cliente nuevo: incluye tu WhatsApp y métodos de cobro.
-          </p>
-        </div>
-        <ShareCard
-          name={(p.full_name as string) || null}
-          businessName={settings.business_name ?? null}
-          phone={(p.phone as string) || null}
-          zelle={(p.zelle as string) || null}
-          cashapp={(p.cashapp as string) || null}
-          paypal={(p.paypal as string) || null}
-        />
-      </Card>
+      <p className="px-1 text-xs text-muted-foreground">
+        Tu tarjeta compartible (con QR) está en el ícono{" "}
+        <span className="font-medium text-foreground">⬛ arriba</span>, en la barra
+        superior.
+      </p>
     </div>
   );
 }
