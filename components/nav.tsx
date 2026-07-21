@@ -21,7 +21,7 @@ const items = [
   { href: "/finanzas", label: "Finanzas", icon: Wallet },
 ];
 
-export function BottomNav() {
+export function BottomNav({ isOperador = true }: { isOperador?: boolean }) {
   const pathname = usePathname();
   const [saver, setSaver] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -70,12 +70,14 @@ export function BottomNav() {
                 label="Nueva remesa"
                 onClick={() => setMenu(false)}
               />
-              <FabLink
-                href="/agenda/nuevo"
-                icon={<UserPlus className="h-4 w-4" />}
-                label="Nuevo cliente"
-                onClick={() => setMenu(false)}
-              />
+              {isOperador && (
+                <FabLink
+                  href="/agenda/nuevo"
+                  icon={<UserPlus className="h-4 w-4" />}
+                  label="Nuevo cliente"
+                  onClick={() => setMenu(false)}
+                />
+              )}
             </div>
           )}
           <button

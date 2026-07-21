@@ -110,7 +110,14 @@ export function TeamManager({
                     <Check className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => start(() => removeMember(p.id))}
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `¿Rechazar la solicitud de ${p.full_name || "este repartidor"}? Tendría que volver a pedir unirse.`
+                        )
+                      )
+                        start(() => removeMember(p.id));
+                    }}
                     disabled={pendingTx}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-90 disabled:opacity-50"
                     aria-label="Rechazar"

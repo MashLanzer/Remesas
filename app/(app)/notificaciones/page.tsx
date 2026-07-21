@@ -15,6 +15,7 @@ import {
   getBusinessSettings,
   getExchangeRates,
   getTeam,
+  getSessionContext,
 } from "@/lib/data";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd, formatDate } from "@/lib/utils";
@@ -28,19 +29,23 @@ function daysAgo(dateStr: string): number {
 }
 
 export default async function NotificacionesPage() {
-  const [all, settlements, settings, rates, team] = await Promise.all([
+  const [all, settlements, settings, rates, team, ctx] = await Promise.all([
     getRemittances(),
     getSettlements(),
     getBusinessSettings(),
     getExchangeRates(),
     getTeam(),
+    getSessionContext(),
   ]);
   const pendingMembers = team.pending.length;
 
   const pendientes = all
     .filter((r) => r.status === "pendiente")
     .sort((a, b) => a.date.localeCompare(b.date)); // más antiguas primero
-  const porCobrar = all.filter((r) => r.client_paid === false);
+  // "Por cobrar" es asunto del operador; el repartidor nunca cobra.
+  const porCobrar = ctx.isOperador
+    ? all.filter((r) => r.client_paid === false)
+    : [];
 
   const balance = calcPartnerBalance(all, settlements);
   const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;

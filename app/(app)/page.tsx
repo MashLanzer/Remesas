@@ -1,4 +1,4 @@
-import { getRemittances, getSettlements } from "@/lib/data";
+import { getRemittances, getSettlements, getSessionContext } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
 import { DashboardView } from "@/components/dashboard-view";
@@ -11,9 +11,10 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [remittances, settlements, profileRes] = await Promise.all([
+  const [remittances, settlements, ctx, profileRes] = await Promise.all([
     getRemittances(),
     getSettlements(),
+    getSessionContext(),
     user
       ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
       remittances={remittances}
       partnerBalance={partnerBalance}
       name={name}
+      isOperador={ctx.isOperador}
     />
   );
 }

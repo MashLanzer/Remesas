@@ -29,18 +29,28 @@ export function CuentasView({
   const owed = balance > 0;
   const settled = Math.abs(balance) < 0.01;
 
-  const totalDelivered = remittances.reduce(
-    (s, r) => s + (Number(r.amount_usd) - Number(r.commission)),
+  // Solo las remesas ya entregadas mueven capital/ganancia (igual que el saldo).
+  const settledRems = remittances.filter((r) => r.status !== "pendiente");
+  const totalDelivered = settledRems.reduce(
+    (s, r) => s + Math.max(0, Number(r.amount_usd) - Number(r.commission)),
     0
   );
-  const partnerProfit = remittances.reduce((s, r) => s + Number(r.partner_share), 0);
-  const myProfit = remittances.reduce((s, r) => s + Number(r.my_share), 0);
+  const partnerProfit = settledRems.reduce((s, r) => s + Number(r.partner_share), 0);
+  const myProfit = settledRems.reduce((s, r) => s + Number(r.my_share), 0);
   const sentToCuba = settlements
     .filter((s) => s.direction === "us_to_cuba")
     .reduce((s, x) => s + Number(x.amount), 0);
+  const receivedFromCuba = settlements
+    .filter((s) => s.direction === "cuba_to_us")
+    .reduce((s, x) => s + Number(x.amount), 0);
 
   const totalOwed = totalDelivered + partnerProfit;
-  const pctSettled = totalOwed > 0 ? Math.min((sentToCuba / totalOwed) * 100, 100) : 0;
+  // Neto realmente saldado (lo enviado menos lo recibido de vuelta).
+  const netSettled = sentToCuba - receivedFromCuba;
+  const pctSettled =
+    totalOwed > 0
+      ? Math.min(Math.max((netSettled / totalOwed) * 100, 0), 100)
+      : 0;
 
   const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;
   const overThreshold = !isRep && threshold > 0 && balance >= threshold;
@@ -154,6 +164,12 @@ export function CuentasView({
           label={isRep ? "− Ya recibido del operador" : `− Ya enviado ${toCuba}`}
           value={usd(sentToCuba)}
         />
+        {receivedFromCuba > 0 && (
+          <Row
+            label={isRep ? "+ Enviado al operador" : "+ Recibido de Cuba"}
+            value={usd(receivedFromCuba)}
+          />
+        )}
         <div className="my-1 border-t border-border" />
         <Row
           label={isRep ? "= Te deben" : "= Saldo pendiente"}

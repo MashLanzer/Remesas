@@ -47,7 +47,8 @@ export function calcTotalReceived(amountUsd: number): number {
  * La comisión sale del dinero que manda el cliente, no es un cargo extra.
  */
 export function calcDelivered(amountUsd: number, commission: number): number {
-  return round2((Number(amountUsd) || 0) - (Number(commission) || 0));
+  // La comisión nunca puede superar al monto: si pasa, se entrega 0 (no negativo).
+  return round2(Math.max(0, (Number(amountUsd) || 0) - (Number(commission) || 0)));
 }
 
 /** Monto que recibe la familia en moneda local = (USD entregado) * tasa. */
@@ -127,9 +128,15 @@ export function calcPartnerBalance(
   let owedToPartner = 0;
 
   for (const r of remittances) {
+    // El amigo adelanta capital solo cuando ENTREGA. Las pendientes (aún sin
+    // entregar) no cuentan todavía en el saldo.
+    if (r.status === "pendiente") continue;
     // Capital que adelanta el amigo = lo entregado a la familia (monto − comisión).
     // A eso se suma su parte de la ganancia.
-    const delivered = (Number(r.amount_usd) || 0) - (Number(r.commission) || 0);
+    const delivered = Math.max(
+      0,
+      (Number(r.amount_usd) || 0) - (Number(r.commission) || 0)
+    );
     owedToPartner += delivered + (Number(r.partner_share) || 0);
   }
 

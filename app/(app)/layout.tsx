@@ -25,7 +25,9 @@ export default async function AppLayout({
   // Onboarding / equipo: elegir rol y aprobación de repartidores.
   const ctx = await getSessionContext();
   if (ctx.needsOnboarding) redirect("/onboarding");
-  if (ctx.role === "repartidor" && ctx.memberStatus === "pending") {
+  // Solo el repartidor ya aprobado ('active') entra; cualquier otro estado
+  // (pendiente, u otro) espera en /pendiente.
+  if (ctx.role === "repartidor" && ctx.memberStatus !== "active") {
     redirect("/pendiente");
   }
 
@@ -51,7 +53,7 @@ export default async function AppLayout({
       <main className="mx-auto max-w-md animate-fade-up px-4 pb-24 pt-4">
         {children}
       </main>
-      <BottomNav />
+      <BottomNav isOperador={ctx.isOperador} />
     </div>
   );
 }

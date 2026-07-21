@@ -30,7 +30,7 @@ export function ExportRemittances({
       "Monto local",
       "Ganancia total",
       "Tu parte",
-      "Parte socio",
+      "Parte en Cuba",
       "Estado",
     ];
     const rows = remittances.map((r) =>

@@ -54,7 +54,8 @@ export async function getSessionContext(): Promise<SessionContext> {
     .single();
   if (full.data) {
     row = full.data as ProfileRow;
-  } else {
+  } else if (full.error?.code === "42703") {
+    // 42703 = columna inexistente → base sin migrar (legacy de un solo negocio).
     multiTenant = false;
     const basic = await supabase
       .from("profiles")
@@ -62,15 +63,26 @@ export async function getSessionContext(): Promise<SessionContext> {
       .eq("id", user.id)
       .single();
     row = (basic.data as ProfileRow) ?? null;
+  } else {
+    // Migrada pero sin fila de perfil (trigger falló, usuario manual): que pase
+    // por el onboarding en vez de entrar como operador a medias.
+    row = null;
   }
 
   const role = (row?.role as UserRole | null) ?? null;
+  const memberStatus = (row?.member_status as string) ?? null;
   // Sin migrar (legacy): null/operador se tratan como operador para no romper.
   // Con multi-negocio: operador estricto; null => onboarding pendiente.
   const isOperador = multiTenant ? role === "operador" : role !== "repartidor";
   const needsOnboarding = multiTenant && role == null;
+  // tenantId solo si de verdad pertenece a un negocio activo, igual que la
+  // función current_operator_id() de RLS (operador, o repartidor 'active').
+  const isActiveMember =
+    role === "operador" || (role === "repartidor" && memberStatus === "active");
   const tenantId = multiTenant
-    ? (row?.operator_id ?? (role === "operador" ? user.id : null))
+    ? isActiveMember
+      ? (row?.operator_id ?? (role === "operador" ? user.id : null))
+      : null
     : null;
 
   return {
@@ -78,7 +90,7 @@ export async function getSessionContext(): Promise<SessionContext> {
     role,
     isOperador,
     tenantId,
-    memberStatus: (row?.member_status as string) ?? null,
+    memberStatus,
     needsOnboarding,
   };
 }
@@ -225,22 +237,47 @@ export async function getClients(): Promise<Client[]> {
 
 export async function getClient(id: string): Promise<Client | null> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("clients")
     .select("*")
     .eq("id", id)
     .single();
-  return (data as Client) ?? null;
+  const c = (data as Client) ?? null;
+  if (!c) return null;
+  // Aislamiento: el repartidor solo ve clientes que aparecen en sus remesas
+  // (coherente con getClients, que filtra igual).
+  if (!ctx.isOperador && ctx.userId) {
+    const { count } = await supabase
+      .from("remittances")
+      .select("id", { count: "exact", head: true })
+      .eq("deliverer_id", ctx.userId)
+      .eq("client_id", id);
+    if (!count) return null;
+  }
+  return c;
 }
 
 export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("beneficiaries")
     .select("*")
     .eq("id", id)
     .single();
-  return (data as Beneficiary) ?? null;
+  const b = (data as Beneficiary) ?? null;
+  if (!b) return null;
+  // Aislamiento: el repartidor solo ve beneficiarios de sus remesas.
+  if (!ctx.isOperador && ctx.userId) {
+    const { count } = await supabase
+      .from("remittances")
+      .select("id", { count: "exact", head: true })
+      .eq("deliverer_id", ctx.userId)
+      .eq("beneficiary_id", id);
+    if (!count) return null;
+  }
+  return b;
 }
 
 export async function getBeneficiaries(): Promise<Beneficiary[]> {
@@ -308,13 +345,17 @@ export async function getAlertCount(): Promise<number> {
   if (mine) pendingQ = pendingQ.eq("deliverer_id", mine);
   const { count: pending } = await pendingQ;
 
-  let cobrarQ = supabase
-    .from("remittances")
-    .select("id", { count: "exact", head: true })
-    .eq("client_paid", false);
-  if (ctx.tenantId) cobrarQ = cobrarQ.eq("operator_id", ctx.tenantId);
-  if (mine) cobrarQ = cobrarQ.eq("deliverer_id", mine);
-  const { count: porCobrar } = await cobrarQ;
+  // "Por cobrar" es asunto del operador (él recibe el dinero). Para el
+  // repartidor todas sus remesas están sin cobrar por diseño → sería puro ruido.
+  let porCobrar = 0;
+  if (ctx.isOperador) {
+    let cobrarQ = supabase
+      .from("remittances")
+      .select("id", { count: "exact", head: true })
+      .eq("client_paid", false);
+    if (ctx.tenantId) cobrarQ = cobrarQ.eq("operator_id", ctx.tenantId);
+    porCobrar = (await cobrarQ).count ?? 0;
+  }
 
   let saldoAlert = 0;
   const settings = await getBusinessSettings();
@@ -346,7 +387,7 @@ export async function getAlertCount(): Promise<number> {
     teamAlert = count ?? 0;
   }
 
-  return (pending ?? 0) + (porCobrar ?? 0) + saldoAlert + ratesAlert + teamAlert;
+  return (pending ?? 0) + porCobrar + saldoAlert + ratesAlert + teamAlert;
 }
 
 export async function getSettlements(): Promise<Settlement[]> {

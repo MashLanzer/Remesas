@@ -33,11 +33,14 @@ export function DashboardView({
   remittances,
   partnerBalance,
   name,
+  isOperador = true,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
   name: string | null;
+  isOperador?: boolean;
 }) {
+  const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("mes");
 
   const filtered = useMemo(() => {
@@ -55,7 +58,11 @@ export function DashboardView({
   }, [remittances, period]);
 
   const profit = filtered.reduce((s, r) => s + Number(r.total_profit), 0);
-  const myProfit = filtered.reduce((s, r) => s + Number(r.my_share), 0);
+  // "Tu parte": para el operador es my_share; para el repartidor, partner_share.
+  const myProfit = filtered.reduce(
+    (s, r) => s + Number(isRep ? r.partner_share : r.my_share),
+    0
+  );
   const sent = filtered.reduce((s, r) => s + Number(r.amount_usd), 0);
 
   // Pendientes: siempre global (sin filtrar por período).
@@ -153,12 +160,28 @@ export function DashboardView({
         </Card>
         <Card className="p-4">
           <p className="text-xs font-medium text-muted-foreground">
-            {partnerBalance >= 0 ? "Por enviar a Cuba" : "A tu favor"}
+            {isRep
+              ? partnerBalance >= 0
+                ? "Por cobrar al operador"
+                : "Le debes al operador"
+              : partnerBalance >= 0
+              ? "Por enviar a Cuba"
+              : "A tu favor"}
           </p>
           <p
             className={
               "tabular mt-1 text-2xl font-bold " +
-              (partnerBalance > 0 ? "text-destructive" : "text-income")
+              // Para el repartidor, un saldo a favor (le deben) es positivo/verde;
+              // para el operador, deber dinero es lo "rojo".
+              (partnerBalance > 0
+                ? isRep
+                  ? "text-income"
+                  : "text-destructive"
+                : partnerBalance < 0
+                ? isRep
+                  ? "text-destructive"
+                  : "text-income"
+                : "text-foreground")
             }
           >
             {usd(Math.abs(partnerBalance))}

@@ -190,7 +190,21 @@ export async function regenerateCode() {
 }
 
 function num(v: FormDataEntryValue | null): number {
-  const n = parseFloat(String(v ?? "").replace(",", "."));
+  let s = String(v ?? "").trim().replace(/\s/g, "");
+  if (!s) return 0;
+  const hasDot = s.includes(".");
+  const hasComma = s.includes(",");
+  if (hasDot && hasComma) {
+    // El separador que aparece más a la derecha es el decimal; el otro, miles.
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      s = s.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    s = s.replace(",", ".");
+  }
+  const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
 function str(v: FormDataEntryValue | null): string | null {
@@ -398,15 +412,21 @@ export async function updateRemittance(formData: FormData) {
     })
     .eq("id", id);
 
-  // Cobrado del cliente (aparte, tolerante si la columna no existe).
-  await supabase
-    .from("remittances")
-    .update({ client_paid: str(formData.get("client_paid")) !== "false" })
-    .eq("id", id);
+  // Cobrado del cliente: solo lo marca el operador (él recibe el dinero) y solo
+  // si el formulario trae el campo. Al repartidor no se le muestra, así que su
+  // edición no debe tocar client_paid (si no, se pondría "cobrado" solo).
+  const ctx = await getSessionContext();
+  const cp = formData.get("client_paid");
+  if (ctx.isOperador && cp !== null) {
+    await supabase
+      .from("remittances")
+      .update({ client_paid: cp !== "false" })
+      .eq("id", id);
+  }
 
-  // Repartidor asignado (aparte, tolerante — columna 0011).
+  // Repartidor asignado: solo el operador reasigna (a él se le muestra el campo).
   const delivererId = formData.get("deliverer_id");
-  if (delivererId !== null) {
+  if (ctx.isOperador && delivererId !== null) {
     await supabase
       .from("remittances")
       .update({ deliverer_id: str(delivererId) })
@@ -562,9 +582,12 @@ export async function createBeneficiary(formData: FormData) {
   if (id) {
     await supabase.from("beneficiaries").update(values).eq("id", id);
   } else {
+    // El operator_id va EN el insert: con RLS la política de INSERT exige
+    // operator_id = tu negocio, así que no puede ir en un update aparte.
+    const tid = await currentTenantId();
     const { data } = await supabase
       .from("beneficiaries")
-      .insert(values)
+      .insert({ ...values, ...(tid ? { operator_id: tid } : {}) })
       .select("id")
       .single();
     targetId = data?.id ?? null;
@@ -577,15 +600,6 @@ export async function createBeneficiary(formData: FormData) {
       .update({ preferred_delivery: str(formData.get("preferred_delivery")) })
       .eq("id", targetId);
     revalidatePath(`/agenda/beneficiario/${targetId}`);
-  }
-  // Dueño del negocio (tolerante — 0012).
-  if (!id && targetId) {
-    const tid = await currentTenantId();
-    if (tid)
-      await supabase
-        .from("beneficiaries")
-        .update({ operator_id: tid })
-        .eq("id", targetId);
   }
   revalidatePath("/agenda");
 }
