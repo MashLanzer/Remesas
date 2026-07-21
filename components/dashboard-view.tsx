@@ -17,8 +17,8 @@ const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
 const actions = [
   { href: "/remesas/nueva", label: "Nueva", icon: Plus },
   { href: "/remesas", label: "Remesas", icon: Send },
-  { href: "/socios", label: "Cuentas", icon: Wallet },
-  { href: "/reportes", label: "Reportes", icon: BarChart3 },
+  { href: "/finanzas?tab=cuentas", label: "Cuentas", icon: Wallet },
+  { href: "/finanzas?tab=reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 const periods = [

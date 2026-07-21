@@ -220,6 +220,49 @@ export async function createClientRecord(formData: FormData) {
   revalidatePath("/agenda");
 }
 
+// Crea un cliente y, opcionalmente, sus beneficiarios en Cuba (vinculados) en
+// un solo paso. Los beneficiarios vacíos se ignoran.
+export async function createContact(formData: FormData) {
+  const supabase = await createClient();
+
+  const { data: client } = await supabase
+    .from("clients")
+    .insert({
+      name: str(formData.get("name")) ?? "Sin nombre",
+      phone: str(formData.get("phone")),
+      country: str(formData.get("country")),
+      notes: str(formData.get("notes")),
+    })
+    .select("id")
+    .single();
+
+  const clientId = client?.id ?? null;
+
+  const names = formData.getAll("benef_name");
+  const phones = formData.getAll("benef_phone");
+  const provinces = formData.getAll("benef_province");
+  const currencies = formData.getAll("benef_currency");
+  const cards = formData.getAll("benef_id_card");
+
+  const rows = names
+    .map((n, i) => ({
+      name: str(n as FormDataEntryValue),
+      phone: str((phones[i] ?? null) as FormDataEntryValue),
+      province: str((provinces[i] ?? null) as FormDataEntryValue),
+      preferred_currency: str((currencies[i] ?? null) as FormDataEntryValue),
+      id_card: str((cards[i] ?? null) as FormDataEntryValue),
+      client_id: clientId,
+    }))
+    .filter((r) => r.name); // solo los que tienen nombre
+
+  if (rows.length > 0) {
+    await supabase.from("beneficiaries").insert(rows);
+  }
+
+  revalidatePath("/agenda");
+  redirect(clientId ? `/agenda/cliente/${clientId}` : "/agenda");
+}
+
 export async function deleteClientRecord(id: string) {
   const supabase = await createClient();
   await supabase.from("clients").delete().eq("id", id);

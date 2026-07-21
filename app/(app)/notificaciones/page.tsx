@@ -69,7 +69,7 @@ export default async function NotificacionesPage() {
       ) : (
         <div className="space-y-6">
           {saldoAlto && (
-            <Link href="/socios" className="block">
+            <Link href="/finanzas?tab=cuentas" className="block">
               <Card className="flex items-center justify-between border-warning/30 bg-warning/10 transition active:scale-[0.99]">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
