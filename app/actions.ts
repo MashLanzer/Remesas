@@ -508,6 +508,16 @@ export async function updateProfile(formData: FormData) {
       default_split_percent: num(formData.get("default_split_percent")),
     })
     .eq("id", user.id);
+  // Campos nuevos (aparte, tolerante si las columnas no existen — 0010).
+  await supabase
+    .from("profiles")
+    .update({
+      phone: str(formData.get("phone")),
+      zelle: str(formData.get("zelle")),
+      cashapp: str(formData.get("cashapp")),
+      paypal: str(formData.get("paypal")),
+    })
+    .eq("id", user.id);
   revalidatePath("/perfil");
   revalidatePath("/ajustes");
 }
