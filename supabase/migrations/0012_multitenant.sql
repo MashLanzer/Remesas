@@ -57,6 +57,8 @@ create policy "activity_log_all" on public.activity_log
 -- ---------- 4) business_settings y exchange_rates: una fila por operador ----------
 -- business_settings dejaba una sola fila (id=true). Ahora una por operador.
 alter table public.business_settings drop constraint if exists business_settings_pkey;
+alter table public.business_settings drop constraint if exists business_settings_single_row;
+alter table public.business_settings alter column id drop not null;
 create unique index if not exists business_settings_operator_idx
   on public.business_settings (operator_id);
 
