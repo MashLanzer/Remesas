@@ -3,9 +3,22 @@
 -- Ejecuta este archivo en el SQL Editor de Supabase.
 -- =============================================================
 
--- Rol de cada usuario. Por defecto 'repartidor' (acceso limitado a lo suyo).
-alter table public.profiles
-  add column if not exists role text not null default 'repartidor';
+-- La tabla profiles traía un CHECK viejo (role in 'socio'/'admin'). Lo quitamos.
+alter table public.profiles drop constraint if exists profiles_role_check;
+
+-- Aseguramos la columna y el nuevo valor por defecto.
+alter table public.profiles add column if not exists role text;
+alter table public.profiles alter column role set default 'repartidor';
+
+-- Convertimos cualquier valor viejo a los nuevos roles.
+update public.profiles set role = 'repartidor'
+  where role is null or role not in ('operador', 'repartidor');
+
+alter table public.profiles alter column role set not null;
+
+-- Nuevo CHECK con los roles correctos.
+alter table public.profiles add constraint profiles_role_check
+  check (role in ('operador', 'repartidor'));
 
 -- A qué repartidor está asignada cada remesa / cada pago.
 alter table public.remittances

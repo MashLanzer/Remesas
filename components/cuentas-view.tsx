@@ -10,11 +10,18 @@ export function CuentasView({
   remittances,
   settlements,
   settings,
+  perspective = "operador",
+  delivererId,
+  canSettle = true,
 }: {
   remittances: Remittance[];
   settlements: Settlement[];
   settings: BusinessSettings;
+  perspective?: "operador" | "repartidor";
+  delivererId?: string | null;
+  canSettle?: boolean;
 }) {
+  const isRep = perspective === "repartidor";
   const partnerName = settings.partner_name?.trim() || null;
   const toCuba = partnerName ? `a ${partnerName}` : "a Cuba";
 
@@ -36,7 +43,7 @@ export function CuentasView({
   const pctSettled = totalOwed > 0 ? Math.min((sentToCuba / totalOwed) * 100, 100) : 0;
 
   const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;
-  const overThreshold = threshold > 0 && balance >= threshold;
+  const overThreshold = !isRep && threshold > 0 && balance >= threshold;
 
   const movements: Movement[] = [
     ...remittances.map((r) => ({
@@ -51,7 +58,14 @@ export function CuentasView({
       id: `s-${s.id}`,
       date: s.date,
       kind: s.direction === "us_to_cuba" ? ("pago" as const) : ("recibo" as const),
-      label: s.direction === "us_to_cuba" ? `Pago ${toCuba}` : "Recibido de Cuba",
+      label:
+        s.direction === "us_to_cuba"
+          ? isRep
+            ? "Recibido del operador"
+            : `Pago ${toCuba}`
+          : isRep
+          ? "Enviado al operador"
+          : "Recibido de Cuba",
       delta: s.direction === "us_to_cuba" ? -Number(s.amount) : Number(s.amount),
     })),
   ].sort((a, b) => b.date.localeCompare(a.date));
@@ -59,9 +73,13 @@ export function CuentasView({
   const balanceTitle = settled
     ? "Cuentas saldadas"
     : owed
-    ? partnerName
+    ? isRep
+      ? "Por cobrar al operador"
+      : partnerName
       ? `Por enviar a ${partnerName}`
       : "Por enviar a Cuba"
+    : isRep
+    ? "Le debes al operador"
     : "A tu favor";
 
   return (
@@ -108,32 +126,56 @@ export function CuentasView({
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4">
           <p className="text-xs font-medium text-muted-foreground">Has ganado tú</p>
-          <p className="tabular mt-1 text-2xl font-bold text-income">{usd(myProfit)}</p>
+          <p className="tabular mt-1 text-2xl font-bold text-income">
+            {usd(isRep ? partnerProfit : myProfit)}
+          </p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">Ganado en Cuba</p>
+          <p className="text-xs font-medium text-muted-foreground">
+            {isRep ? "Entregado a familias" : "Ganado en Cuba"}
+          </p>
           <p className="tabular mt-1 text-2xl font-bold text-foreground">
-            {usd(partnerProfit)}
+            {usd(isRep ? totalDelivered : partnerProfit)}
           </p>
         </Card>
       </div>
 
       {/* Desglose */}
       <Card className="space-y-2.5">
-        <Row label="Total entregado en Cuba (capital)" value={usd(totalDelivered)} />
-        <Row label="+ Ganancia generada en Cuba" value={usd(partnerProfit)} />
-        <Row label={`− Ya enviado ${toCuba}`} value={usd(sentToCuba)} />
+        <Row
+          label={isRep ? "Tu capital entregado" : "Total entregado en Cuba (capital)"}
+          value={usd(totalDelivered)}
+        />
+        <Row
+          label={isRep ? "+ Tu ganancia" : "+ Ganancia generada en Cuba"}
+          value={usd(partnerProfit)}
+        />
+        <Row
+          label={isRep ? "− Ya recibido del operador" : `− Ya enviado ${toCuba}`}
+          value={usd(sentToCuba)}
+        />
         <div className="my-1 border-t border-border" />
-        <Row label="= Saldo pendiente" value={usd(balance)} strong />
+        <Row
+          label={isRep ? "= Te deben" : "= Saldo pendiente"}
+          value={usd(balance)}
+          strong
+        />
       </Card>
 
-      <SettlementView
-        settlements={settlements}
-        suggested={owed ? Math.abs(balance) : 0}
-        toCubaLabel={toCuba}
-      />
+      {canSettle ? (
+        <SettlementView
+          settlements={settlements}
+          suggested={owed ? Math.abs(balance) : 0}
+          toCubaLabel={toCuba}
+          delivererId={delivererId}
+        />
+      ) : (
+        settlements.length > 0 && (
+          <MovementsView movements={movements} />
+        )
+      )}
 
-      <MovementsView movements={movements} />
+      {canSettle && <MovementsView movements={movements} />}
     </div>
   );
 }

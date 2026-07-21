@@ -19,10 +19,12 @@ export function SettlementView({
   settlements,
   suggested = 0,
   toCubaLabel = "a Cuba",
+  delivererId,
 }: {
   settlements: Settlement[];
   suggested?: number;
   toCubaLabel?: string;
+  delivererId?: string | null;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Settlement | null>(null);
@@ -59,6 +61,9 @@ export function SettlementView({
             className="space-y-3"
           >
             {editing && <input type="hidden" name="id" value={editing.id} />}
+            {delivererId && (
+              <input type="hidden" name="deliverer_id" value={delivererId} />
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="Fecha">
                 <Input
