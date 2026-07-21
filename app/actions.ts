@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { computeRemittance } from "@/lib/calc";
+import { getSessionContext } from "@/lib/data";
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -53,6 +54,64 @@ function num(v: FormDataEntryValue | null): number {
 function str(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
   return s === "" ? null : s;
+}
+
+// Negocio (operador) al que pertenece el usuario actual. null = sin migrar aún.
+async function currentTenantId(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("profiles")
+    .select("operator_id")
+    .eq("id", user.id)
+    .single();
+  if (!data) return null; // columna inexistente (sin migrar)
+  return ((data as { operator_id?: string | null }).operator_id as string) ?? user.id;
+}
+
+// Registro de actividad. Tolerante: si la tabla no existe todavía, no hace nada.
+async function logActivity(
+  action: string,
+  opts?: {
+    entityType?: string;
+    entityId?: string | null;
+    entityLabel?: string | null;
+    details?: Record<string, unknown>;
+  }
+) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: p } = await supabase
+      .from("profiles")
+      .select("full_name, role, operator_id")
+      .eq("id", user.id)
+      .single();
+    const prof = (p ?? {}) as {
+      full_name?: string | null;
+      role?: string | null;
+      operator_id?: string | null;
+    };
+    await supabase.from("activity_log").insert({
+      operator_id: prof.operator_id ?? user.id,
+      actor_id: user.id,
+      actor_name: prof.full_name ?? null,
+      actor_role: prof.role ?? null,
+      action,
+      entity_type: opts?.entityType ?? null,
+      entity_id: opts?.entityId ?? null,
+      entity_label: opts?.entityLabel ?? null,
+      details: opts?.details ?? null,
+    });
+  } catch {
+    /* tolerante */
+  }
 }
 
 // Sube la foto del comprobante (si hay) y guarda la URL. Tolerante: si el
@@ -134,8 +193,10 @@ export async function createRemittance(formData: FormData) {
       .eq("id", inserted.id);
   }
 
-  // Repartidor asignado (aparte, tolerante — columna 0011).
-  const delivererId = str(formData.get("deliverer_id"));
+  // Repartidor asignado. Si quien crea es repartidor, se auto-asigna a sí mismo.
+  const ctx = await getSessionContext();
+  let delivererId = str(formData.get("deliverer_id"));
+  if (!ctx.isOperador && ctx.userId) delivererId = ctx.userId;
   if (inserted?.id && delivererId) {
     await supabase
       .from("remittances")
@@ -143,7 +204,22 @@ export async function createRemittance(formData: FormData) {
       .eq("id", inserted.id);
   }
 
+  // Dueño (negocio) de la remesa — tolerante (columna 0012).
+  if (inserted?.id && ctx.tenantId) {
+    await supabase
+      .from("remittances")
+      .update({ operator_id: ctx.tenantId })
+      .eq("id", inserted.id);
+  }
+
   if (inserted?.id) await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
+
+  await logActivity("remesa.crear", {
+    entityType: "remesa",
+    entityId: inserted?.id ?? null,
+    entityLabel: `$${amountUsd}`,
+    details: { amount_usd: amountUsd, deliverer_id: delivererId, client_id: str(formData.get("client_id")) },
+  });
 
   revalidatePath("/remesas");
   revalidatePath("/");
@@ -218,6 +294,10 @@ export async function updateRemittance(formData: FormData) {
 export async function setClientPaid(id: string, paid: boolean) {
   const supabase = await createClient();
   await supabase.from("remittances").update({ client_paid: paid }).eq("id", id);
+  await logActivity(paid ? "remesa.cobrada" : "remesa.por_cobrar", {
+    entityType: "remesa",
+    entityId: id,
+  });
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);
 }
@@ -225,6 +305,11 @@ export async function setClientPaid(id: string, paid: boolean) {
 export async function updateRemittanceStatus(id: string, status: string) {
   const supabase = await createClient();
   await supabase.from("remittances").update({ status }).eq("id", id);
+  await logActivity("remesa.estado", {
+    entityType: "remesa",
+    entityId: id,
+    details: { status },
+  });
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);
   revalidatePath("/");
@@ -232,6 +317,7 @@ export async function updateRemittanceStatus(id: string, status: string) {
 
 export async function deleteRemittance(id: string) {
   const supabase = await createClient();
+  await logActivity("remesa.borrar", { entityType: "remesa", entityId: id });
   await supabase.from("remittances").delete().eq("id", id);
   revalidatePath("/remesas");
   revalidatePath("/");
@@ -253,7 +339,14 @@ export async function createClientRecord(formData: FormData) {
     await supabase.from("clients").update(values).eq("id", id);
     revalidatePath(`/agenda/cliente/${id}`);
   } else {
-    await supabase.from("clients").insert(values);
+    const tid = await currentTenantId();
+    await supabase
+      .from("clients")
+      .insert({ ...values, ...(tid ? { operator_id: tid } : {}) });
+    await logActivity("cliente.crear", {
+      entityType: "cliente",
+      entityLabel: values.name,
+    });
   }
   revalidatePath("/agenda");
 }
@@ -262,14 +355,17 @@ export async function createClientRecord(formData: FormData) {
 // un solo paso. Los beneficiarios vacíos se ignoran.
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
+  const tid = await currentTenantId();
+  const clientName = str(formData.get("name")) ?? "Sin nombre";
 
   const { data: client } = await supabase
     .from("clients")
     .insert({
-      name: str(formData.get("name")) ?? "Sin nombre",
+      name: clientName,
       phone: str(formData.get("phone")),
       country: str(formData.get("country")),
       notes: str(formData.get("notes")),
+      ...(tid ? { operator_id: tid } : {}),
     })
     .select("id")
     .single();
@@ -290,12 +386,20 @@ export async function createContact(formData: FormData) {
       preferred_currency: str((currencies[i] ?? null) as FormDataEntryValue),
       id_card: str((cards[i] ?? null) as FormDataEntryValue),
       client_id: clientId,
+      ...(tid ? { operator_id: tid } : {}),
     }))
     .filter((r) => r.name); // solo los que tienen nombre
 
   if (rows.length > 0) {
     await supabase.from("beneficiaries").insert(rows);
   }
+
+  await logActivity("contacto.crear", {
+    entityType: "cliente",
+    entityId: clientId,
+    entityLabel: clientName,
+    details: { beneficiarios: rows.length },
+  });
 
   revalidatePath("/agenda");
   redirect(clientId ? `/agenda/cliente/${clientId}` : "/agenda");
@@ -341,6 +445,15 @@ export async function createBeneficiary(formData: FormData) {
       .eq("id", targetId);
     revalidatePath(`/agenda/beneficiario/${targetId}`);
   }
+  // Dueño del negocio (tolerante — 0012).
+  if (!id && targetId) {
+    const tid = await currentTenantId();
+    if (tid)
+      await supabase
+        .from("beneficiaries")
+        .update({ operator_id: tid })
+        .eq("id", targetId);
+  }
   revalidatePath("/agenda");
 }
 
@@ -369,35 +482,44 @@ export async function upsertRate(formData: FormData) {
   const currency = str(formData.get("currency"));
   const rate = num(formData.get("rate"));
   if (!currency) return;
+  const tid = await currentTenantId();
 
   // ¿Cambió respecto a la tasa actual? (para no llenar el historial de duplicados)
-  const { data: existing } = await supabase
+  let existQ = supabase
     .from("exchange_rates")
     .select("rate")
-    .eq("currency", currency)
-    .single();
+    .eq("currency", currency);
+  if (tid) existQ = existQ.eq("operator_id", tid);
+  const { data: existing } = await existQ.maybeSingle();
   const changed = !existing || Number(existing.rate) !== rate;
 
-  await supabase
-    .from("exchange_rates")
-    .upsert(
-      { currency, rate, updated_at: new Date().toISOString() },
-      { onConflict: "currency" }
-    );
+  await supabase.from("exchange_rates").upsert(
+    {
+      currency,
+      rate,
+      updated_at: new Date().toISOString(),
+      ...(tid ? { operator_id: tid } : {}),
+    },
+    { onConflict: tid ? "operator_id,currency" : "currency" }
+  );
 
   // Historial de cambios (tolerante si la tabla no existe — 0008).
   if (changed) {
-    await supabase.from("rate_history").insert({ currency, rate });
+    await supabase
+      .from("rate_history")
+      .insert({ currency, rate, ...(tid ? { operator_id: tid } : {}) });
   }
 
   // Tasa de mercado / referencia (aparte, tolerante — columna 0009).
   const marketRaw = formData.get("market_rate");
   if (marketRaw !== null) {
     const trimmed = String(marketRaw).trim();
-    await supabase
+    let uq = supabase
       .from("exchange_rates")
       .update({ market_rate: trimmed === "" ? null : num(marketRaw) })
       .eq("currency", currency);
+    if (tid) uq = uq.eq("operator_id", tid);
+    await uq;
   }
 
   revalidatePath("/tasas");
@@ -409,11 +531,13 @@ export async function toggleCurrencyActive(formData: FormData) {
   const currency = str(formData.get("currency"));
   const active = String(formData.get("active")) === "true";
   if (!currency) return;
-  // Tolerante si la columna 'active' no existe todavía (0009).
-  await supabase
+  const tid = await currentTenantId();
+  let uq = supabase
     .from("exchange_rates")
     .update({ active })
     .eq("currency", currency);
+  if (tid) uq = uq.eq("operator_id", tid);
+  await uq;
   revalidatePath("/tasas");
   revalidatePath("/remesas/nueva");
 }
@@ -423,6 +547,7 @@ export async function importRates(formData: FormData) {
   const raw = String(formData.get("raw") ?? "");
   const valid = ["CUP", "USD", "MLC", "EUR"];
   const seen = new Set<string>();
+  const tid = await currentTenantId();
   // Reconoce líneas tipo "CUP 440", "MLC: 260", "eur = 0.92"
   for (const line of raw.split(/[\n,;]+/)) {
     const m = line.trim().match(/([A-Za-z]{3})\s*[:=]?\s*([\d.,]+)/);
@@ -433,21 +558,27 @@ export async function importRates(formData: FormData) {
     if (isNaN(rate) || rate <= 0) continue;
     seen.add(currency);
 
-    const { data: existing } = await supabase
+    let existQ = supabase
       .from("exchange_rates")
       .select("rate")
-      .eq("currency", currency)
-      .single();
+      .eq("currency", currency);
+    if (tid) existQ = existQ.eq("operator_id", tid);
+    const { data: existing } = await existQ.maybeSingle();
     const changed = !existing || Number(existing.rate) !== rate;
 
-    await supabase
-      .from("exchange_rates")
-      .upsert(
-        { currency, rate, updated_at: new Date().toISOString() },
-        { onConflict: "currency" }
-      );
+    await supabase.from("exchange_rates").upsert(
+      {
+        currency,
+        rate,
+        updated_at: new Date().toISOString(),
+        ...(tid ? { operator_id: tid } : {}),
+      },
+      { onConflict: tid ? "operator_id,currency" : "currency" }
+    );
     if (changed) {
-      await supabase.from("rate_history").insert({ currency, rate });
+      await supabase
+        .from("rate_history")
+        .insert({ currency, rate, ...(tid ? { operator_id: tid } : {}) });
     }
   }
   revalidatePath("/tasas");
@@ -470,16 +601,27 @@ export async function createSettlement(formData: FormData) {
     notes: str(formData.get("notes")),
   };
 
+  const tid = await currentTenantId();
   let targetId = id;
   if (id) {
     await supabase.from("settlements").update(values).eq("id", id);
   } else {
     const { data } = await supabase
       .from("settlements")
-      .insert({ ...values, created_by: user?.id ?? null })
+      .insert({
+        ...values,
+        created_by: user?.id ?? null,
+        ...(tid ? { operator_id: tid } : {}),
+      })
       .select("id")
       .single();
     targetId = data?.id ?? null;
+    await logActivity("pago.crear", {
+      entityType: "pago",
+      entityId: targetId,
+      entityLabel: `$${values.amount}`,
+      details: { direction: values.direction },
+    });
   }
 
   // Repartidor con quien se salda (aparte, tolerante — columna 0011).
@@ -509,24 +651,32 @@ export async function deleteSettlement(id: string) {
 
 export async function updateBusinessSettings(formData: FormData) {
   const supabase = await createClient();
-  await supabase.from("business_settings").upsert({
-    id: true,
-    commission_threshold: num(formData.get("commission_threshold")),
-    commission_percent: num(formData.get("commission_percent")),
-    commission_flat: num(formData.get("commission_flat")),
-    default_currency: str(formData.get("default_currency")) ?? "CUP",
-    default_payment_method: str(formData.get("default_payment_method")),
-    business_name: str(formData.get("business_name")),
-    partner_name: str(formData.get("partner_name")),
-    updated_at: new Date().toISOString(),
-  });
+  const tid = await currentTenantId();
+  // Clave del registro: por operador (0012) o legacy (id=true).
+  const keyField = tid ? "operator_id" : "id";
+  const keyVal: string | boolean = tid ?? true;
+
+  await supabase.from("business_settings").upsert(
+    {
+      [keyField]: keyVal,
+      commission_threshold: num(formData.get("commission_threshold")),
+      commission_percent: num(formData.get("commission_percent")),
+      commission_flat: num(formData.get("commission_flat")),
+      default_currency: str(formData.get("default_currency")) ?? "CUP",
+      default_payment_method: str(formData.get("default_payment_method")),
+      business_name: str(formData.get("business_name")),
+      partner_name: str(formData.get("partner_name")),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: keyField }
+  );
   // Umbral de recordatorio (aparte, tolerante si la columna no existe — 0006).
   const threshold = formData.get("settle_threshold");
   if (threshold !== null && String(threshold).trim() !== "") {
     await supabase
       .from("business_settings")
       .update({ settle_threshold: num(threshold) })
-      .eq("id", true);
+      .eq(keyField, keyVal);
   }
   // Meta de ganancia mensual (aparte, tolerante si la columna no existe — 0007).
   const goal = formData.get("monthly_goal");
@@ -535,7 +685,7 @@ export async function updateBusinessSettings(formData: FormData) {
     await supabase
       .from("business_settings")
       .update({ monthly_goal: trimmed === "" ? null : num(goal) })
-      .eq("id", true);
+      .eq(keyField, keyVal);
   }
   revalidatePath("/ajustes");
   revalidatePath("/remesas/nueva");
