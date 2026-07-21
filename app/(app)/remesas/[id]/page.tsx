@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Pencil, MessageCircle, Copy, Users } from "lucide-react";
-import { getRemittance } from "@/lib/data";
+import { getRemittance, getSessionContext } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
@@ -26,6 +27,22 @@ export default async function RemesaDetailPage({
   const { id } = await params;
   const r = await getRemittance(id);
   if (!r) notFound();
+
+  const ctx = await getSessionContext();
+  const ids = [r.created_by, r.deliverer_id].filter(Boolean) as string[];
+  const names: Record<string, string> = {};
+  if (ids.length) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", ids);
+    for (const p of (data as { id: string; full_name: string | null }[]) ?? []) {
+      names[p.id] = p.full_name || "—";
+    }
+  }
+  const creatorName = r.created_by ? names[r.created_by] : null;
+  const delivererName = r.deliverer_id ? names[r.deliverer_id] : null;
 
   return (
     <div>
@@ -96,10 +113,27 @@ export default async function RemesaDetailPage({
         )}
       </Card>
 
-      {/* Cobro al cliente */}
+      {/* Cobro al cliente — solo el operador marca (él recibe el dinero) */}
       <Card className="mb-4">
-        <ClientPaidToggle id={r.id} paid={r.client_paid !== false} />
+        {ctx.isOperador ? (
+          <ClientPaidToggle id={r.id} paid={r.client_paid !== false} />
+        ) : (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Cobro al cliente</span>
+            <Badge tone={r.client_paid !== false ? "emerald" : "amber"}>
+              {r.client_paid !== false ? "Cobrado" : "Por cobrar"}
+            </Badge>
+          </div>
+        )}
       </Card>
+
+      {/* Quién creó / entrega */}
+      {(creatorName || delivererName) && (
+        <Card className="mb-4 space-y-2.5">
+          {creatorName && <Row label="Creada por" value={creatorName} />}
+          {delivererName && <Row label="Repartidor" value={delivererName} />}
+        </Card>
+      )}
 
       <Card className="mb-4 space-y-2.5">
         <Row label="Monto del envío (paga el cliente)" value={usd(r.amount_usd)} strong />

@@ -183,12 +183,18 @@ export async function getRemittances(limit?: number): Promise<Remittance[]> {
 
 export async function getRemittance(id: string): Promise<Remittance | null> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("remittances")
     .select("*, client:clients(*), beneficiary:beneficiaries(*)")
     .eq("id", id)
     .single();
-  return (data as Remittance) ?? null;
+  const r = (data as Remittance) ?? null;
+  if (!r) return null;
+  // Aislamiento: no ver remesas de otro negocio ni de otro repartidor.
+  if (ctx.tenantId && r.operator_id && r.operator_id !== ctx.tenantId) return null;
+  if (!ctx.isOperador && ctx.userId && r.deliverer_id !== ctx.userId) return null;
+  return r;
 }
 
 export async function getClients(): Promise<Client[]> {

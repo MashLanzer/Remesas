@@ -325,9 +325,12 @@ export async function createRemittance(formData: FormData) {
     .select("id")
     .single();
 
-  // "Cobrado del cliente" se escribe aparte para no romper si la columna
-  // aún no existe (requiere la migración 0003).
-  if (inserted?.id && str(formData.get("client_paid")) === "false") {
+  const ctx = await getSessionContext();
+
+  // "Cobrado del cliente": el repartidor no cobra (lo marca el operador después),
+  // así que sus remesas quedan "por cobrar". El operador usa lo que puso en el form.
+  const paidFalse = !ctx.isOperador || str(formData.get("client_paid")) === "false";
+  if (inserted?.id && paidFalse) {
     await supabase
       .from("remittances")
       .update({ client_paid: false })
@@ -335,7 +338,6 @@ export async function createRemittance(formData: FormData) {
   }
 
   // Repartidor asignado. Si quien crea es repartidor, se auto-asigna a sí mismo.
-  const ctx = await getSessionContext();
   let delivererId = str(formData.get("deliverer_id"));
   if (!ctx.isOperador && ctx.userId) delivererId = ctx.userId;
   if (inserted?.id && delivererId) {
@@ -434,6 +436,9 @@ export async function updateRemittance(formData: FormData) {
 
 export async function setClientPaid(id: string, paid: boolean) {
   const supabase = await createClient();
+  // Solo el operador marca el cobro (él recibe el dinero).
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador) return;
   await supabase.from("remittances").update({ client_paid: paid }).eq("id", id);
   await logActivity(paid ? "remesa.cobrada" : "remesa.por_cobrar", {
     entityType: "remesa",

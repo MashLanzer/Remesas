@@ -309,15 +309,17 @@ export function RemittanceForm({
           </Select>
         </Field>
 
-        <Field label="¿El cliente ya te pagó?">
-          <Select
-            name="client_paid"
-            defaultValue={source?.client_paid === false ? "false" : "true"}
-          >
-            <option value="true">Sí, ya cobrado</option>
-            <option value="false">No, aún debe</option>
-          </Select>
-        </Field>
+        {isOperador && (
+          <Field label="¿El cliente ya te pagó?">
+            <Select
+              name="client_paid"
+              defaultValue={source?.client_paid === false ? "false" : "true"}
+            >
+              <option value="true">Sí, ya cobrado</option>
+              <option value="false">No, aún debe</option>
+            </Select>
+          </Field>
+        )}
 
         <Field
           label="Comprobante (foto, opcional)"

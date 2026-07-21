@@ -100,6 +100,7 @@ export interface Remittance {
   created_by: string | null;
   created_at: string;
   deliverer_id?: string | null; // repartidor en Cuba asignado
+  operator_id?: string | null; // negocio (tenant) dueño
   // Relaciones opcionales (cuando se hace join)
   client?: Client | null;
   beneficiary?: Beneficiary | null;
