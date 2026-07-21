@@ -36,8 +36,8 @@ export function ShareCard({
     };
   }, [open]);
 
-  const title = businessName || name || "Giro";
-  const subtitle = businessName && name ? name : "Envíos a Cuba";
+  const brand = "Giro";
+  const subtitle = businessName || "Envíos a Cuba";
 
   const pays = [
     zelle && { k: "Zelle", v: zelle },
@@ -48,8 +48,8 @@ export function ShareCard({
   const vcard = [
     "BEGIN:VCARD",
     "VERSION:3.0",
-    `FN:${name || title}`,
-    businessName ? `ORG:${businessName}` : "",
+    `FN:${name || brand}`,
+    `ORG:${businessName || brand}`,
     phone ? `TEL;TYPE=CELL:${phone}` : "",
     pays.length ? `NOTE:${pays.map((p) => `${p.k}: ${p.v}`).join(" · ")}` : "",
     "END:VCARD",
@@ -58,8 +58,7 @@ export function ShareCard({
     .join("\n");
 
   function buildText() {
-    const lines: string[] = [`📇 ${title}`];
-    if (businessName && name) lines.push(name);
+    const lines: string[] = [`📇 ${brand}${name ? ` · ${name}` : ""}`];
     if (phone) lines.push(`📱 WhatsApp: ${phone}`);
     if (pays.length) {
       lines.push("", "Métodos de pago:");
@@ -72,7 +71,7 @@ export function ShareCard({
     const text = buildText();
     try {
       if (navigator.share) {
-        await navigator.share({ title, text });
+        await navigator.share({ title: brand, text });
         return;
       }
     } catch {
@@ -108,87 +107,72 @@ export function ShareCard({
                 </button>
               </div>
 
-              {/* Tarjeta física estilo CashApp */}
-              <div className="relative aspect-[1.586/1] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-2xl">
+              {/* Tarjeta de negocios (todo dentro) */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-2xl">
                 {/* brillo */}
                 <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/10" />
 
-                <div className="relative flex h-full flex-col justify-between">
-                  {/* Marca */}
-                  <div className="flex items-center gap-2">
-                    <PaperPlane className="h-6 w-6 -translate-x-px text-white drop-shadow" />
-                    <span className="truncate text-lg font-extrabold tracking-tight">
-                      {title}
-                    </span>
+                <div className="relative">
+                  {/* Marca + QR */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <PaperPlane className="h-6 w-6 -translate-x-px text-white drop-shadow" />
+                        <span className="text-2xl font-extrabold tracking-tight">
+                          {brand}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 truncate text-xs text-white/70">
+                        {subtitle}
+                      </p>
+                    </div>
+                    <div className="shrink-0 rounded-xl bg-white p-1.5 shadow-lg">
+                      <QRCodeSVG value={vcard} size={72} level="M" />
+                    </div>
                   </div>
 
-                  {/* Chip */}
-                  <div className="h-7 w-10 rounded-md bg-gradient-to-b from-amber-100 to-amber-300 shadow-inner ring-1 ring-amber-500/30" />
-
-                  {/* Titular + contacto */}
-                  <div className="min-w-0">
+                  {/* Titular */}
+                  <div className="mt-5">
                     <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/60">
                       Titular
                     </p>
                     <p className="truncate text-lg font-semibold tracking-wide">
-                      {name || title}
+                      {name || "Sin nombre"}
                     </p>
                     {phone && (
-                      <p className="tabular mt-0.5 truncate text-sm tracking-wider text-white/90">
-                        {phone}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Datos de cobro + QR */}
-              <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-card">
-                <div className="flex items-stretch gap-4 p-4">
-                  <div className="min-w-0 flex-1">
-                    {subtitle && (
-                      <p className="mb-2 truncate text-xs text-muted-foreground">
-                        {subtitle}
-                      </p>
-                    )}
-                    {phone && (
-                      <div className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                        <MessageCircle className="h-4 w-4 shrink-0 text-primary" />
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-white/90">
+                        <MessageCircle className="h-4 w-4 shrink-0" />
                         <span className="break-all">{phone}</span>
-                      </div>
-                    )}
-                    {pays.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {pays.map((p) => (
-                          <div key={p.k} className="flex items-baseline gap-2">
-                            <span className="w-16 shrink-0 text-xs font-semibold text-muted-foreground">
-                              {p.k}
-                            </span>
-                            <span className="min-w-0 flex-1 break-all text-sm text-foreground">
-                              {p.v}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      !phone && (
-                        <p className="text-sm text-muted-foreground">
-                          Añade tu teléfono y métodos de cobro en el perfil.
-                        </p>
-                      )
+                      </p>
                     )}
                   </div>
 
-                  {/* QR escaneable */}
-                  <div className="flex shrink-0 flex-col items-center justify-center">
-                    <div className="rounded-xl bg-white p-2 ring-1 ring-neutral-200">
-                      <QRCodeSVG value={vcard} size={92} level="M" />
+                  {/* Métodos de cobro */}
+                  {pays.length > 0 ? (
+                    <div className="mt-4 space-y-1.5 border-t border-white/20 pt-3">
+                      {pays.map((p) => (
+                        <div key={p.k} className="flex items-baseline gap-3">
+                          <span className="w-16 shrink-0 text-xs font-semibold uppercase tracking-wide text-white/60">
+                            {p.k}
+                          </span>
+                          <span className="min-w-0 flex-1 break-all text-sm font-medium">
+                            {p.v}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <p className="mt-1 text-center text-[10px] text-muted-foreground">
-                      Escanéame
-                    </p>
-                  </div>
+                  ) : (
+                    !phone && (
+                      <p className="mt-4 border-t border-white/20 pt-3 text-sm text-white/70">
+                        Añade tu teléfono y métodos de cobro en el perfil.
+                      </p>
+                    )
+                  )}
+
+                  <p className="mt-4 text-center text-[10px] text-white/50">
+                    Escanea el QR para guardar el contacto
+                  </p>
                 </div>
               </div>
 
