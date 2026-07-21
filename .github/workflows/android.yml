@@ -50,13 +50,15 @@ jobs:
           path: Giro.apk
           if-no-files-found: error
 
-      - name: Publicar APK en Releases (descarga directa)
+      - name: Publicar APK en Releases (release versionado)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: apk
-          name: Giro · APK Android
+          tag_name: v1.0.${{ github.run_number }}
+          name: Giro v1.0.${{ github.run_number }}
+          make_latest: "true"
           body: |
-            Última versión del APK de Giro.
+            **Giro** · APK de Android (v1.0.${{ github.run_number }})
+
             Descarga **Giro.apk** e instálala en tu Android
             (activa "Instalar apps de fuentes desconocidas" si te lo pide).
           files: Giro.apk
