@@ -87,17 +87,27 @@ export default async function PerfilPage() {
           <p className="pt-1 text-xs font-medium text-muted-foreground">
             Métodos de cobro (para copiar rápido al cliente)
           </p>
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Zelle">
-              <Input name="zelle" defaultValue={(p.zelle as string) ?? ""} placeholder="correo/tel" />
-            </Field>
-            <Field label="CashApp">
-              <Input name="cashapp" defaultValue={(p.cashapp as string) ?? ""} placeholder="$tag" />
-            </Field>
-            <Field label="PayPal">
-              <Input name="paypal" defaultValue={(p.paypal as string) ?? ""} placeholder="correo" />
-            </Field>
-          </div>
+          <Field label="Zelle">
+            <Input
+              name="zelle"
+              defaultValue={(p.zelle as string) ?? ""}
+              placeholder="Correo o teléfono de Zelle"
+            />
+          </Field>
+          <Field label="CashApp">
+            <Input
+              name="cashapp"
+              defaultValue={(p.cashapp as string) ?? ""}
+              placeholder="$tu-cashtag"
+            />
+          </Field>
+          <Field label="PayPal">
+            <Input
+              name="paypal"
+              defaultValue={(p.paypal as string) ?? ""}
+              placeholder="Correo de PayPal"
+            />
+          </Field>
 
           <Button type="submit" className="w-full">
             Guardar
