@@ -263,6 +263,21 @@ select::-ms-expand {
   display: none;
 }
 
+/* Sheet que sube desde abajo (tarjeta compartible) */
+@keyframes gi-sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.gi-sheet {
+  animation: gi-sheet-up 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
