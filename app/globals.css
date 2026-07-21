@@ -223,9 +223,11 @@
   animation-delay: 3.2s;
 }
 .gi-money {
+  opacity: 0; /* oculto hasta que arranca su animación (tras aterrizar el avión) */
   animation-name: gi-money-up;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+  animation-fill-mode: backwards;
 }
 .gi-fade-in {
   animation: gi-fade-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
