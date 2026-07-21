@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Pencil, MessageCircle, Copy, Users } from "lucide-react";
-import { getRemittance, getSessionContext } from "@/lib/data";
+import { getRemittance, getSessionContext, getBusinessSettings } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
@@ -28,7 +28,10 @@ export default async function RemesaDetailPage({
   const r = await getRemittance(id);
   if (!r) notFound();
 
-  const ctx = await getSessionContext();
+  const [ctx, settings] = await Promise.all([
+    getSessionContext(),
+    getBusinessSettings(),
+  ]);
   const ids = [r.created_by, r.deliverer_id].filter(Boolean) as string[];
   const names: Record<string, string> = {};
   if (ids.length) {
@@ -188,16 +191,16 @@ export default async function RemesaDetailPage({
 
       <div className="mb-4">
         <ShareReceipt
-          text={[
-            "🧾 Comprobante de remesa",
-            `Fecha: ${formatDate(r.date)}`,
-            `Beneficiario: ${r.beneficiary?.name || "—"}${
-              r.beneficiary?.province ? " · " + r.beneficiary.province : ""
-            }`,
-            `Monto: ${usd(r.amount_usd)}`,
-            `Entregado: ${localAmount(r.local_amount)} ${r.delivery_currency}`,
-            `Estado: ${r.status}`,
-          ].join("\n")}
+          data={{
+            brand: settings.business_name || "Giro",
+            date: formatDate(r.date),
+            clientName: r.client?.name ?? null,
+            beneficiaryName: r.beneficiary?.name ?? null,
+            province: r.beneficiary?.province ?? null,
+            amountUsd: usd(r.amount_usd),
+            delivered: `${localAmount(r.local_amount)} ${r.delivery_currency}`,
+            status: r.status,
+          }}
         />
       </div>
 

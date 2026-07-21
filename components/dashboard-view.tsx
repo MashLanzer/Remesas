@@ -41,7 +41,7 @@ export function DashboardView({
   isOperador?: boolean;
 }) {
   const isRep = !isOperador;
-  const [period, setPeriod] = useState<PeriodKey>("mes");
+  const [period, setPeriod] = useState<PeriodKey>("todo");
 
   const filtered = useMemo(() => {
     if (period === "todo") return remittances;

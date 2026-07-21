@@ -1,186 +1,66 @@
-import Link from "next/link";
-import { TrendingUp, ChevronRight, Truck, Activity } from "lucide-react";
 import {
   getRemittances,
   getBusinessSettings,
   getSessionContext,
+  getTeam,
+  getActivityLog,
+  getExchangeRates,
+  getRateHistory,
 } from "@/lib/data";
-import { updateBusinessSettings } from "@/app/actions";
-import {
-  Card,
-  Field,
-  Input,
-  Select,
-  Button,
-  PageHeader,
-} from "@/components/ui";
-import { DELIVERY_CURRENCIES, PAYMENT_METHODS } from "@/lib/types";
+import { Card, PageHeader } from "@/components/ui";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ExportRemittances } from "@/components/export-remittances";
+import {
+  TeamSheet,
+  SettingsSheet,
+  ActivitySheet,
+  RatesSheet,
+} from "@/components/ajustes-sheets";
 
 export const dynamic = "force-dynamic";
 
 const APP_VERSION = "1.0.0";
 
 export default async function AjustesPage() {
-  const [remittances, settings, ctx] = await Promise.all([
-    getRemittances(),
-    getBusinessSettings(),
-    getSessionContext(),
-  ]);
+  const ctx = await getSessionContext();
+  const [remittances, settings, team, activity, rates, history] =
+    await Promise.all([
+      getRemittances(),
+      getBusinessSettings(),
+      ctx.isOperador
+        ? getTeam()
+        : Promise.resolve({ code: null, pending: [], members: [] }),
+      getActivityLog(150),
+      getExchangeRates(),
+      getRateHistory(),
+    ]);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Ajustes" />
 
+      {/* Equipo (solo operador) */}
       {ctx.isOperador && (
         <section>
           <SectionTitle>Equipo</SectionTitle>
-          <Link href="/ajustes/repartidores" className="block">
-            <Card className="flex items-center justify-between transition active:scale-[0.99]">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
-                  <Truck className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    Mi equipo
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Código, solicitudes y repartidores
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </Card>
-          </Link>
+          <TeamSheet team={team} />
         </section>
       )}
 
       {/* Negocio (solo operador) */}
       {ctx.isOperador && (
-      <section>
-        <SectionTitle>Negocio</SectionTitle>
-        <Card>
-          <form action={updateBusinessSettings} className="space-y-3">
-            <p className="text-xs font-medium text-muted-foreground">
-              Reglas de comisión
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <Field label="Umbral $">
-                <Input
-                  type="number"
-                  name="commission_threshold"
-                  min="0"
-                  step="0.01"
-                  defaultValue={String(settings.commission_threshold)}
-                />
-              </Field>
-              <Field label="% si ≥">
-                <Input
-                  type="number"
-                  name="commission_percent"
-                  min="0"
-                  step="0.1"
-                  defaultValue={String(settings.commission_percent)}
-                />
-              </Field>
-              <Field label="Fijo si <">
-                <Input
-                  type="number"
-                  name="commission_flat"
-                  min="0"
-                  step="0.01"
-                  defaultValue={String(settings.commission_flat)}
-                />
-              </Field>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Ej: umbral 100, 10%, fijo 5 → envíos de $100+ cobran 10%, menores
-              cobran $5.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Moneda por defecto">
-                <Select
-                  name="default_currency"
-                  defaultValue={settings.default_currency}
-                >
-                  {DELIVERY_CURRENCIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Método por defecto">
-                <Select
-                  name="default_payment_method"
-                  defaultValue={settings.default_payment_method ?? ""}
-                >
-                  <option value="">—</option>
-                  {PAYMENT_METHODS.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-
-            <Field label="Nombre del negocio">
-              <Input
-                name="business_name"
-                defaultValue={settings.business_name ?? ""}
-                placeholder="Opcional"
-              />
-            </Field>
-            <Field label="Contacto en Cuba">
-              <Input
-                name="partner_name"
-                defaultValue={settings.partner_name ?? ""}
-                placeholder="Nombre de tu contacto"
-              />
-            </Field>
-            <Field
-              label="Recordar si el saldo pasa de ($)"
-              hint="Te avisa en Cuentas y notificaciones. Vacío = sin aviso."
-            >
-              <Input
-                type="number"
-                name="settle_threshold"
-                min="0"
-                step="0.01"
-                defaultValue={
-                  settings.settle_threshold ? String(settings.settle_threshold) : ""
-                }
-                placeholder="Ej: 500"
-              />
-            </Field>
-            <Field
-              label="Meta de ganancia mensual ($)"
-              hint="Se muestra en Reportes como barra de progreso. Vacío = sin meta."
-            >
-              <Input
-                type="number"
-                name="monthly_goal"
-                min="0"
-                step="0.01"
-                defaultValue={
-                  settings.monthly_goal ? String(settings.monthly_goal) : ""
-                }
-                placeholder="Ej: 1000"
-              />
-            </Field>
-
-            <Button type="submit" className="w-full">
-              Guardar configuración
-            </Button>
-          </form>
-        </Card>
-      </section>
+        <section>
+          <SectionTitle>Negocio</SectionTitle>
+          <SettingsSheet settings={settings} />
+        </section>
       )}
+
+      {/* Tasas de cambio */}
+      <section>
+        <SectionTitle>Tasas de cambio</SectionTitle>
+        <RatesSheet rates={rates} history={history} />
+      </section>
 
       {/* Apariencia */}
       <section>
@@ -206,24 +86,7 @@ export default async function AjustesPage() {
       {/* Actividad */}
       <section>
         <SectionTitle>Actividad</SectionTitle>
-        <Link href="/actividad" className="block">
-          <Card className="flex items-center justify-between transition active:scale-[0.99]">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
-                <Activity className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  Registro de actividad
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {ctx.isOperador ? "Todo lo que hace tu equipo" : "Tu historial"}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Card>
-        </Link>
+        <ActivitySheet entries={activity} isOperador={ctx.isOperador} />
       </section>
 
       {/* Datos */}
@@ -232,29 +95,6 @@ export default async function AjustesPage() {
         <Card>
           <ExportRemittances remittances={remittances} />
         </Card>
-      </section>
-
-      {/* Configuración */}
-      <section>
-        <SectionTitle>Configuración</SectionTitle>
-        <Link href="/tasas" className="block">
-          <Card className="flex items-center justify-between transition active:scale-[0.99]">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
-                <TrendingUp className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  Tasas de cambio
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Ajusta las tasas del día
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </Card>
-        </Link>
       </section>
 
       {/* Info */}

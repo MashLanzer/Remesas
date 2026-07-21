@@ -10,8 +10,13 @@ import {
   Target,
   CalendarClock,
   UserX,
+  BarChart3,
+  Users,
+  PieChart,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Card } from "@/components/ui";
+import { Sheet, SheetTrigger } from "@/components/sheet";
 import { usd, localAmount, cn } from "@/lib/utils";
 import type { Remittance } from "@/lib/types";
 
@@ -76,6 +81,9 @@ export function ReportesView({
   const [period, setPeriod] = useState<Period>("mes");
   const [curFilter, setCurFilter] = useState<string>("");
   const [methodFilter, setMethodFilter] = useState<string>("");
+  const [sheet, setSheet] = useState<
+    null | "trend" | "clients" | "desglose" | "compare"
+  >(null);
 
   // Opciones de filtro derivadas de todos los datos
   const currencyOptions = useMemo(
@@ -424,6 +432,47 @@ export function ReportesView({
         <Mini label="Promedio" value={usd(avg)} />
       </div>
 
+      {/* Análisis detallado en hojas (menos scroll) */}
+      <div className="space-y-2">
+        <SheetTrigger
+          icon={BarChart3}
+          title="Tendencia y actividad"
+          subtitle="6 meses y días más activos"
+          onClick={() => setSheet("trend")}
+        />
+        {(topClients.length > 0 || byMargin.length > 0 || inactive.length > 0) && (
+          <SheetTrigger
+            icon={Users}
+            title="Clientes"
+            subtitle="Top, rentabilidad e inactivos"
+            onClick={() => setSheet("clients")}
+          />
+        )}
+        {(byProvince.length > 0 || byCurrency.length > 0 || byMethod.length > 0) && (
+          <SheetTrigger
+            icon={PieChart}
+            title="Desglose"
+            subtitle="Provincia, moneda y método"
+            onClick={() => setSheet("desglose")}
+          />
+        )}
+        {allMonths.length >= 2 && (
+          <SheetTrigger
+            icon={ArrowLeftRight}
+            title="Comparar meses"
+            subtitle="Dos meses lado a lado"
+            onClick={() => setSheet("compare")}
+          />
+        )}
+      </div>
+
+      {/* Hoja: Tendencia y actividad */}
+      <Sheet
+        open={sheet === "trend"}
+        onClose={() => setSheet(null)}
+        title="Tendencia y actividad"
+      >
+        <div className="space-y-5">
       {/* #1 Tendencia enviado vs ganancia */}
       <Card>
         <div className="mb-3 flex items-center justify-between">
@@ -466,6 +515,16 @@ export function ReportesView({
         </Card>
       )}
 
+        </div>
+      </Sheet>
+
+      {/* Hoja: Clientes */}
+      <Sheet
+        open={sheet === "clients"}
+        onClose={() => setSheet(null)}
+        title="Clientes"
+      >
+        <div className="space-y-5">
       {/* Top clientes */}
       {topClients.length > 0 && (
         <RankCard
@@ -520,6 +579,16 @@ export function ReportesView({
         </Card>
       )}
 
+        </div>
+      </Sheet>
+
+      {/* Hoja: Desglose */}
+      <Sheet
+        open={sheet === "desglose"}
+        onClose={() => setSheet(null)}
+        title="Desglose"
+      >
+        <div className="space-y-5">
       {/* Por provincia */}
       {byProvince.length > 0 && (
         <RankCard
@@ -557,6 +626,15 @@ export function ReportesView({
         </Card>
       )}
 
+        </div>
+      </Sheet>
+
+      {/* Hoja: Comparar meses */}
+      <Sheet
+        open={sheet === "compare"}
+        onClose={() => setSheet(null)}
+        title="Comparar meses"
+      >
       {/* #2 Comparar dos meses */}
       {allMonths.length >= 2 && (
         <Card>
@@ -577,6 +655,8 @@ export function ReportesView({
           </div>
         </Card>
       )}
+
+      </Sheet>
 
       {/* Acciones */}
       <div className="grid grid-cols-3 gap-2">
