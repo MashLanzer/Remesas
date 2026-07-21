@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Moon } from "lucide-react";
+import { setThemeCookie } from "@/app/actions";
 
 export function ThemeSwitch() {
   const [dark, setDark] = useState(true);
@@ -21,9 +22,10 @@ export function ThemeSwitch() {
       localStorage.setItem("theme", val);
     } catch {}
     try {
-      // Cookie de 1 año: persiste de forma fiable en el WebView del APK.
       document.cookie = `theme=${val}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
+    // Persistencia fiable en el APK: el servidor fija la cookie por Set-Cookie.
+    setThemeCookie(next);
   }
 
   const on = mounted && dark;

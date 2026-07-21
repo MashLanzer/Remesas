@@ -2,8 +2,29 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { computeRemittance } from "@/lib/calc";
+
+const YEAR = 60 * 60 * 24 * 365;
+
+// Persistir preferencias por HTTP Set-Cookie (más fiable en el WebView del APK
+// que document.cookie, igual que la cookie de sesión).
+export async function setThemeCookie(dark: boolean) {
+  cookies().set("theme", dark ? "dark" : "light", {
+    path: "/",
+    maxAge: YEAR,
+    sameSite: "lax",
+  });
+}
+
+export async function setDataModeCookie(low: boolean) {
+  cookies().set("datamode", low ? "low" : "normal", {
+    path: "/",
+    maxAge: YEAR,
+    sameSite: "lax",
+  });
+}
 
 function num(v: FormDataEntryValue | null): number {
   const n = parseFloat(String(v ?? "").replace(",", "."));

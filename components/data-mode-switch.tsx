@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Gauge } from "lucide-react";
+import { setDataModeCookie } from "@/app/actions";
 
 export function DataModeSwitch() {
   const [saver, setSaver] = useState(false);
@@ -20,8 +21,9 @@ export function DataModeSwitch() {
     try {
       document.cookie = `datamode=${val}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
+    setDataModeCookie(next);
     // Recargar para que la navegación deje de precargar en segundo plano.
-    setTimeout(() => window.location.reload(), 150);
+    setTimeout(() => window.location.reload(), 250);
   }
 
   const on = mounted && saver;

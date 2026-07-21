@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -50,8 +51,22 @@ const themeScript = `
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // El tema se aplica en el servidor leyendo la cookie (persiste como la sesión).
+  const store = cookies();
+  const theme = store.get("theme")?.value;
+  const dark = theme ? theme === "dark" : true;
+  const dataSaver = store.get("datamode")?.value === "low";
+
+  const htmlClass = [
+    jakarta.variable,
+    dark ? "dark" : "",
+    dataSaver ? "data-saver" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <html lang="es" suppressHydrationWarning className={jakarta.variable}>
+    <html lang="es" suppressHydrationWarning className={htmlClass}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
