@@ -38,6 +38,24 @@ function genCode(len = 6): string {
   return s;
 }
 
+// Genera un código de equipo que no choque con otro negocio. La comprobación de
+// unicidad usa la función SECURITY DEFINER operator_code_taken (0013), porque con
+// RLS activa no se pueden leer los perfiles de otros negocios. Si la función aún
+// no existe (sin migrar), devuelve el código igualmente (colisión ~imposible).
+async function uniqueCode(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<string> {
+  let code = genCode();
+  for (let i = 0; i < 5; i++) {
+    const { data: taken, error } = await supabase.rpc("operator_code_taken", {
+      p_code: code,
+    });
+    if (error || !taken) break;
+    code = genCode();
+  }
+  return code;
+}
+
 // El usuario elige ser operador: crea su negocio, código, tasas y ajustes base.
 export async function becomeOperador() {
   const supabase = await createClient();
@@ -46,17 +64,9 @@ export async function becomeOperador() {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  // Código de equipo único.
-  let code = genCode();
-  for (let i = 0; i < 5; i++) {
-    const { data: taken } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("operator_code", code)
-      .maybeSingle();
-    if (!taken) break;
-    code = genCode();
-  }
+  // Código de equipo único (unicidad comprobada con función SECURITY DEFINER,
+  // porque con RLS no vemos los perfiles de otros negocios — 0013).
+  const code = await uniqueCode(supabase);
 
   await supabase
     .from("profiles")
@@ -105,26 +115,23 @@ export async function joinOperator(
   const code = (str(formData.get("code")) ?? "").toUpperCase().replace(/\s/g, "");
   if (!code) return { error: "Escribe el código de tu operador." };
 
-  const { data: op } = await supabase
-    .from("profiles")
-    .select("id, full_name")
-    .eq("operator_code", code)
-    .eq("role", "operador")
-    .maybeSingle();
-  if (!op) return { error: "Código no válido. Verifícalo con tu operador." };
+  // Con RLS activa no podemos leer el perfil de otro operador directamente:
+  // resolvemos el código con una función SECURITY DEFINER (0013).
+  const { data: opId } = await supabase.rpc("operator_by_code", {
+    p_code: code,
+  });
+  if (!opId) return { error: "Código no válido. Verifícalo con tu operador." };
 
   await supabase
     .from("profiles")
     .update({
       role: "repartidor",
-      operator_id: op.id,
+      operator_id: opId as string,
       member_status: "pending",
     })
     .eq("id", user.id);
 
-  await logActivity("repartidor.solicitud", {
-    details: { operador: (op as { full_name?: string }).full_name ?? null },
-  });
+  await logActivity("repartidor.solicitud");
   revalidatePath("/", "layout");
   redirect("/pendiente");
 }
@@ -147,15 +154,18 @@ export async function approveMember(userId: string) {
   revalidatePath("/ajustes/repartidores");
 }
 
-// El operador quita/rechaza a un repartidor. Sus datos quedan con el operador;
-// la persona se desvincula (vuelve al onboarding).
+// El operador quita/rechaza a un repartidor. Sus datos (remesas ya creadas)
+// quedan con el operador; la persona se desvincula y vuelve al onboarding.
+// Nota: mantenemos operator_id y marcamos member_status='removed' para que la
+// política RLS de UPDATE sobre profiles siga cuadrando (operator_id del equipo).
+// current_operator_id() ignora a los 'removed', así que dejan de ver datos.
 export async function removeMember(userId: string) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
   await supabase
     .from("profiles")
-    .update({ role: null, operator_id: null, member_status: null })
+    .update({ role: null, member_status: "removed" })
     .eq("id", userId)
     .eq("operator_id", ctx.tenantId);
   await logActivity("repartidor.quitar", {
@@ -170,16 +180,7 @@ export async function regenerateCode() {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.userId) return;
-  let code = genCode();
-  for (let i = 0; i < 5; i++) {
-    const { data: taken } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("operator_code", code)
-      .maybeSingle();
-    if (!taken) break;
-    code = genCode();
-  }
+  const code = await uniqueCode(supabase);
   await supabase
     .from("profiles")
     .update({ operator_code: code })
@@ -285,6 +286,7 @@ export async function createRemittance(formData: FormData) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const ctx = await getSessionContext();
 
   const amountUsd = num(formData.get("amount_usd"));
   const commission = num(formData.get("commission"));
@@ -300,6 +302,18 @@ export async function createRemittance(formData: FormData) {
     mySplitPercent,
   });
 
+  // Repartidor asignado. Si quien crea es repartidor, se auto-asigna a sí mismo.
+  let delivererId = str(formData.get("deliverer_id"));
+  if (!ctx.isOperador && ctx.userId) delivererId = ctx.userId;
+
+  // "Cobrado del cliente": el repartidor no cobra (lo marca el operador después),
+  // así que sus remesas quedan "por cobrar". El operador usa lo que puso en el form.
+  const clientPaid = ctx.isOperador
+    ? str(formData.get("client_paid")) !== "false"
+    : false;
+
+  // El operator_id y deliverer_id van EN el insert: con RLS activa (0013), la
+  // política de INSERT exige operator_id = tu negocio, así que no puede ir aparte.
   const { data: inserted } = await supabase
     .from("remittances")
     .insert({
@@ -321,39 +335,12 @@ export async function createRemittance(formData: FormData) {
       status: str(formData.get("status")) ?? "pendiente",
       notes: str(formData.get("notes")),
       created_by: user?.id ?? null,
+      client_paid: clientPaid,
+      ...(delivererId ? { deliverer_id: delivererId } : {}),
+      ...(ctx.tenantId ? { operator_id: ctx.tenantId } : {}),
     })
     .select("id")
     .single();
-
-  const ctx = await getSessionContext();
-
-  // "Cobrado del cliente": el repartidor no cobra (lo marca el operador después),
-  // así que sus remesas quedan "por cobrar". El operador usa lo que puso en el form.
-  const paidFalse = !ctx.isOperador || str(formData.get("client_paid")) === "false";
-  if (inserted?.id && paidFalse) {
-    await supabase
-      .from("remittances")
-      .update({ client_paid: false })
-      .eq("id", inserted.id);
-  }
-
-  // Repartidor asignado. Si quien crea es repartidor, se auto-asigna a sí mismo.
-  let delivererId = str(formData.get("deliverer_id"));
-  if (!ctx.isOperador && ctx.userId) delivererId = ctx.userId;
-  if (inserted?.id && delivererId) {
-    await supabase
-      .from("remittances")
-      .update({ deliverer_id: delivererId })
-      .eq("id", inserted.id);
-  }
-
-  // Dueño (negocio) de la remesa — tolerante (columna 0012).
-  if (inserted?.id && ctx.tenantId) {
-    await supabase
-      .from("remittances")
-      .update({ operator_id: ctx.tenantId })
-      .eq("id", inserted.id);
-  }
 
   if (inserted?.id) await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
 
