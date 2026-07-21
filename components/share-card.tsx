@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2, X, MessageCircle, QrCode } from "lucide-react";
@@ -23,6 +23,8 @@ export function ShareCard({
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -85,6 +87,42 @@ export function ShareCard({
     }
   }
 
+  // Comparte la tarjeta como imagen (foto). Si no se puede, la descarga; y si
+  // tampoco, cae al compartir de texto.
+  async function shareImage() {
+    const node = cardRef.current;
+    if (!node) return share();
+    setSharing(true);
+    try {
+      const { toBlob } = await import("html-to-image");
+      const blob = await toBlob(node, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "transparent",
+      });
+      if (!blob) throw new Error("no blob");
+      const file = new File([blob], "tarjeta-giro.png", { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: brand, text: buildText() });
+        return;
+      }
+      // Sin soporte para compartir archivos: descargar la imagen.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tarjeta-giro.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      await share();
+    } finally {
+      setSharing(false);
+    }
+  }
+
   const sheet =
     open && mounted
       ? createPortal(
@@ -108,7 +146,10 @@ export function ShareCard({
               </div>
 
               {/* Tarjeta de negocios (todo dentro) */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-2xl">
+              <div
+                ref={cardRef}
+                className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-2xl"
+              >
                 {/* brillo */}
                 <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/10" />
@@ -184,10 +225,12 @@ export function ShareCard({
                   Cerrar
                 </button>
                 <button
-                  onClick={share}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
+                  onClick={shareImage}
+                  disabled={sharing}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-70"
                 >
-                  <Share2 className="h-4 w-4" /> Compartir
+                  <Share2 className="h-4 w-4" />
+                  {sharing ? "Generando…" : "Compartir"}
                 </button>
               </div>
             </div>
