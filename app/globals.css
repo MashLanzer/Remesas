@@ -95,6 +95,72 @@
   }
 }
 
+/* === Welcome screen (Giro) === */
+@keyframes gi-plane-in {
+  0% {
+    opacity: 0;
+    transform: translate(-140px, 60px) rotate(-24deg) scale(0.7);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(12px, -8px) rotate(6deg) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(1);
+  }
+}
+@keyframes gi-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes gi-money-up {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.6) rotate(var(--r, 0deg));
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-190px) scale(1) rotate(var(--r, 0deg));
+  }
+}
+@keyframes gi-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.gi-plane-in {
+  animation: gi-plane-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gi-bob {
+  animation: gi-bob 2.6s ease-in-out infinite;
+  animation-delay: 0.9s;
+}
+.gi-money {
+  animation-name: gi-money-up;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.gi-fade-in {
+  animation: gi-fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

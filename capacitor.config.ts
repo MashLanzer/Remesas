@@ -8,14 +8,14 @@ const serverUrl = process.env.CAP_SERVER_URL || "https://remesas-nu.vercel.app";
 
 const config: CapacitorConfig = {
   appId: "com.remesas.app",
-  appName: "Remesas",
+  appName: "Giro",
   webDir: "public",
   server: {
     url: serverUrl,
     cleartext: false,
   },
   android: {
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#0a1310",
   },
 };
 

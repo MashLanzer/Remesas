@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Send } from "lucide-react";
+import { PaperPlane } from "@/components/paper-plane";
+import { WelcomeScreen } from "@/components/welcome-screen";
 
 // Esquema de deep link para volver a la app (APK) tras el login.
 const NATIVE_REDIRECT = "com.remesas.app://auth/callback";
@@ -10,6 +11,7 @@ const NATIVE_REDIRECT = "com.remesas.app://auth/callback";
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [welcome, setWelcome] = useState(true);
 
   // En el APK, escucha el "deep link" de vuelta desde la pestaña de Google
   // y completa la sesión.
@@ -96,18 +98,22 @@ export default function LoginPage() {
     }
   }
 
+  if (welcome) {
+    return <WelcomeScreen onStart={() => setWelcome(false)} />;
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm animate-fade-up">
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-            <Send className="h-8 w-8" />
+            <PaperPlane className="h-8 w-8 -translate-x-0.5" />
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
-            Remesas
+            Giro
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Gestión de envíos, comisiones y cuentas del negocio.
+            Tus envíos a Cuba, siempre a mano.
           </p>
         </div>
 
@@ -127,7 +133,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Acceso solo para socios del negocio.
+          Acceso privado del negocio.
         </p>
       </div>
     </main>

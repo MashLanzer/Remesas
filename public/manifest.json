@@ -1,10 +1,17 @@
 {
-  "name": "Remesas",
-  "short_name": "Remesas",
-  "description": "Gestión de envíos, comisiones y cuentas del negocio.",
+  "name": "Giro",
+  "short_name": "Giro",
+  "description": "Tus envíos a Cuba, siempre a mano.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#2563eb",
-  "icons": []
+  "background_color": "#0a1310",
+  "theme_color": "#12b866",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

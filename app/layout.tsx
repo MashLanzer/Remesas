@@ -10,9 +10,13 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Remesas",
-  description: "Gestión de envíos, comisiones y cuentas del negocio de remesas.",
+  title: "Giro",
+  description: "Tus envíos a Cuba, siempre a mano.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
