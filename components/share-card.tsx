@@ -114,9 +114,9 @@ export function ShareCard({
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/10" />
 
                 <div className="relative">
-                  {/* Marca + QR */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                  {/* Marca + Titular (izq) · QR grande (der) */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <PaperPlane className="h-6 w-6 -translate-x-px text-white drop-shadow" />
                         <span className="text-2xl font-extrabold tracking-tight">
@@ -126,29 +126,32 @@ export function ShareCard({
                       <p className="mt-0.5 truncate text-xs text-white/70">
                         {subtitle}
                       </p>
+
+                      <div className="mt-5">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/60">
+                          Titular
+                        </p>
+                        <p className="truncate text-lg font-semibold tracking-wide">
+                          {name || "Sin nombre"}
+                        </p>
+                        {phone && (
+                          <p className="mt-1 flex items-center gap-1.5 text-sm text-white/90">
+                            <MessageCircle className="h-4 w-4 shrink-0" />
+                            <span className="break-all">{phone}</span>
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="shrink-0 rounded-xl bg-white p-1.5 shadow-lg">
-                      <QRCodeSVG value={vcard} size={72} level="M" />
+
+                    <div className="flex shrink-0 flex-col items-center">
+                      <div className="rounded-2xl bg-white p-2 shadow-lg">
+                        <QRCodeSVG value={vcard} size={116} level="M" />
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-white/70">Escanéame</p>
                     </div>
                   </div>
 
-                  {/* Titular */}
-                  <div className="mt-5">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/60">
-                      Titular
-                    </p>
-                    <p className="truncate text-lg font-semibold tracking-wide">
-                      {name || "Sin nombre"}
-                    </p>
-                    {phone && (
-                      <p className="mt-1 flex items-center gap-1.5 text-sm text-white/90">
-                        <MessageCircle className="h-4 w-4 shrink-0" />
-                        <span className="break-all">{phone}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Métodos de cobro */}
+                  {/* Métodos de cobro (todo el ancho) */}
                   {pays.length > 0 ? (
                     <div className="mt-4 space-y-1.5 border-t border-white/20 pt-3">
                       {pays.map((p) => (
@@ -169,10 +172,6 @@ export function ShareCard({
                       </p>
                     )
                   )}
-
-                  <p className="mt-4 text-center text-[10px] text-white/50">
-                    Escanea el QR para guardar el contacto
-                  </p>
                 </div>
               </div>
 
