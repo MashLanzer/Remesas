@@ -6,10 +6,54 @@ import {
   type BusinessSettings,
   type Client,
   type ExchangeRate,
+  type Profile,
   type RateHistory,
   type Remittance,
   type Settlement,
+  type UserRole,
 } from "@/lib/types";
+
+export interface SessionContext {
+  userId: string | null;
+  role: UserRole;
+  isOperador: boolean;
+}
+
+// Contexto del usuario actual. Si la columna 'role' no existe todavía (sin
+// migrar) se trata como operador, para que la app siga funcionando igual.
+export async function getSessionContext(): Promise<SessionContext> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { userId: null, role: "operador", isOperador: true };
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const role = ((data?.role as UserRole) || "operador") as UserRole;
+  return { userId: user.id, role, isOperador: role !== "repartidor" };
+}
+
+export async function getRepartidores(): Promise<Profile[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name, role, phone")
+    .eq("role", "repartidor")
+    .order("full_name", { ascending: true });
+  return (data as Profile[]) ?? [];
+}
+
+export async function getAllProfiles(): Promise<Profile[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, full_name, role, phone")
+    .order("full_name", { ascending: true });
+  return (data as Profile[]) ?? [];
+}
 
 export async function getBusinessSettings(): Promise<BusinessSettings> {
   const supabase = await createClient();
@@ -25,11 +69,14 @@ export async function getBusinessSettings(): Promise<BusinessSettings> {
 
 export async function getRemittances(limit?: number): Promise<Remittance[]> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   let query = supabase
     .from("remittances")
     .select("*, client:clients(*), beneficiary:beneficiaries(*)")
     .order("date", { ascending: false })
     .order("created_at", { ascending: false });
+  // El repartidor solo ve las remesas que le fueron asignadas.
+  if (!ctx.isOperador && ctx.userId) query = query.eq("deliverer_id", ctx.userId);
   if (limit) query = query.limit(limit);
   const { data } = await query;
   return (data as Remittance[]) ?? [];
@@ -47,6 +94,24 @@ export async function getRemittance(id: string): Promise<Remittance | null> {
 
 export async function getClients(): Promise<Client[]> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador && ctx.userId) {
+    // El repartidor solo ve los clientes que aparecen en sus remesas.
+    const { data: rem } = await supabase
+      .from("remittances")
+      .select("client_id")
+      .eq("deliverer_id", ctx.userId);
+    const ids = Array.from(
+      new Set((rem ?? []).map((r) => r.client_id).filter(Boolean))
+    ) as string[];
+    if (ids.length === 0) return [];
+    const { data } = await supabase
+      .from("clients")
+      .select("*")
+      .in("id", ids)
+      .order("name", { ascending: true });
+    return (data as Client[]) ?? [];
+  }
   const { data } = await supabase
     .from("clients")
     .select("*")
@@ -76,6 +141,23 @@ export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
 
 export async function getBeneficiaries(): Promise<Beneficiary[]> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador && ctx.userId) {
+    const { data: rem } = await supabase
+      .from("remittances")
+      .select("beneficiary_id")
+      .eq("deliverer_id", ctx.userId);
+    const ids = Array.from(
+      new Set((rem ?? []).map((r) => r.beneficiary_id).filter(Boolean))
+    ) as string[];
+    if (ids.length === 0) return [];
+    const { data } = await supabase
+      .from("beneficiaries")
+      .select("*")
+      .in("id", ids)
+      .order("name", { ascending: true });
+    return (data as Beneficiary[]) ?? [];
+  }
   const { data } = await supabase
     .from("beneficiaries")
     .select("*")
@@ -103,14 +185,22 @@ export async function getRateHistory(): Promise<RateHistory[]> {
 
 export async function getAlertCount(): Promise<number> {
   const supabase = await createClient();
-  const { count: pending } = await supabase
+  const ctx = await getSessionContext();
+  const mine = !ctx.isOperador && ctx.userId ? ctx.userId : null;
+
+  let pendingQ = supabase
     .from("remittances")
     .select("id", { count: "exact", head: true })
     .eq("status", "pendiente");
-  const { count: porCobrar } = await supabase
+  if (mine) pendingQ = pendingQ.eq("deliverer_id", mine);
+  const { count: pending } = await pendingQ;
+
+  let cobrarQ = supabase
     .from("remittances")
     .select("id", { count: "exact", head: true })
     .eq("client_paid", false);
+  if (mine) cobrarQ = cobrarQ.eq("deliverer_id", mine);
+  const { count: porCobrar } = await cobrarQ;
 
   let saldoAlert = 0;
   const settings = await getBusinessSettings();
@@ -135,9 +225,12 @@ export async function getAlertCount(): Promise<number> {
 
 export async function getSettlements(): Promise<Settlement[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const ctx = await getSessionContext();
+  let query = supabase
     .from("settlements")
     .select("*")
     .order("date", { ascending: false });
+  if (!ctx.isOperador && ctx.userId) query = query.eq("deliverer_id", ctx.userId);
+  const { data } = await query;
   return (data as Settlement[]) ?? [];
 }

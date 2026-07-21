@@ -15,6 +15,7 @@ import {
   type Beneficiary,
   type Client,
   type ExchangeRate,
+  type Profile,
   type Remittance,
 } from "@/lib/types";
 
@@ -30,6 +31,8 @@ export function RemittanceForm({
   defaultPayment,
   defaultClientId,
   defaultBeneficiaryId,
+  repartidores = [],
+  isOperador = true,
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
@@ -42,6 +45,8 @@ export function RemittanceForm({
   defaultPayment?: string | null;
   defaultClientId?: string;
   defaultBeneficiaryId?: string;
+  repartidores?: Profile[];
+  isOperador?: boolean;
 }) {
   const isEdit = !!initial;
   const source = initial ?? prefill; // valores para prellenar (editar o duplicar)
@@ -149,6 +154,22 @@ export function RemittanceForm({
             ))}
           </Select>
         </Field>
+
+        {isOperador && repartidores.length > 0 && (
+          <Field
+            label="Repartidor en Cuba"
+            hint="Quién entrega esta remesa. Verá solo sus remesas asignadas."
+          >
+            <Select name="deliverer_id" defaultValue={source?.deliverer_id ?? ""}>
+              <option value="">— Sin asignar —</option>
+              {repartidores.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.full_name || "Repartidor"}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
 
         <Field
           label="Monto del envío (USD)"

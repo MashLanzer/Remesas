@@ -7,6 +7,8 @@ import {
   getClients,
   getExchangeRates,
   getRemittance,
+  getRepartidores,
+  getSessionContext,
 } from "@/lib/data";
 import { RemittanceForm } from "@/components/remittance-form";
 
@@ -19,13 +21,15 @@ export default async function EditarRemesaPage({
 }) {
   const { id } = await params;
 
-  const [remittance, clients, beneficiaries, rates, settings] =
+  const [remittance, clients, beneficiaries, rates, settings, repartidores, ctx] =
     await Promise.all([
       getRemittance(id),
       getClients(),
       getBeneficiaries(),
       getExchangeRates(),
       getBusinessSettings(),
+      getRepartidores(),
+      getSessionContext(),
     ]);
 
   if (!remittance) notFound();
@@ -48,6 +52,8 @@ export default async function EditarRemesaPage({
         defaultSplit={Number(remittance.my_split_percent)}
         initial={remittance}
         rules={settings}
+        repartidores={repartidores}
+        isOperador={ctx.isOperador}
       />
     </div>
   );

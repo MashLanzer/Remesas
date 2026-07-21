@@ -26,6 +26,26 @@ export async function setDataModeCookie(low: boolean) {
   });
 }
 
+// Solo el operador puede cambiar roles.
+export async function setUserRole(
+  userId: string,
+  role: "operador" | "repartidor"
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (((me?.role as string) || "operador") === "repartidor") return;
+  await supabase.from("profiles").update({ role }).eq("id", userId);
+  revalidatePath("/ajustes/repartidores");
+}
+
 function num(v: FormDataEntryValue | null): number {
   const n = parseFloat(String(v ?? "").replace(",", "."));
   return isNaN(n) ? 0 : n;
@@ -114,6 +134,15 @@ export async function createRemittance(formData: FormData) {
       .eq("id", inserted.id);
   }
 
+  // Repartidor asignado (aparte, tolerante — columna 0011).
+  const delivererId = str(formData.get("deliverer_id"));
+  if (inserted?.id && delivererId) {
+    await supabase
+      .from("remittances")
+      .update({ deliverer_id: delivererId })
+      .eq("id", inserted.id);
+  }
+
   if (inserted?.id) await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
 
   revalidatePath("/remesas");
@@ -168,6 +197,15 @@ export async function updateRemittance(formData: FormData) {
     .from("remittances")
     .update({ client_paid: str(formData.get("client_paid")) !== "false" })
     .eq("id", id);
+
+  // Repartidor asignado (aparte, tolerante — columna 0011).
+  const delivererId = formData.get("deliverer_id");
+  if (delivererId !== null) {
+    await supabase
+      .from("remittances")
+      .update({ deliverer_id: str(delivererId) })
+      .eq("id", id);
+  }
 
   await handleReceiptUpload(supabase, formData, "remittances", id);
 
@@ -444,9 +482,19 @@ export async function createSettlement(formData: FormData) {
     targetId = data?.id ?? null;
   }
 
+  // Repartidor con quien se salda (aparte, tolerante — columna 0011).
+  const delivererId = formData.get("deliverer_id");
+  if (targetId && delivererId !== null) {
+    await supabase
+      .from("settlements")
+      .update({ deliverer_id: str(delivererId) })
+      .eq("id", targetId);
+  }
+
   if (targetId) await handleReceiptUpload(supabase, formData, "settlements", targetId);
 
   revalidatePath("/socios");
+  revalidatePath("/finanzas");
   revalidatePath("/");
 }
 

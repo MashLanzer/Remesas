@@ -1,6 +1,6 @@
 // Tipos de datos que reflejan el esquema de la base de datos (Supabase).
 
-export type UserRole = "socio" | "admin";
+export type UserRole = "operador" | "repartidor";
 
 export type RemittanceStatus = "pendiente" | "entregado" | "liquidado";
 
@@ -26,11 +26,12 @@ export type DeliveryCurrency = (typeof DELIVERY_CURRENCIES)[number];
 
 export interface Profile {
   id: string;
-  email: string;
+  email?: string;
   full_name: string | null;
   role: UserRole;
-  default_split_percent: number; // % que le corresponde a este usuario por defecto
-  created_at: string;
+  phone?: string | null;
+  default_split_percent?: number; // % que le corresponde a este usuario por defecto
+  created_at?: string;
 }
 
 export interface Client {
@@ -96,6 +97,7 @@ export interface Remittance {
   notes: string | null;
   created_by: string | null;
   created_at: string;
+  deliverer_id?: string | null; // repartidor en Cuba asignado
   // Relaciones opcionales (cuando se hace join)
   client?: Client | null;
   beneficiary?: Beneficiary | null;
@@ -137,4 +139,5 @@ export interface Settlement {
   receipt_url: string | null;
   created_by: string | null;
   created_at: string;
+  deliverer_id?: string | null; // repartidor con quien se salda
 }

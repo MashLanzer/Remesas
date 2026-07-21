@@ -4,6 +4,8 @@ import {
   getClients,
   getExchangeRates,
   getRemittance,
+  getRepartidores,
+  getSessionContext,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { RemittanceForm } from "@/components/remittance-form";
@@ -22,21 +24,31 @@ export default async function NuevaRemesaPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [clients, beneficiaries, rates, settings, profileRes, prefill] =
-    await Promise.all([
-      getClients(),
-      getBeneficiaries(),
-      getExchangeRates(),
-      getBusinessSettings(),
-      user
-        ? supabase
-            .from("profiles")
-            .select("default_split_percent")
-            .eq("id", user.id)
-            .single()
-        : Promise.resolve({ data: null }),
-      dup ? getRemittance(dup) : Promise.resolve(null),
-    ]);
+  const [
+    clients,
+    beneficiaries,
+    rates,
+    settings,
+    profileRes,
+    prefill,
+    repartidores,
+    ctx,
+  ] = await Promise.all([
+    getClients(),
+    getBeneficiaries(),
+    getExchangeRates(),
+    getBusinessSettings(),
+    user
+      ? supabase
+          .from("profiles")
+          .select("default_split_percent")
+          .eq("id", user.id)
+          .single()
+      : Promise.resolve({ data: null }),
+    dup ? getRemittance(dup) : Promise.resolve(null),
+    getRepartidores(),
+    getSessionContext(),
+  ]);
 
   const defaultSplit = Number(profileRes.data?.default_split_percent ?? 50);
 
@@ -57,6 +69,8 @@ export default async function NuevaRemesaPage({
         prefill={prefill ?? undefined}
         defaultClientId={cliente}
         defaultBeneficiaryId={beneficiario}
+        repartidores={repartidores}
+        isOperador={ctx.isOperador}
       />
     </div>
   );

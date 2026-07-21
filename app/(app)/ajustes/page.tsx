@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { TrendingUp, ChevronRight } from "lucide-react";
-import { getRemittances, getBusinessSettings } from "@/lib/data";
+import { TrendingUp, ChevronRight, Truck } from "lucide-react";
+import {
+  getRemittances,
+  getBusinessSettings,
+  getSessionContext,
+} from "@/lib/data";
 import { updateBusinessSettings } from "@/app/actions";
 import {
   Card,
@@ -20,16 +24,42 @@ export const dynamic = "force-dynamic";
 const APP_VERSION = "1.0.0";
 
 export default async function AjustesPage() {
-  const [remittances, settings] = await Promise.all([
+  const [remittances, settings, ctx] = await Promise.all([
     getRemittances(),
     getBusinessSettings(),
+    getSessionContext(),
   ]);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Ajustes" />
 
-      {/* Negocio */}
+      {ctx.isOperador && (
+        <section>
+          <SectionTitle>Equipo</SectionTitle>
+          <Link href="/ajustes/repartidores" className="block">
+            <Card className="flex items-center justify-between transition active:scale-[0.99]">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
+                  <Truck className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Repartidores
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Personas en Cuba y qué ve cada una
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Card>
+          </Link>
+        </section>
+      )}
+
+      {/* Negocio (solo operador) */}
+      {ctx.isOperador && (
       <section>
         <SectionTitle>Negocio</SectionTitle>
         <Card>
@@ -150,6 +180,7 @@ export default async function AjustesPage() {
           </form>
         </Card>
       </section>
+      )}
 
       {/* Apariencia */}
       <section>
