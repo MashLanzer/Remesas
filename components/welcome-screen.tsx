@@ -75,7 +75,10 @@ export function WelcomeScreen({ onStart }: { onStart: () => void }) {
 
           {/* Cuadro final centrado */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="gi-box flex h-24 w-24 items-center justify-center rounded-[28px] bg-white/15 backdrop-blur-sm ring-1 ring-white/25">
+            <div
+              className="gi-box flex h-24 w-24 items-center justify-center rounded-[28px] bg-white/15 backdrop-blur-sm ring-1 ring-white/25"
+              style={{ viewTransitionName: "giro-plane" } as React.CSSProperties}
+            >
               <div className="gi-bob">
                 <div className="gi-rest" style={{ transform: "rotate(-22deg)" }}>
                   <PaperPlane className="h-12 w-12 text-white" />

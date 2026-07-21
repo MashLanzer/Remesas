@@ -231,6 +231,22 @@
   animation: gi-fade-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Transición welcome → login: el avión (cuadro) viaja hasta el logo del login */
+::view-transition-group(giro-plane) {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(giro-plane),
+::view-transition-new(giro-plane) {
+  /* Que el contenido interno no parpadee: el cuadro se transforma, no se cruza */
+  mix-blend-mode: normal;
+  height: 100%;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.55s;
+}
+
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

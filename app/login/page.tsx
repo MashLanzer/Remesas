@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { PaperPlane } from "@/components/paper-plane";
 import { WelcomeScreen } from "@/components/welcome-screen";
@@ -98,15 +99,33 @@ export default function LoginPage() {
     }
   }
 
+  function startApp() {
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => void;
+    };
+    // Transición de elemento compartido: el avión del welcome viaja hasta el
+    // logo del login. Respaldo instantáneo si el navegador no la soporta.
+    if (doc.startViewTransition) {
+      doc.startViewTransition(() => {
+        flushSync(() => setWelcome(false));
+      });
+    } else {
+      setWelcome(false);
+    }
+  }
+
   if (welcome) {
-    return <WelcomeScreen onStart={() => setWelcome(false)} />;
+    return <WelcomeScreen onStart={startApp} />;
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm animate-fade-up">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+          <div
+            className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+            style={{ viewTransitionName: "giro-plane" } as React.CSSProperties}
+          >
             <PaperPlane className="h-8 w-8 -translate-x-0.5" />
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
