@@ -34,11 +34,13 @@ export function DashboardView({
   partnerBalance,
   name,
   isOperador = true,
+  pendingOrders = 0,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
   name: string | null;
   isOperador?: boolean;
+  pendingOrders?: number;
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
@@ -131,6 +133,24 @@ export function DashboardView({
           );
         })}
       </div>
+
+      {/* Pedidos nuevos de clientes */}
+      {pendingOrders > 0 && (
+        <Link href="/pedidos" className="block">
+          <Card className="flex items-center justify-between border-primary/30 bg-primary/5">
+            <div>
+              <p className="text-sm font-semibold text-primary">
+                {pendingOrders} pedido{pendingOrders > 1 ? "s" : ""} nuevo
+                {pendingOrders > 1 ? "s" : ""}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Clientes esperando que aceptes
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-primary" />
+          </Card>
+        </Link>
+      )}
 
       {/* Alerta de pendientes */}
       {pending.length > 0 && (

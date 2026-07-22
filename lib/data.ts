@@ -7,6 +7,7 @@ import {
   type Client,
   type ExchangeRate,
   type Offer,
+  type Order,
   type Profile,
   type RateHistory,
   type Remittance,
@@ -264,6 +265,8 @@ export async function getBeneficiaries(): Promise<Beneficiary[]> {
 export async function getExchangeRates(): Promise<ExchangeRate[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
+  // Un cliente sin negocio no debe disparar una consulta sin filtrar por tenant.
+  if (ctx.isCliente && !ctx.tenantId) return [];
   let q = supabase
     .from("exchange_rates")
     .select("*")
@@ -340,7 +343,20 @@ export async function getAlertCount(): Promise<number> {
     teamAlert = count ?? 0;
   }
 
-  return (pending ?? 0) + porCobrar + saldoAlert + ratesAlert + teamAlert;
+  // Pedidos nuevos de clientes por atender (personal).
+  let ordersAlert = 0;
+  if (ctx.tenantId) {
+    const { count } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("operator_id", ctx.tenantId)
+      .eq("status", "pendiente");
+    ordersAlert = count ?? 0;
+  }
+
+  return (
+    (pending ?? 0) + porCobrar + saldoAlert + ratesAlert + teamAlert + ordersAlert
+  );
 }
 
 export async function getSettlements(): Promise<Settlement[]> {
@@ -366,6 +382,38 @@ export interface ActivityEntry {
   entity_label: string | null;
   details: Record<string, unknown> | null;
   created_at: string;
+}
+
+// ===== Pedidos =====
+
+// Pedidos del cliente actual (los que él hizo).
+export async function getMyOrders(): Promise<Order[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return [];
+  const { data } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("client_id", ctx.userId)
+    .order("created_at", { ascending: false });
+  return (data as Order[]) ?? [];
+}
+
+// Pedidos del negocio (para el personal). opts.pendingOnly filtra los pendientes.
+export async function getOrders(
+  opts: { pendingOnly?: boolean } = {}
+): Promise<Order[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  let q = supabase
+    .from("orders")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  if (opts.pendingOnly) q = q.eq("status", "pendiente");
+  const { data } = await q;
+  return (data as Order[]) ?? [];
 }
 
 // ===== Ofertas =====

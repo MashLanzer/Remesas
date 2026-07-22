@@ -1,8 +1,11 @@
-import { Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOffers, getExchangeRates } from "@/lib/data";
+import { getActiveOffers, getExchangeRates, getMyOrders } from "@/lib/data";
 import { Card, EmptyState } from "@/components/ui";
 import { RateConverter } from "@/components/rate-converter";
+import { ClientOrderButton } from "@/components/client-order-button";
+import { OrderStatusBadge } from "@/components/order-status-badge";
 import { OFFER_KINDS, type Offer } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,14 +33,16 @@ export default async function ClienteHome() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [offers, rates, brandRes, profileRes] = await Promise.all([
+  const [offers, rates, orders, brandRes, profileRes] = await Promise.all([
     getActiveOffers(),
     getExchangeRates(),
+    getMyOrders(),
     supabase.rpc("my_business_name"),
     user
       ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
   ]);
+  const recentOrders = orders.slice(0, 3);
 
   const firstName =
     (profileRes.data?.full_name as string | undefined)?.trim().split(" ")[0] ??
@@ -61,6 +66,38 @@ export default async function ClienteHome() {
           {brand}
         </h1>
       </div>
+
+      {/* Pedir remesa */}
+      <ClientOrderButton rates={rates} />
+
+      {/* Mis pedidos recientes */}
+      {recentOrders.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Package className="h-4 w-4 text-primary" /> Mis pedidos
+            </h2>
+            <Link href="/c/pedidos" className="text-xs font-semibold text-primary">
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {recentOrders.map((o) => (
+              <Card key={o.id} className="flex items-center justify-between p-3.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {o.beneficiary_name || "Beneficiario"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ${Number(o.amount_usd)} · {o.delivery_currency || ""}
+                  </p>
+                </div>
+                <OrderStatusBadge status={o.status} />
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Calculadora de tasas */}
       <section>

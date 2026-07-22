@@ -14,6 +14,26 @@ export const OFFER_KINDS = [
 
 export type OfferKind = (typeof OFFER_KINDS)[number]["key"];
 
+export type OrderStatus = "pendiente" | "aceptado" | "rechazado";
+
+export interface Order {
+  id: string;
+  operator_id: string | null;
+  client_id: string | null;
+  client_name: string | null;
+  client_phone: string | null;
+  amount_usd: number;
+  beneficiary_name: string | null;
+  beneficiary_phone: string | null;
+  province: string | null;
+  delivery_currency: DeliveryCurrency | null;
+  note: string | null;
+  status: OrderStatus;
+  accepted_by: string | null;
+  remittance_id: string | null;
+  created_at: string;
+}
+
 export interface Offer {
   id: string;
   operator_id: string | null;

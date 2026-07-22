@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { computeRemittance } from "@/lib/calc";
+import { computeRemittance, calcCommission } from "@/lib/calc";
 import { getSessionContext } from "@/lib/data";
 
 const YEAR = 60 * 60 * 24 * 365;
@@ -73,15 +73,8 @@ export async function becomeOperador() {
   // porque con RLS no vemos los perfiles de otros negocios — 0013).
   const code = await uniqueCode(supabase);
 
-  await supabase
-    .from("profiles")
-    .update({
-      role: "operador",
-      operator_id: user.id,
-      member_status: "active",
-      operator_code: code,
-    })
-    .eq("id", user.id);
+  // La transición de rol va por función SECURITY DEFINER (0016).
+  await supabase.rpc("become_operador", { p_code: code });
 
   // Tasas base del nuevo negocio.
   await supabase.from("exchange_rates").upsert(
@@ -120,21 +113,10 @@ export async function joinOperator(
   const code = (str(formData.get("code")) ?? "").toUpperCase().replace(/\s/g, "");
   if (!code) return { error: "Escribe el código de tu operador." };
 
-  // Con RLS activa no podemos leer el perfil de otro operador directamente:
-  // resolvemos el código con una función SECURITY DEFINER (0013).
-  const { data: opId } = await supabase.rpc("operator_by_code", {
-    p_code: code,
-  });
+  // Unirse va por función SECURITY DEFINER (join_operator): valida el código y
+  // asigna rol/negocio de forma controlada (el usuario no puede hacerlo directo).
+  const { data: opId } = await supabase.rpc("join_operator", { p_code: code });
   if (!opId) return { error: "Código no válido. Verifícalo con tu operador." };
-
-  await supabase
-    .from("profiles")
-    .update({
-      role: "repartidor",
-      operator_id: opId as string,
-      member_status: "pending",
-    })
-    .eq("id", user.id);
 
   await logActivity("repartidor.solicitud");
   revalidatePath("/", "layout");
@@ -150,16 +132,11 @@ export async function becomeCliente() {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { data: opId } = await supabase.rpc("default_operator");
-
-  await supabase
-    .from("profiles")
-    .update({
-      role: "cliente",
-      operator_id: (opId as string) ?? null,
-      member_status: "active",
-    })
-    .eq("id", user.id);
+  // La transición de rol va por función SECURITY DEFINER (become_cliente):
+  // el usuario no puede tocar rol/negocio directamente (0016). Falla si no hay
+  // negocio disponible → se queda en el onboarding.
+  const { error } = await supabase.rpc("become_cliente");
+  if (error) redirect("/onboarding");
 
   revalidatePath("/", "layout");
   redirect("/c");
@@ -193,8 +170,12 @@ export async function createOffer(formData: FormData) {
 export async function toggleOffer(id: string, active: boolean) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
-  if (!ctx.isOperador) return;
-  await supabase.from("offers").update({ active }).eq("id", id);
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("offers")
+    .update({ active })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
   revalidatePath("/ofertas");
   revalidatePath("/c");
 }
@@ -202,10 +183,235 @@ export async function toggleOffer(id: string, active: boolean) {
 export async function deleteOffer(id: string) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
-  if (!ctx.isOperador) return;
-  await supabase.from("offers").delete().eq("id", id);
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("offers")
+    .delete()
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
   revalidatePath("/ofertas");
   revalidatePath("/c");
+}
+
+// ===== Pedidos (los crea el cliente; los acepta el personal) =====
+
+function isStaff(ctx: Awaited<ReturnType<typeof getSessionContext>>): boolean {
+  return (
+    ctx.isOperador ||
+    (ctx.role === "repartidor" && ctx.memberStatus === "active")
+  );
+}
+
+// El cliente pide una remesa. Queda pendiente hasta que el personal la acepte.
+export async function createOrder(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
+
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", ctx.userId)
+    .single();
+  const p = (prof ?? {}) as { full_name?: string | null; phone?: string | null };
+
+  await supabase.from("orders").insert({
+    operator_id: ctx.tenantId,
+    client_id: ctx.userId,
+    client_name: p.full_name ?? null,
+    client_phone: p.phone ?? null,
+    amount_usd: num(formData.get("amount_usd")),
+    beneficiary_name: str(formData.get("beneficiary_name")),
+    beneficiary_phone: str(formData.get("beneficiary_phone")),
+    province: str(formData.get("province")),
+    delivery_currency: str(formData.get("delivery_currency")),
+    note: str(formData.get("note")),
+    status: "pendiente",
+  });
+
+  revalidatePath("/c");
+  revalidatePath("/c/pedidos");
+  redirect("/c/pedidos");
+}
+
+// El cliente cancela su propio pedido pendiente.
+export async function cancelOrder(id: string) {
+  const supabase = await createClient();
+  await supabase.from("orders").delete().eq("id", id).eq("status", "pendiente");
+  revalidatePath("/c");
+  revalidatePath("/c/pedidos");
+}
+
+// El personal rechaza un pedido.
+export async function rejectOrder(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  await supabase
+    .from("orders")
+    .update({ status: "rechazado", accepted_by: ctx.userId })
+    .eq("id", id)
+    .eq("status", "pendiente");
+  await logActivity("pedido.rechazar", { entityType: "pedido", entityId: id });
+  revalidatePath("/pedidos");
+  revalidatePath("/c");
+}
+
+// El personal acepta un pedido → se convierte en remesa (cliente + beneficiario
+// + remesa pendiente por cobrar). Si acepta un repartidor, queda asignada a él.
+export async function acceptOrder(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return;
+
+  const { data: orderRow } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId)
+    .single();
+  const order = orderRow as {
+    id: string;
+    status: string;
+    amount_usd: number;
+    client_name?: string | null;
+    client_phone?: string | null;
+    beneficiary_name?: string | null;
+    beneficiary_phone?: string | null;
+    province?: string | null;
+    delivery_currency?: string | null;
+    note?: string | null;
+  } | null;
+  if (!order || order.status !== "pendiente") return;
+
+  const tid = ctx.tenantId;
+  const currency = order.delivery_currency || "CUP";
+
+  // Cliente (reusar por teléfono si ya existe; si no, crear).
+  let clientId: string | null = null;
+  if (order.client_phone) {
+    const { data: existing } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("operator_id", tid)
+      .eq("phone", order.client_phone)
+      .maybeSingle();
+    clientId = (existing as { id?: string } | null)?.id ?? null;
+  }
+  if (!clientId && order.client_name) {
+    const { data: c } = await supabase
+      .from("clients")
+      .insert({
+        name: order.client_name,
+        phone: order.client_phone,
+        operator_id: tid,
+      })
+      .select("id")
+      .single();
+    clientId = (c as { id?: string } | null)?.id ?? null;
+  }
+
+  // Beneficiario del pedido.
+  let beneficiaryId: string | null = null;
+  if (order.beneficiary_name) {
+    const { data: b } = await supabase
+      .from("beneficiaries")
+      .insert({
+        name: order.beneficiary_name,
+        phone: order.beneficiary_phone,
+        province: order.province,
+        preferred_currency: currency,
+        client_id: clientId,
+        operator_id: tid,
+      })
+      .select("id")
+      .single();
+    beneficiaryId = (b as { id?: string } | null)?.id ?? null;
+  }
+
+  // Tasa y reglas de comisión del negocio.
+  const { data: rateRow } = await supabase
+    .from("exchange_rates")
+    .select("rate")
+    .eq("operator_id", tid)
+    .eq("currency", currency)
+    .maybeSingle();
+  const rate = Number((rateRow as { rate?: number } | null)?.rate ?? 0);
+
+  const { data: settings } = await supabase
+    .from("business_settings")
+    .select("commission_threshold, commission_percent, commission_flat")
+    .eq("operator_id", tid)
+    .maybeSingle();
+  const rules = (settings ?? {
+    commission_threshold: 100,
+    commission_percent: 10,
+    commission_flat: 5,
+  }) as {
+    commission_threshold: number;
+    commission_percent: number;
+    commission_flat: number;
+  };
+
+  const amountUsd = Number(order.amount_usd) || 0;
+  const commission = calcCommission(amountUsd, rules);
+  const c = computeRemittance({
+    amountUsd,
+    commission,
+    exchangeRate: rate,
+    exchangeProfit: 0,
+    mySplitPercent: 50,
+  });
+
+  const delivererId = ctx.role === "repartidor" ? ctx.userId : null;
+
+  const { data: rem } = await supabase
+    .from("remittances")
+    .insert({
+      date: new Date().toISOString().slice(0, 10),
+      client_id: clientId,
+      beneficiary_id: beneficiaryId,
+      amount_usd: amountUsd,
+      commission: c.commission,
+      total_received: c.totalReceived,
+      delivery_currency: currency,
+      exchange_rate: rate,
+      local_amount: c.localAmount,
+      exchange_profit: 0,
+      total_profit: c.totalProfit,
+      my_split_percent: 50,
+      my_share: c.myShare,
+      partner_share: c.partnerShare,
+      status: "pendiente",
+      notes: order.note,
+      created_by: ctx.userId,
+      client_paid: false,
+      ...(delivererId ? { deliverer_id: delivererId } : {}),
+      operator_id: tid,
+    })
+    .select("id")
+    .single();
+  const remId = (rem as { id?: string } | null)?.id ?? null;
+
+  await supabase
+    .from("orders")
+    .update({
+      status: "aceptado",
+      accepted_by: ctx.userId,
+      remittance_id: remId,
+    })
+    .eq("id", id);
+
+  await logActivity("pedido.aceptar", {
+    entityType: "pedido",
+    entityId: id,
+    entityLabel: `$${amountUsd}`,
+  });
+
+  revalidatePath("/pedidos");
+  revalidatePath("/remesas");
+  revalidatePath("/c");
+  revalidatePath("/");
 }
 
 // El operador acepta a un repartidor pendiente de su equipo.
@@ -213,12 +419,7 @@ export async function approveMember(userId: string) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
-  await supabase
-    .from("profiles")
-    .update({ member_status: "active" })
-    .eq("id", userId)
-    .eq("operator_id", ctx.tenantId)
-    .eq("role", "repartidor");
+  await supabase.rpc("approve_member", { p_user: userId });
   await logActivity("repartidor.aceptar", {
     entityType: "repartidor",
     entityId: userId,
@@ -235,11 +436,7 @@ export async function removeMember(userId: string) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
-  await supabase
-    .from("profiles")
-    .update({ role: null, member_status: "removed" })
-    .eq("id", userId)
-    .eq("operator_id", ctx.tenantId);
+  await supabase.rpc("remove_member", { p_user: userId });
   await logActivity("repartidor.quitar", {
     entityType: "repartidor",
     entityId: userId,
@@ -253,10 +450,7 @@ export async function regenerateCode() {
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.userId) return;
   const code = await uniqueCode(supabase);
-  await supabase
-    .from("profiles")
-    .update({ operator_code: code })
-    .eq("id", ctx.userId);
+  await supabase.rpc("regenerate_code", { p_code: code });
   await logActivity("equipo.codigo");
   revalidatePath("/ajustes/repartidores");
 }
