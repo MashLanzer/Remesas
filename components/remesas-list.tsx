@@ -262,42 +262,40 @@ export function RemesasList({
         </div>
       )}
 
-      {/* Totales del filtro */}
+      {/* Resumen del filtro (compacto: enviado · ganancia · entregado) */}
       {list.length > 0 && (
-        <div className="mb-3 grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-border bg-card px-3 py-2">
+        <div className="mb-4 flex items-stretch gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
+          <div className="min-w-0">
             <p className="text-[11px] font-medium text-muted-foreground">
               Enviado ({list.length})
             </p>
-            <p className="tabular text-lg font-bold text-foreground">
+            <p className="tabular text-base font-bold text-foreground">
               {usd(totalSent)}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-card px-3 py-2">
+          <div className="min-w-0 border-l border-border pl-3">
             <p className="text-[11px] font-medium text-muted-foreground">
               Ganancia
             </p>
-            <p className="tabular text-lg font-bold text-income">
+            <p className="tabular text-base font-bold text-income">
               {usd(totalProfit)}
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Total por moneda */}
-      {byCurrency.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {byCurrency.map(([cur, amt]) => (
-            <span
-              key={cur}
-              className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
-            >
-              Entregado{" "}
-              <span className="font-semibold text-foreground">
-                {localAmount(amt)} {cur}
-              </span>
-            </span>
-          ))}
+          {byCurrency.length > 0 && (
+            <div className="ml-auto min-w-0 border-l border-border pl-3 text-right">
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Entregado
+              </p>
+              {byCurrency.map(([cur, amt]) => (
+                <p
+                  key={cur}
+                  className="tabular truncate text-xs font-semibold text-foreground"
+                >
+                  {localAmount(amt)} {cur}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

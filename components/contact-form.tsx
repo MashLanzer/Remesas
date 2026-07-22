@@ -6,7 +6,7 @@ import { createContact } from "@/app/actions";
 import { Card, Field, Input, Select, Textarea, Button } from "@/components/ui";
 import { DELIVERY_CURRENCIES } from "@/lib/types";
 
-export function ContactForm() {
+export function ContactForm({ onDone }: { onDone?: () => void }) {
   // Filas de beneficiarios: empezamos con una (opcional).
   const [rows, setRows] = useState<number[]>([0]);
   const [nextId, setNextId] = useState(1);
@@ -20,7 +20,11 @@ export function ContactForm() {
   }
 
   return (
-    <form action={createContact} className="space-y-5">
+    <form
+      action={createContact}
+      onSubmit={() => onDone?.()}
+      className="space-y-5"
+    >
       {/* Cliente */}
       <section>
         <h2 className="mb-2 flex items-center gap-2 px-1 text-sm font-bold text-foreground">

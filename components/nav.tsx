@@ -13,6 +13,8 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
+import { Sheet } from "@/components/sheet";
+import { ContactForm } from "@/components/contact-form";
 
 const items = [
   { href: "/", label: "Inicio", icon: LayoutDashboard, exact: true },
@@ -25,6 +27,7 @@ export function BottomNav({ isOperador = true }: { isOperador?: boolean }) {
   const pathname = usePathname();
   const [saver, setSaver] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [contact, setContact] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,12 +74,18 @@ export function BottomNav({ isOperador = true }: { isOperador?: boolean }) {
                 onClick={() => setMenu(false)}
               />
               {isOperador && (
-                <FabLink
-                  href="/agenda/nuevo"
-                  icon={<UserPlus className="h-4 w-4" />}
-                  label="Nuevo cliente"
-                  onClick={() => setMenu(false)}
-                />
+                <button
+                  onClick={() => {
+                    setMenu(false);
+                    setContact(true);
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+                >
+                  <span className="text-primary">
+                    <UserPlus className="h-4 w-4" />
+                  </span>
+                  Nuevo cliente
+                </button>
               )}
             </div>
           )}
@@ -93,6 +102,18 @@ export function BottomNav({ isOperador = true }: { isOperador?: boolean }) {
           </button>
         </div>
       </div>
+
+      {/* Formulario de nuevo contacto en un sheet */}
+      <Sheet
+        open={contact}
+        onClose={() => setContact(false)}
+        title="Nuevo contacto"
+      >
+        <p className="mb-4 -mt-2 text-xs text-muted-foreground">
+          Crea el cliente y, si quieres, su beneficiario en Cuba.
+        </p>
+        <ContactForm onDone={() => setContact(false)} />
+      </Sheet>
     </nav>
   );
 }
