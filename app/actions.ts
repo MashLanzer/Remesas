@@ -239,6 +239,13 @@ export async function createOrder(formData: FormData) {
   redirect("/c/pedidos");
 }
 
+// El beneficiario (sin login) confirma que recibió, vía enlace público.
+export async function confirmReceived(token: string) {
+  const supabase = await createClient();
+  await supabase.rpc("track_confirm", { p_token: token });
+  revalidatePath(`/t/${token}`);
+}
+
 // El cliente cancela su propio pedido pendiente.
 export async function cancelOrder(id: string) {
   const supabase = await createClient();
@@ -277,7 +284,11 @@ export async function acceptOrder(id: string) {
   // se crean remesas duplicadas.
   const { data: claimed } = await supabase
     .from("orders")
-    .update({ status: "aceptado", accepted_by: ctx.userId })
+    .update({
+      status: "aceptado",
+      accepted_by: ctx.userId,
+      accepted_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .eq("operator_id", tid)
     .eq("status", "pendiente")
@@ -764,6 +775,22 @@ export async function setClientPaid(id: string, paid: boolean) {
 export async function updateRemittanceStatus(id: string, status: string) {
   const supabase = await createClient();
   await supabase.from("remittances").update({ status }).eq("id", id);
+
+  // Refleja la entrega en el pedido vinculado (para el seguimiento del cliente
+  // y del beneficiario). Tolerante si no hay pedido asociado.
+  if (status === "entregado") {
+    await supabase
+      .from("orders")
+      .update({ delivered_at: new Date().toISOString() })
+      .eq("remittance_id", id)
+      .is("delivered_at", null);
+  } else if (status === "pendiente") {
+    await supabase
+      .from("orders")
+      .update({ delivered_at: null })
+      .eq("remittance_id", id);
+  }
+
   await logActivity("remesa.estado", {
     entityType: "remesa",
     entityId: id,
@@ -772,6 +799,7 @@ export async function updateRemittanceStatus(id: string, status: string) {
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);
   revalidatePath("/");
+  revalidatePath("/c");
 }
 
 export async function deleteRemittance(id: string) {

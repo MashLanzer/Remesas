@@ -40,6 +40,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     path.startsWith("/login") ||
     path.startsWith("/auth") ||
+    path.startsWith("/t/") || // seguimiento público del beneficiario (sin login)
     path.startsWith("/_next") ||
     path === "/favicon.ico";
 

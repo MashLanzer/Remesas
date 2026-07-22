@@ -31,6 +31,10 @@ export interface Order {
   status: OrderStatus;
   accepted_by: string | null;
   remittance_id: string | null;
+  accepted_at: string | null;
+  delivered_at: string | null;
+  received_at: string | null;
+  track_token: string | null;
   created_at: string;
 }
 
