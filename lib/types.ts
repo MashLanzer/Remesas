@@ -165,7 +165,16 @@ export interface BusinessSettings {
   partner_name: string | null;
   settle_threshold?: number | null;
   monthly_goal?: number | null;
+  points_per_usd?: number | null;
   updated_at: string;
+}
+
+export interface PointsEntry {
+  id: string;
+  delta: number;
+  reason: string | null;
+  order_id: string | null;
+  created_at: string;
 }
 
 export const DEFAULT_SETTINGS: BusinessSettings = {

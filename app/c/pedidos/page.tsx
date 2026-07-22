@@ -47,7 +47,7 @@ export default async function MisPedidosPage() {
                     {o.province ? ` · ${o.province}` : ""}
                   </p>
                 </div>
-                <OrderStatusBadge status={o.status} />
+                <OrderStatusBadge order={o} />
               </div>
 
               <div className="border-t border-border pt-3">

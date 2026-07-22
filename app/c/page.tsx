@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { Sparkles, Package } from "lucide-react";
+import { Sparkles, Package, Star, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOffers, getExchangeRates, getMyOrders } from "@/lib/data";
+import {
+  getActiveOffers,
+  getExchangeRates,
+  getMyOrders,
+  getMyPoints,
+} from "@/lib/data";
 import { Card, EmptyState } from "@/components/ui";
 import { RateConverter } from "@/components/rate-converter";
 import { ClientOrderButton } from "@/components/client-order-button";
@@ -33,15 +38,17 @@ export default async function ClienteHome() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [offers, rates, orders, brandRes, profileRes] = await Promise.all([
-    getActiveOffers(),
-    getExchangeRates(),
-    getMyOrders(),
-    supabase.rpc("my_business_name"),
-    user
-      ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [offers, rates, orders, points, brandRes, profileRes] =
+    await Promise.all([
+      getActiveOffers(),
+      getExchangeRates(),
+      getMyOrders(),
+      getMyPoints(),
+      supabase.rpc("my_business_name"),
+      user
+        ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
+        : Promise.resolve({ data: null }),
+    ]);
   const recentOrders = orders.slice(0, 3);
 
   const firstName =
@@ -66,6 +73,28 @@ export default async function ClienteHome() {
           {brand}
         </h1>
       </div>
+
+      {/* Puntos */}
+      {points.balance > 0 && (
+        <Link href="/c/puntos" className="block">
+          <Card className="flex items-center justify-between border-primary/30 bg-primary/5 transition active:scale-[0.99]">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Star className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  {points.balance} puntos
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Ganas puntos con cada envío
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Card>
+        </Link>
+      )}
 
       {/* Pedir remesa */}
       <ClientOrderButton rates={rates} />
@@ -92,7 +121,7 @@ export default async function ClienteHome() {
                     ${Number(o.amount_usd)} · {o.delivery_currency || ""}
                   </p>
                 </div>
-                <OrderStatusBadge status={o.status} />
+                <OrderStatusBadge order={o} />
               </Card>
             ))}
           </div>

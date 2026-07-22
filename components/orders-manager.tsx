@@ -52,7 +52,7 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                       {formatDate(o.created_at.slice(0, 10))}
                     </p>
                   </div>
-                  <OrderStatusBadge status={o.status} />
+                  <OrderStatusBadge order={o} />
                 </div>
 
                 <div className="space-y-1 rounded-xl bg-muted/50 p-3 text-sm">
@@ -119,7 +119,7 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                     {o.client_name || "—"} · {formatDate(o.created_at.slice(0, 10))}
                   </p>
                 </div>
-                <OrderStatusBadge status={o.status} />
+                <OrderStatusBadge order={o} />
               </Card>
             ))}
           </div>

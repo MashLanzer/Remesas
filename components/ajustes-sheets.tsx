@@ -159,6 +159,23 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
               placeholder="Ej: 1000"
             />
           </Field>
+          <Field
+            label="Puntos por cada $1 enviado"
+            hint="Los clientes ganan puntos al entregarse su remesa. Ej: 1 = un punto por dólar."
+          >
+            <Input
+              type="number"
+              name="points_per_usd"
+              min="0"
+              step="0.1"
+              defaultValue={
+                settings.points_per_usd != null
+                  ? String(settings.points_per_usd)
+                  : "1"
+              }
+              placeholder="1"
+            />
+          </Field>
 
           <Button type="submit" className="w-full">
             Guardar configuración

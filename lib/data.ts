@@ -384,6 +384,26 @@ export interface ActivityEntry {
   created_at: string;
 }
 
+// ===== Puntos =====
+
+export async function getMyPoints(): Promise<{
+  balance: number;
+  entries: import("@/lib/types").PointsEntry[];
+}> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return { balance: 0, entries: [] };
+  const { data } = await supabase
+    .from("points_ledger")
+    .select("id, delta, reason, order_id, created_at")
+    .eq("client_id", ctx.userId)
+    .order("created_at", { ascending: false });
+  const entries =
+    (data as import("@/lib/types").PointsEntry[]) ?? [];
+  const balance = entries.reduce((s, e) => s + Number(e.delta), 0);
+  return { balance, entries };
+}
+
 // ===== Pedidos =====
 
 // Pedidos del cliente actual (los que él hizo).

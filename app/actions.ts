@@ -310,7 +310,7 @@ export async function acceptOrder(id: string) {
   const revertToPending = async () => {
     await supabase
       .from("orders")
-      .update({ status: "pendiente", accepted_by: null })
+      .update({ status: "pendiente", accepted_by: null, accepted_at: null })
       .eq("id", id);
   };
 
@@ -776,18 +776,41 @@ export async function updateRemittanceStatus(id: string, status: string) {
   const supabase = await createClient();
   await supabase.from("remittances").update({ status }).eq("id", id);
 
-  // Refleja la entrega en el pedido vinculado (para el seguimiento del cliente
-  // y del beneficiario). Tolerante si no hay pedido asociado.
+  // Refleja la entrega en el pedido vinculado (seguimiento del cliente/
+  // beneficiario) y premia con puntos al cliente. Tolerante si no hay pedido.
   if (status === "entregado") {
-    await supabase
+    const { data: ord } = await supabase
       .from("orders")
       .update({ delivered_at: new Date().toISOString() })
       .eq("remittance_id", id)
-      .is("delivered_at", null);
+      .is("delivered_at", null)
+      .select("id, client_id, amount_usd, operator_id");
+    const o = ord?.[0] as
+      | { id: string; client_id: string | null; amount_usd: number; operator_id: string }
+      | undefined;
+    // Puntos por la remesa entregada (solo pedidos de clientes registrados).
+    if (o?.client_id) {
+      const { data: bs } = await supabase
+        .from("business_settings")
+        .select("points_per_usd")
+        .eq("operator_id", o.operator_id)
+        .maybeSingle();
+      const perUsd = Number((bs as { points_per_usd?: number } | null)?.points_per_usd ?? 1) || 0;
+      const pts = Math.floor(Number(o.amount_usd) * perUsd);
+      if (pts > 0) {
+        await supabase.from("points_ledger").insert({
+          operator_id: o.operator_id,
+          client_id: o.client_id,
+          delta: pts,
+          reason: "remesa",
+          order_id: o.id,
+        });
+      }
+    }
   } else if (status === "pendiente") {
     await supabase
       .from("orders")
-      .update({ delivered_at: null })
+      .update({ delivered_at: null, received_at: null })
       .eq("remittance_id", id);
   }
 
@@ -1168,10 +1191,20 @@ export async function updateBusinessSettings(formData: FormData) {
       .update({ monthly_goal: trimmed === "" ? null : num(goal) })
       .eq(keyField, keyVal);
   }
+  // Puntos por USD para el cliente (aparte, tolerante — 0018).
+  const ppu = formData.get("points_per_usd");
+  if (ppu !== null) {
+    const trimmed = String(ppu).trim();
+    await supabase
+      .from("business_settings")
+      .update({ points_per_usd: trimmed === "" ? 1 : num(ppu) })
+      .eq(keyField, keyVal);
+  }
   revalidatePath("/ajustes");
   revalidatePath("/remesas/nueva");
   revalidatePath("/socios");
   revalidatePath("/reportes");
+  revalidatePath("/c");
 }
 
 export async function updateProfile(formData: FormData) {

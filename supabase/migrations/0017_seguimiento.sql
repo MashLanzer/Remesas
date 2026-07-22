@@ -23,6 +23,7 @@ create or replace function public.track_get(p_token text)
 returns table (
   beneficiary_name text,
   amount_usd numeric,
+  local_amount numeric,
   delivery_currency text,
   status text,
   created_at timestamptz,
@@ -32,7 +33,10 @@ returns table (
   business_name text
 )
 language sql stable security definer set search_path = public as $$
-  select o.beneficiary_name, o.amount_usd, o.delivery_currency, o.status,
+  select o.beneficiary_name, o.amount_usd,
+         (select r.local_amount from public.remittances r
+           where r.id = o.remittance_id) as local_amount,
+         o.delivery_currency, o.status,
          o.created_at, o.accepted_at, o.delivered_at, o.received_at,
          (select b.business_name from public.business_settings b
            where b.operator_id = o.operator_id limit 1)
@@ -52,3 +56,18 @@ end $$;
 
 grant execute on function public.track_get(text) to anon, authenticated;
 grant execute on function public.track_confirm(text) to anon, authenticated;
+
+-- ---------- 3) Endurecer el insert de pedidos: nace sin marcas de tiempo ----------
+-- (Evita que un cliente fabrique por API un pedido ya "entregado/recibido".)
+drop policy if exists "orders_insert" on public.orders;
+create policy "orders_insert" on public.orders
+  for insert with check (
+    operator_id = public.current_operator_id()
+    and client_id = auth.uid()
+    and status = 'pendiente'
+    and accepted_by is null
+    and remittance_id is null
+    and accepted_at is null
+    and delivered_at is null
+    and received_at is null
+  );

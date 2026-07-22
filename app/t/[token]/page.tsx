@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 type Track = {
   beneficiary_name: string | null;
   amount_usd: number;
+  local_amount: number | null;
   delivery_currency: string | null;
   status: string;
   created_at: string | null;
@@ -50,8 +51,8 @@ export default async function TrackPage({
           Remesa para {t.beneficiary_name || "ti"}
         </p>
         <p className="tabular mt-1 text-3xl font-extrabold">
-          {t.delivery_currency
-            ? `${localAmount(Number(t.amount_usd))} ${t.delivery_currency}`
+          {t.local_amount != null && t.delivery_currency
+            ? `${localAmount(Number(t.local_amount))} ${t.delivery_currency}`
             : usd(Number(t.amount_usd))}
         </p>
         <p className="mt-0.5 text-xs text-white/70">
