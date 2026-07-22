@@ -4,7 +4,7 @@
 // (descargar / mantener presionado para guardar).
 export async function shareNodeAsImage(
   node: HTMLElement,
-  opts: { title: string; text: string; fileName: string }
+  opts: { title: string; text?: string; fileName: string }
 ): Promise<{ status: "shared" | "fallback"; dataUrl?: string }> {
   const { toPng } = await import("html-to-image");
   const o = { pixelRatio: 2, cacheBust: true, skipFonts: true };
@@ -26,7 +26,7 @@ export async function shareNodeAsImage(
       });
       await Share.share({
         title: opts.title,
-        text: opts.text,
+        ...(opts.text ? { text: opts.text } : {}),
         files: [written.uri],
       });
       return { status: "shared" };
@@ -40,7 +40,11 @@ export async function shareNodeAsImage(
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], opts.fileName, { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: opts.title, text: opts.text });
+      await navigator.share({
+        files: [file],
+        title: opts.title,
+        ...(opts.text ? { text: opts.text } : {}),
+      });
       return { status: "shared" };
     }
   } catch {

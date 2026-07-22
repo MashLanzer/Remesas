@@ -30,27 +30,14 @@ export function ShareReceipt({ data }: { data: ReceiptData }) {
     setImgUrl(null);
   }
 
-  function caption() {
-    return [
-      `🧾 Comprobante · ${data.brand}`,
-      `Beneficiario: ${data.beneficiaryName || "—"}${
-        data.province ? " · " + data.province : ""
-      }`,
-      `Monto: ${data.amountUsd}`,
-      `Entregado: ${data.delivered}`,
-      `Fecha: ${data.date}`,
-      `Estado: ${data.status}`,
-    ].join("\n");
-  }
-
   async function doShare() {
     const node = cardRef.current;
     if (!node) return;
     setSharing(true);
     try {
+      // Solo la foto, sin texto (el recibo ya lo dice todo).
       const res = await shareNodeAsImage(node, {
         title: "Comprobante de remesa",
-        text: caption(),
         fileName: `comprobante-${Date.now()}.png`,
       });
       if (res.status === "fallback" && res.dataUrl) setImgUrl(res.dataUrl);
