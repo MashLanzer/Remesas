@@ -1,20 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Truck, Store, Activity, TrendingUp } from "lucide-react";
+import { Truck, Store, Activity } from "lucide-react";
 import { Sheet, SheetTrigger } from "@/components/sheet";
 import { Field, Input, Select, Button } from "@/components/ui";
 import { TeamManager } from "@/components/repartidores-manager";
 import { ActivityList } from "@/components/activity-list";
-import { RatesView } from "@/components/rates-view";
-import { RateConverter } from "@/components/rate-converter";
 import { updateBusinessSettings } from "@/app/actions";
 import {
   DELIVERY_CURRENCIES,
   PAYMENT_METHODS,
   type BusinessSettings,
-  type ExchangeRate,
-  type RateHistory,
 } from "@/lib/types";
 import type { ActivityEntry, Team } from "@/lib/data";
 
@@ -192,34 +188,6 @@ export function ActivitySheet({
       />
       <Sheet open={open} onClose={() => setOpen(false)} title="Actividad">
         <ActivityList entries={entries} isOperador={isOperador} />
-      </Sheet>
-    </>
-  );
-}
-
-// --- Tasas de cambio ---
-export function RatesSheet({
-  rates,
-  history,
-}: {
-  rates: ExchangeRate[];
-  history: RateHistory[];
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <SheetTrigger
-        icon={TrendingUp}
-        title="Tasas de cambio"
-        subtitle="Ajusta las tasas del día"
-        onClick={() => setOpen(true)}
-      />
-      <Sheet open={open} onClose={() => setOpen(false)} title="Tasas de cambio">
-        <RateConverter rates={rates} />
-        <h2 className="mb-2 mt-4 text-sm font-bold text-foreground">
-          Editar tasas
-        </h2>
-        <RatesView rates={rates} history={history} />
       </Sheet>
     </>
   );

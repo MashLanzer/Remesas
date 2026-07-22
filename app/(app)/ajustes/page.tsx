@@ -4,8 +4,6 @@ import {
   getSessionContext,
   getTeam,
   getActivityLog,
-  getExchangeRates,
-  getRateHistory,
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
 import { ThemeSwitch } from "@/components/theme-switch";
@@ -15,7 +13,6 @@ import {
   TeamSheet,
   SettingsSheet,
   ActivitySheet,
-  RatesSheet,
 } from "@/components/ajustes-sheets";
 
 export const dynamic = "force-dynamic";
@@ -24,17 +21,14 @@ const APP_VERSION = "1.0.0";
 
 export default async function AjustesPage() {
   const ctx = await getSessionContext();
-  const [remittances, settings, team, activity, rates, history] =
-    await Promise.all([
-      getRemittances(),
-      getBusinessSettings(),
-      ctx.isOperador
-        ? getTeam()
-        : Promise.resolve({ code: null, pending: [], members: [] }),
-      getActivityLog(150),
-      getExchangeRates(),
-      getRateHistory(),
-    ]);
+  const [remittances, settings, team, activity] = await Promise.all([
+    getRemittances(),
+    getBusinessSettings(),
+    ctx.isOperador
+      ? getTeam()
+      : Promise.resolve({ code: null, pending: [], members: [] }),
+    getActivityLog(150),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -55,12 +49,6 @@ export default async function AjustesPage() {
           <SettingsSheet settings={settings} />
         </section>
       )}
-
-      {/* Tasas de cambio */}
-      <section>
-        <SectionTitle>Tasas de cambio</SectionTitle>
-        <RatesSheet rates={rates} history={history} />
-      </section>
 
       {/* Apariencia */}
       <section>
