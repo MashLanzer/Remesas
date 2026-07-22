@@ -4,6 +4,8 @@ import {
   getAlertCount,
   getBusinessSettings,
   getSessionContext,
+  getExchangeRates,
+  getRateHistory,
 } from "@/lib/data";
 import { BottomNav } from "@/components/nav";
 import { TopBar } from "@/components/top-bar";
@@ -31,11 +33,14 @@ export default async function AppLayout({
     redirect("/pendiente");
   }
 
-  const [alertCount, settings, profileRes] = await Promise.all([
-    getAlertCount(),
-    getBusinessSettings(),
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-  ]);
+  const [alertCount, settings, rates, rateHistory, profileRes] =
+    await Promise.all([
+      getAlertCount(),
+      getBusinessSettings(),
+      getExchangeRates(),
+      getRateHistory(),
+      supabase.from("profiles").select("*").eq("id", user.id).single(),
+    ]);
   const p = (profileRes.data ?? {}) as Record<string, string | null>;
 
   const card = {
@@ -49,7 +54,13 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <TopBar email={user.email} alertCount={alertCount} card={card} />
+      <TopBar
+        email={user.email}
+        alertCount={alertCount}
+        card={card}
+        rates={rates}
+        rateHistory={rateHistory}
+      />
       <main className="mx-auto max-w-md animate-fade-up px-4 pb-24 pt-4">
         {children}
       </main>

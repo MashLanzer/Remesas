@@ -3,11 +3,15 @@ import { Bell } from "lucide-react";
 import { ProfileMenu } from "@/components/profile-menu";
 import { PaperPlane } from "@/components/paper-plane";
 import { ShareCard } from "@/components/share-card";
+import { RatesHeaderButton } from "@/components/rates-header-button";
+import type { ExchangeRate, RateHistory } from "@/lib/types";
 
 export function TopBar({
   email,
   alertCount = 0,
   card,
+  rates = [],
+  rateHistory = [],
 }: {
   email?: string | null;
   alertCount?: number;
@@ -19,6 +23,8 @@ export function TopBar({
     cashapp?: string | null;
     paypal?: string | null;
   };
+  rates?: ExchangeRate[];
+  rateHistory?: RateHistory[];
 }) {
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -32,6 +38,7 @@ export function TopBar({
           </span>
         </Link>
         <div className="flex items-center gap-1">
+          <RatesHeaderButton rates={rates} history={rateHistory} />
           {card && <ShareCard {...card} />}
           <Link
             href="/notificaciones"
