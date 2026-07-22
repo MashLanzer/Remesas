@@ -56,8 +56,13 @@ async function uniqueCode(
   return code;
 }
 
+// Registro de operador (negocio): deshabilitado por ahora. Cámbialo a true para
+// volver a permitir que cualquiera cree su negocio desde el onboarding.
+const OPERADOR_SIGNUP_ENABLED = false;
+
 // El usuario elige ser operador: crea su negocio, código, tasas y ajustes base.
 export async function becomeOperador() {
+  if (!OPERADOR_SIGNUP_ENABLED) return;
   const supabase = await createClient();
   const {
     data: { user },

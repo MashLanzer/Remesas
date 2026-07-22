@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFormState } from "react-dom";
 import { UserCog, Truck, ArrowLeft, ArrowRight } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
-import { becomeOperador, joinOperator } from "@/app/actions";
+import { joinOperator } from "@/app/actions";
 
 export function OnboardingView() {
   const [mode, setMode] = useState<"choose" | "join">("choose");
@@ -29,25 +29,26 @@ export function OnboardingView() {
 
         {mode === "choose" ? (
           <div className="space-y-3">
-            <form action={becomeOperador}>
-              <button
-                type="submit"
-                className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition active:scale-[0.98] hover:bg-muted"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <UserCog className="h-6 w-6" />
+            {/* Registro de operador deshabilitado por ahora. */}
+            <div
+              aria-disabled
+              className="flex w-full cursor-not-allowed items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left opacity-55"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <UserCog className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-foreground">
+                  Soy operador
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-foreground">
-                    Soy operador
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    Manejo el negocio: cobro, tasas y mi equipo.
-                  </span>
+                <span className="block text-xs text-muted-foreground">
+                  Registro de negocios cerrado por ahora.
                 </span>
-                <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-              </button>
-            </form>
+              </span>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                No disponible
+              </span>
+            </div>
 
             <button
               type="button"
