@@ -15,7 +15,8 @@ create table if not exists public.orders (
   province text,
   delivery_currency text,
   note text,
-  status text not null default 'pendiente', -- pendiente | aceptado | rechazado
+  status text not null default 'pendiente'
+    check (status in ('pendiente', 'aceptado', 'rechazado')),
   accepted_by uuid,             -- personal que aceptó/rechazó
   remittance_id uuid,           -- remesa generada al aceptar
   created_at timestamptz not null default now()
@@ -35,11 +36,16 @@ create policy "orders_select" on public.orders
     or client_id = auth.uid()
   );
 
--- Crear: solo el cliente crea pedidos a su propio nombre y en su negocio.
+-- Crear: solo el cliente crea pedidos a su propio nombre y en su negocio, y
+-- siempre nacen 'pendiente' (no puede fijar estado/aceptado/remesa a mano).
 drop policy if exists "orders_insert" on public.orders;
 create policy "orders_insert" on public.orders
   for insert with check (
-    operator_id = public.current_operator_id() and client_id = auth.uid()
+    operator_id = public.current_operator_id()
+    and client_id = auth.uid()
+    and status = 'pendiente'
+    and accepted_by is null
+    and remittance_id is null
   );
 
 -- Aceptar/rechazar: solo el personal.

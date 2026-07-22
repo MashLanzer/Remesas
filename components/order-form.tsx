@@ -73,12 +73,15 @@ export function OrderForm({
 
       {amountNum > 0 && rate > 0 && (
         <div className="rounded-xl bg-muted p-3 text-center">
-          <p className="text-xs text-muted-foreground">Tu familia recibe (aprox.)</p>
+          <p className="text-xs text-muted-foreground">
+            Tu familia recibe hasta
+          </p>
           <p className="text-lg font-bold text-foreground">
             {localAmount(receives)} {currency}
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Por {usd(amountNum)} · el monto final lo confirma el negocio.
+            Por {usd(amountNum)} · antes de la comisión. El monto final lo
+            confirma el negocio.
           </p>
         </div>
       )}

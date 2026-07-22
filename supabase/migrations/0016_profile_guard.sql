@@ -17,7 +17,11 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  if current_user not in ('postgres', 'supabase_admin', 'service_role') then
+  -- Los cambios legítimos activan un flag transaccional (set_config local) dentro
+  -- de las funciones de transición. Un PATCH directo del usuario nunca lo tiene.
+  -- (No dependemos del owner de la función: robusto ante cambios de despliegue.)
+  if current_setting('app.bypass_profile_guard', true) is distinct from 'on'
+     and current_user not in ('postgres', 'supabase_admin', 'service_role') then
     if new.role is distinct from old.role
        or new.operator_id is distinct from old.operator_id
        or new.member_status is distinct from old.member_status
@@ -45,6 +49,7 @@ begin
   if op is null then
     raise exception 'No hay negocio disponible';
   end if;
+  perform set_config('app.bypass_profile_guard', 'on', true);
   update public.profiles
      set role = 'cliente', operator_id = op, member_status = 'active'
    where id = auth.uid();
@@ -59,6 +64,7 @@ begin
   select id into op from public.profiles
    where operator_code = p_code and role = 'operador' limit 1;
   if op is null then return null; end if;
+  perform set_config('app.bypass_profile_guard', 'on', true);
   update public.profiles
      set role = 'repartidor', operator_id = op, member_status = 'pending'
    where id = auth.uid();
@@ -69,6 +75,7 @@ end $$;
 create or replace function public.become_operador(p_code text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
+  perform set_config('app.bypass_profile_guard', 'on', true);
   update public.profiles
      set role = 'operador', operator_id = auth.uid(),
          member_status = 'active', operator_code = p_code
@@ -80,6 +87,7 @@ create or replace function public.approve_member(p_user uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.current_is_operador() then return; end if;
+  perform set_config('app.bypass_profile_guard', 'on', true);
   update public.profiles
      set member_status = 'active'
    where id = p_user
@@ -92,9 +100,12 @@ create or replace function public.remove_member(p_user uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.current_is_operador() then return; end if;
+  perform set_config('app.bypass_profile_guard', 'on', true);
   update public.profiles
      set role = null, member_status = 'removed'
-   where id = p_user and operator_id = public.current_operator_id();
+   where id = p_user
+     and operator_id = public.current_operator_id()
+     and role = 'repartidor';
 end $$;
 
 -- El operador regenera su código de equipo.
@@ -102,15 +113,21 @@ create or replace function public.regenerate_code(p_code text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.current_is_operador() then return; end if;
+  perform set_config('app.bypass_profile_guard', 'on', true);
   update public.profiles set operator_code = p_code where id = auth.uid();
 end $$;
 
 grant execute on function public.become_cliente() to authenticated;
 grant execute on function public.join_operator(text) to authenticated;
-grant execute on function public.become_operador(text) to authenticated;
 grant execute on function public.approve_member(uuid) to authenticated;
 grant execute on function public.remove_member(uuid) to authenticated;
 grant execute on function public.regenerate_code(text) to authenticated;
+
+-- become_operador NO se concede a 'authenticated': el registro de operador está
+-- cerrado y no debe poder auto-ascenderse nadie por API. Cuando se reactive, se
+-- hará por un flujo controlado (invitación / service_role).
+revoke execute on function public.become_operador(text) from public;
+revoke execute on function public.become_operador(text) from authenticated;
 
 -- ---------- 3) activity_log: cerrar inserción cruzada (solo personal, su negocio) ----------
 drop policy if exists "activity_log_insert" on public.activity_log;

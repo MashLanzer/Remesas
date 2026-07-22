@@ -208,6 +208,11 @@ export async function createOrder(formData: FormData) {
   const ctx = await getSessionContext();
   if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
 
+  // Datos mínimos: monto positivo y nombre del beneficiario.
+  const amount = num(formData.get("amount_usd"));
+  const benefName = str(formData.get("beneficiary_name"));
+  if (amount <= 0 || !benefName) return;
+
   const { data: prof } = await supabase
     .from("profiles")
     .select("full_name, phone")
@@ -220,8 +225,8 @@ export async function createOrder(formData: FormData) {
     client_id: ctx.userId,
     client_name: p.full_name ?? null,
     client_phone: p.phone ?? null,
-    amount_usd: num(formData.get("amount_usd")),
-    beneficiary_name: str(formData.get("beneficiary_name")),
+    amount_usd: amount,
+    beneficiary_name: benefName,
     beneficiary_phone: str(formData.get("beneficiary_phone")),
     province: str(formData.get("province")),
     delivery_currency: str(formData.get("delivery_currency")),
@@ -264,15 +269,21 @@ export async function acceptOrder(id: string) {
   const ctx = await getSessionContext();
   if (!isStaff(ctx) || !ctx.tenantId) return;
 
-  const { data: orderRow } = await supabase
+  const tid = ctx.tenantId;
+
+  // "Claim" atómico: marca el pedido como aceptado SOLO si sigue pendiente.
+  // Si dos personas (operador y repartidor) lo aceptan a la vez, solo una gana
+  // la fila (bloqueo de Postgres); la otra recibe 0 filas y se detiene. Así no
+  // se crean remesas duplicadas.
+  const { data: claimed } = await supabase
     .from("orders")
-    .select("*")
+    .update({ status: "aceptado", accepted_by: ctx.userId })
     .eq("id", id)
-    .eq("operator_id", ctx.tenantId)
-    .single();
-  const order = orderRow as {
+    .eq("operator_id", tid)
+    .eq("status", "pendiente")
+    .select("*");
+  const order = (claimed?.[0] as {
     id: string;
-    status: string;
     amount_usd: number;
     client_name?: string | null;
     client_phone?: string | null;
@@ -281,11 +292,62 @@ export async function acceptOrder(id: string) {
     province?: string | null;
     delivery_currency?: string | null;
     note?: string | null;
-  } | null;
-  if (!order || order.status !== "pendiente") return;
+  } | undefined) ?? null;
+  if (!order) return; // perdió la carrera o ya no estaba pendiente
 
-  const tid = ctx.tenantId;
+  // Devuelve el pedido a "pendiente" (para reintentar) si algo impide crearlo.
+  const revertToPending = async () => {
+    await supabase
+      .from("orders")
+      .update({ status: "pendiente", accepted_by: null })
+      .eq("id", id);
+  };
+
   const currency = order.delivery_currency || "CUP";
+  const amountUsd = Number(order.amount_usd) || 0;
+
+  // Datos inválidos: no se puede convertir → vuelve a pendiente.
+  if (amountUsd <= 0 || !order.beneficiary_name) {
+    await revertToPending();
+    return;
+  }
+
+  // Tasa del negocio para esa moneda. Sin tasa no se puede convertir bien:
+  // vuelve a pendiente para que configuren la tasa y reintenten.
+  const { data: rateRow } = await supabase
+    .from("exchange_rates")
+    .select("rate")
+    .eq("operator_id", tid)
+    .eq("currency", currency)
+    .maybeSingle();
+  const rate = Number((rateRow as { rate?: number } | null)?.rate ?? 0);
+  if (rate <= 0) {
+    await revertToPending();
+    return;
+  }
+
+  // Reglas de comisión y % de reparto del que acepta (como en el form manual).
+  const { data: settings } = await supabase
+    .from("business_settings")
+    .select("commission_threshold, commission_percent, commission_flat")
+    .eq("operator_id", tid)
+    .maybeSingle();
+  const rules = (settings ?? {
+    commission_threshold: 100,
+    commission_percent: 10,
+    commission_flat: 5,
+  }) as {
+    commission_threshold: number;
+    commission_percent: number;
+    commission_flat: number;
+  };
+  const { data: meProf } = await supabase
+    .from("profiles")
+    .select("default_split_percent")
+    .eq("id", ctx.userId)
+    .single();
+  const split =
+    Number((meProf as { default_split_percent?: number } | null)?.default_split_percent) || 50;
 
   // Cliente (reusar por teléfono si ya existe; si no, crear).
   let clientId: string | null = null;
@@ -329,38 +391,13 @@ export async function acceptOrder(id: string) {
     beneficiaryId = (b as { id?: string } | null)?.id ?? null;
   }
 
-  // Tasa y reglas de comisión del negocio.
-  const { data: rateRow } = await supabase
-    .from("exchange_rates")
-    .select("rate")
-    .eq("operator_id", tid)
-    .eq("currency", currency)
-    .maybeSingle();
-  const rate = Number((rateRow as { rate?: number } | null)?.rate ?? 0);
-
-  const { data: settings } = await supabase
-    .from("business_settings")
-    .select("commission_threshold, commission_percent, commission_flat")
-    .eq("operator_id", tid)
-    .maybeSingle();
-  const rules = (settings ?? {
-    commission_threshold: 100,
-    commission_percent: 10,
-    commission_flat: 5,
-  }) as {
-    commission_threshold: number;
-    commission_percent: number;
-    commission_flat: number;
-  };
-
-  const amountUsd = Number(order.amount_usd) || 0;
   const commission = calcCommission(amountUsd, rules);
   const c = computeRemittance({
     amountUsd,
     commission,
     exchangeRate: rate,
     exchangeProfit: 0,
-    mySplitPercent: 50,
+    mySplitPercent: split,
   });
 
   const delivererId = ctx.role === "repartidor" ? ctx.userId : null;
@@ -379,7 +416,7 @@ export async function acceptOrder(id: string) {
       local_amount: c.localAmount,
       exchange_profit: 0,
       total_profit: c.totalProfit,
-      my_split_percent: 50,
+      my_split_percent: split,
       my_share: c.myShare,
       partner_share: c.partnerShare,
       status: "pendiente",
@@ -393,13 +430,16 @@ export async function acceptOrder(id: string) {
     .single();
   const remId = (rem as { id?: string } | null)?.id ?? null;
 
+  // Si la remesa no se creó, devuelve el pedido a pendiente (no queda "aceptado"
+  // sin remesa).
+  if (!remId) {
+    await revertToPending();
+    return;
+  }
+
   await supabase
     .from("orders")
-    .update({
-      status: "aceptado",
-      accepted_by: ctx.userId,
-      remittance_id: remId,
-    })
+    .update({ remittance_id: remId })
     .eq("id", id);
 
   await logActivity("pedido.aceptar", {
