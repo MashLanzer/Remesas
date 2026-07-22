@@ -19,12 +19,14 @@ export function OrderTimeline({
   accepted_at,
   delivered_at,
   received_at,
+  hideReceived = false,
 }: {
   status: string;
   created_at: string | null;
   accepted_at: string | null;
   delivered_at: string | null;
   received_at: string | null;
+  hideReceived?: boolean;
 }) {
   if (status === "rechazado") {
     return (
@@ -55,12 +57,16 @@ export function OrderTimeline({
       at: delivered_at,
       done: !!delivered_at,
     },
-    {
-      label: "Recibido confirmado",
-      icon: Check,
-      at: received_at,
-      done: !!received_at,
-    },
+    ...(hideReceived
+      ? []
+      : [
+          {
+            label: "Recibido confirmado",
+            icon: Check,
+            at: received_at,
+            done: !!received_at,
+          } as Step,
+        ]),
   ];
 
   // El paso "En reparto" está activo (en curso) cuando ya se aceptó pero no se

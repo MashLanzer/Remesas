@@ -59,6 +59,7 @@ export default async function MisPedidosPage() {
                       accepted_at={o.accepted_at}
                       delivered_at={o.delivered_at}
                       received_at={null}
+                      hideReceived
                     />
                   </div>
                   {o.status === "pendiente" && (

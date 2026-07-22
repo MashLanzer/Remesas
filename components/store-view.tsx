@@ -26,12 +26,16 @@ export function StoreView({ products }: { products: Product[] }) {
     );
   }
 
+  const validCats = new Set(PRODUCT_CATEGORIES.map((c) => c.key));
+  const bucket = (c: string | null) =>
+    c && validCats.has(c as (typeof PRODUCT_CATEGORIES)[number]["key"])
+      ? c
+      : "otro";
+
   return (
     <div className="space-y-5">
       {PRODUCT_CATEGORIES.map((cat) => {
-        const items = products.filter(
-          (p) => (p.category ?? "otro") === cat.key
-        );
+        const items = products.filter((p) => bucket(p.category) === cat.key);
         if (items.length === 0) return null;
         return (
           <section key={cat.key}>

@@ -259,6 +259,8 @@ export async function createStoreOrder(formData: FormData) {
   const p = prod as { name?: string; price_usd?: number; active?: boolean } | null;
   if (!p || p.active === false) return;
 
+  const recipient = str(formData.get("recipient_name"));
+  if (!recipient) return;
   const qty = Math.max(1, Math.round(num(formData.get("qty")) || 1));
   const price = Number(p.price_usd) || 0;
 
@@ -279,7 +281,7 @@ export async function createStoreOrder(formData: FormData) {
     price_usd: price,
     qty,
     total_usd: round2(price * qty),
-    recipient_name: str(formData.get("recipient_name")),
+    recipient_name: recipient,
     recipient_phone: str(formData.get("recipient_phone")),
     address: str(formData.get("address")),
     note: str(formData.get("note")),
@@ -339,6 +341,7 @@ export async function markStoreDelivered(id: string) {
     .update({ delivered_at: new Date().toISOString() })
     .eq("id", id)
     .eq("operator_id", ctx.tenantId)
+    .eq("status", "aceptado")
     .is("delivered_at", null);
   await logActivity("tienda.entregar", { entityType: "tienda", entityId: id });
   revalidatePath("/tienda");

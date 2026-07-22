@@ -90,3 +90,26 @@ create policy "store_orders_delete" on public.store_orders
     (operator_id = public.current_operator_id() and public.current_is_staff())
     or (client_id = auth.uid() and status = 'pendiente')
   );
+
+-- Blindaje del precio: el nombre/precio/total SIEMPRE se toman del producto real
+-- (mismo negocio, activo), no de lo que mande el cliente. Cierra el "combo de
+-- $100 por $0" vía inserción directa por API.
+create or replace function public.store_orders_price_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare pr public.products;
+begin
+  select * into pr from public.products
+   where id = new.product_id and operator_id = new.operator_id;
+  if not found or pr.active = false then
+    raise exception 'Producto inválido o inactivo';
+  end if;
+  new.product_name := pr.name;
+  new.price_usd    := pr.price_usd;
+  new.qty          := greatest(1, coalesce(new.qty, 1));
+  new.total_usd    := round(pr.price_usd * new.qty, 2);
+  return new;
+end $$;
+drop trigger if exists store_orders_price_guard_bi on public.store_orders;
+create trigger store_orders_price_guard_bi
+  before insert on public.store_orders
+  for each row execute function public.store_orders_price_guard();
