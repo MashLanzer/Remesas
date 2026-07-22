@@ -23,7 +23,7 @@ const items = [
   { href: "/finanzas", label: "Finanzas", icon: Wallet },
 ];
 
-export function BottomNav({ isOperador = true }: { isOperador?: boolean }) {
+export function BottomNav() {
   const pathname = usePathname();
   const [saver, setSaver] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -73,20 +73,18 @@ export function BottomNav({ isOperador = true }: { isOperador?: boolean }) {
                 label="Nueva remesa"
                 onClick={() => setMenu(false)}
               />
-              {isOperador && (
-                <button
-                  onClick={() => {
-                    setMenu(false);
-                    setContact(true);
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
-                >
-                  <span className="text-primary">
-                    <UserPlus className="h-4 w-4" />
-                  </span>
-                  Nuevo cliente
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setMenu(false);
+                  setContact(true);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-foreground transition hover:bg-muted"
+              >
+                <span className="text-primary">
+                  <UserPlus className="h-4 w-4" />
+                </span>
+                Nuevo cliente
+              </button>
             </div>
           )}
           <button

@@ -209,26 +209,11 @@ export async function getRemittance(id: string): Promise<Remittance | null> {
   return r;
 }
 
+// Clientes y beneficiarios son del negocio: los comparten el operador y sus
+// repartidores. Solo las remesas son por repartidor (deliverer_id).
 export async function getClients(): Promise<Client[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
-  if (!ctx.isOperador && ctx.userId) {
-    // El repartidor solo ve los clientes que aparecen en sus remesas.
-    const { data: rem } = await supabase
-      .from("remittances")
-      .select("client_id")
-      .eq("deliverer_id", ctx.userId);
-    const ids = Array.from(
-      new Set((rem ?? []).map((r) => r.client_id).filter(Boolean))
-    ) as string[];
-    if (ids.length === 0) return [];
-    const { data } = await supabase
-      .from("clients")
-      .select("*")
-      .in("id", ids)
-      .order("name", { ascending: true });
-    return (data as Client[]) ?? [];
-  }
   let q = supabase.from("clients").select("*").order("name", { ascending: true });
   if (ctx.tenantId) q = q.eq("operator_id", ctx.tenantId);
   const { data } = await q;
@@ -237,68 +222,27 @@ export async function getClients(): Promise<Client[]> {
 
 export async function getClient(id: string): Promise<Client | null> {
   const supabase = await createClient();
-  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("clients")
     .select("*")
     .eq("id", id)
     .single();
-  const c = (data as Client) ?? null;
-  if (!c) return null;
-  // Aislamiento: el repartidor solo ve clientes que aparecen en sus remesas
-  // (coherente con getClients, que filtra igual).
-  if (!ctx.isOperador && ctx.userId) {
-    const { count } = await supabase
-      .from("remittances")
-      .select("id", { count: "exact", head: true })
-      .eq("deliverer_id", ctx.userId)
-      .eq("client_id", id);
-    if (!count) return null;
-  }
-  return c;
+  return (data as Client) ?? null;
 }
 
 export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
   const supabase = await createClient();
-  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("beneficiaries")
     .select("*")
     .eq("id", id)
     .single();
-  const b = (data as Beneficiary) ?? null;
-  if (!b) return null;
-  // Aislamiento: el repartidor solo ve beneficiarios de sus remesas.
-  if (!ctx.isOperador && ctx.userId) {
-    const { count } = await supabase
-      .from("remittances")
-      .select("id", { count: "exact", head: true })
-      .eq("deliverer_id", ctx.userId)
-      .eq("beneficiary_id", id);
-    if (!count) return null;
-  }
-  return b;
+  return (data as Beneficiary) ?? null;
 }
 
 export async function getBeneficiaries(): Promise<Beneficiary[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
-  if (!ctx.isOperador && ctx.userId) {
-    const { data: rem } = await supabase
-      .from("remittances")
-      .select("beneficiary_id")
-      .eq("deliverer_id", ctx.userId);
-    const ids = Array.from(
-      new Set((rem ?? []).map((r) => r.beneficiary_id).filter(Boolean))
-    ) as string[];
-    if (ids.length === 0) return [];
-    const { data } = await supabase
-      .from("beneficiaries")
-      .select("*")
-      .in("id", ids)
-      .order("name", { ascending: true });
-    return (data as Beneficiary[]) ?? [];
-  }
   let q = supabase
     .from("beneficiaries")
     .select("*")
