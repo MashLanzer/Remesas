@@ -4,13 +4,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import {
-  Card,
   Button,
   Field,
   Input,
   Select,
   Textarea,
 } from "@/components/ui";
+import { Sheet } from "@/components/sheet";
 import {
   createClientRecord,
   createBeneficiary,
@@ -48,8 +48,20 @@ export function ContactActions({
 
   return (
     <div className="space-y-3">
-      {editing && (
-        <Card>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="secondary" onClick={() => setEditing(true)}>
+          <Pencil className="h-4 w-4" /> Editar
+        </Button>
+        <Button variant="danger" disabled={pending} onClick={onDelete}>
+          <Trash2 className="h-4 w-4" /> Eliminar
+        </Button>
+      </div>
+
+      <Sheet
+        open={editing}
+        onClose={() => setEditing(false)}
+        title={kind === "cliente" ? "Editar cliente" : "Editar beneficiario"}
+      >
           <form
             action={async (fd) => {
               if (kind === "cliente") await createClientRecord(fd);
@@ -135,28 +147,11 @@ export function ContactActions({
               </>
             )}
 
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" className="flex-1" onClick={() => setEditing(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="flex-1">
-                Guardar
-              </Button>
-            </div>
+            <Button type="submit" className="w-full">
+              Guardar
+            </Button>
           </form>
-        </Card>
-      )}
-
-      {!editing && (
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" /> Editar
-          </Button>
-          <Button variant="danger" disabled={pending} onClick={onDelete}>
-            <Trash2 className="h-4 w-4" /> Eliminar
-          </Button>
-        </div>
-      )}
+      </Sheet>
     </div>
   );
 }

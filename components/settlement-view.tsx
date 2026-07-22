@@ -11,6 +11,7 @@ import {
   Textarea,
   EmptyState,
 } from "@/components/ui";
+import { Sheet } from "@/components/sheet";
 import { createSettlement, deleteSettlement } from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import type { Settlement } from "@/lib/types";
@@ -44,14 +45,15 @@ export function SettlementView({
 
   return (
     <div>
-      {!showForm && (
-        <Button variant="primary" className="mb-4 w-full" onClick={openAdd}>
-          <Plus className="h-4 w-4" /> Registrar pago
-        </Button>
-      )}
+      <Button variant="primary" className="mb-4 w-full" onClick={openAdd}>
+        <Plus className="h-4 w-4" /> Registrar pago
+      </Button>
 
-      {showForm && (
-        <Card className="mb-4">
+      <Sheet
+        open={showForm}
+        onClose={close}
+        title={editing ? "Editar pago" : "Registrar pago"}
+      >
           <form
             key={editing?.id ?? "new"}
             action={async (fd) => {
@@ -115,17 +117,11 @@ export function SettlementView({
                 className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
               />
             </Field>
-            <div className="flex gap-2">
-              <Button type="button" variant="secondary" className="flex-1" onClick={close}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="flex-1">
-                {editing ? "Guardar" : "Guardar pago"}
-              </Button>
-            </div>
+            <Button type="submit" className="w-full">
+              {editing ? "Guardar" : "Guardar pago"}
+            </Button>
           </form>
-        </Card>
-      )}
+      </Sheet>
 
       <h2 className="mb-2 text-sm font-semibold text-foreground">Pagos</h2>
       {settlements.length === 0 ? (
