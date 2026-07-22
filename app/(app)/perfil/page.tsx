@@ -63,44 +63,46 @@ export default async function PerfilPage() {
               placeholder="Tu nombre"
             />
           </Field>
-          <Field label="Teléfono / WhatsApp">
-            <Input
-              name="phone"
-              inputMode="tel"
-              defaultValue={(p.phone as string) ?? ""}
-              placeholder="Ej: +1 305 000 0000"
-            />
-          </Field>
-          <Field
-            label="Mi % de ganancia por defecto"
-            hint="Se usa al crear una remesa nueva. Editable en cada envío."
-          >
-            <Input
-              type="number"
-              name="default_split_percent"
-              min="0"
-              max="100"
-              defaultValue={String((p.default_split_percent as number) ?? 50)}
-            />
-          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Teléfono / WhatsApp">
+              <Input
+                name="phone"
+                inputMode="tel"
+                defaultValue={(p.phone as string) ?? ""}
+                placeholder="+1 305 000 0000"
+              />
+            </Field>
+            <Field label="Mi % ganancia" hint="Editable en cada envío.">
+              <Input
+                type="number"
+                name="default_split_percent"
+                min="0"
+                max="100"
+                defaultValue={String((p.default_split_percent as number) ?? 50)}
+              />
+            </Field>
+          </div>
 
           <p className="pt-1 text-xs font-medium text-muted-foreground">
             Métodos de cobro (para copiar rápido al cliente)
           </p>
-          <Field label="Zelle">
-            <Input
-              name="zelle"
-              defaultValue={(p.zelle as string) ?? ""}
-              placeholder="Correo o teléfono de Zelle"
-            />
-          </Field>
-          <Field label="CashApp">
-            <Input
-              name="cashapp"
-              defaultValue={(p.cashapp as string) ?? ""}
-              placeholder="$tu-cashtag"
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Zelle">
+              <Input
+                name="zelle"
+                defaultValue={(p.zelle as string) ?? ""}
+                placeholder="Correo o teléfono"
+              />
+            </Field>
+            <Field label="CashApp">
+              <Input
+                name="cashapp"
+                defaultValue={(p.cashapp as string) ?? ""}
+                placeholder="$tu-cashtag"
+              />
+            </Field>
+          </div>
           <Field label="PayPal">
             <Input
               name="paypal"
