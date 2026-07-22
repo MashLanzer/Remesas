@@ -9,9 +9,15 @@ import { DELIVERY_CURRENCIES, type ExchangeRate } from "@/lib/types";
 export function OrderForm({
   rates,
   onDone,
+  pointsBalance = 0,
+  redeemMin = 100,
+  pointValue = 0.05,
 }: {
   rates: ExchangeRate[];
   onDone?: () => void;
+  pointsBalance?: number;
+  redeemMin?: number;
+  pointValue?: number;
 }) {
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
@@ -106,6 +112,23 @@ export function OrderForm({
       <Field label="Nota (opcional)">
         <Textarea name="note" rows={2} placeholder="Algún detalle para el negocio…" />
       </Field>
+
+      {pointsBalance >= redeemMin && (
+        <label className="flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+          <input
+            type="checkbox"
+            name="redeem"
+            className="mt-0.5 h-4 w-4 accent-[color:hsl(var(--primary))]"
+          />
+          <span className="text-sm">
+            <span className="font-semibold text-foreground">Usar mis puntos</span>
+            <span className="block text-xs text-muted-foreground">
+              Tienes {pointsBalance} puntos (hasta {usd(pointsBalance * pointValue)}).
+              El negocio aplica el descuento al aceptar.
+            </span>
+          </span>
+        </label>
+      )}
 
       <Button type="submit" className="w-full">
         Enviar pedido

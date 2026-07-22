@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { computeRemittance, calcCommission } from "@/lib/calc";
+import { computeRemittance, calcCommission, round2 } from "@/lib/calc";
 import { getSessionContext } from "@/lib/data";
 
 const YEAR = 60 * 60 * 24 * 365;
@@ -231,6 +231,7 @@ export async function createOrder(formData: FormData) {
     province: str(formData.get("province")),
     delivery_currency: str(formData.get("delivery_currency")),
     note: str(formData.get("note")),
+    redeem: formData.get("redeem") != null,
     status: "pendiente",
   });
 
@@ -296,6 +297,7 @@ export async function acceptOrder(id: string) {
   const order = (claimed?.[0] as {
     id: string;
     amount_usd: number;
+    client_id?: string | null;
     client_name?: string | null;
     client_phone?: string | null;
     beneficiary_name?: string | null;
@@ -303,6 +305,7 @@ export async function acceptOrder(id: string) {
     province?: string | null;
     delivery_currency?: string | null;
     note?: string | null;
+    redeem?: boolean | null;
   } | undefined) ?? null;
   if (!order) return; // perdió la carrera o ya no estaba pendiente
 
@@ -337,10 +340,12 @@ export async function acceptOrder(id: string) {
     return;
   }
 
-  // Reglas de comisión y % de reparto del que acepta (como en el form manual).
+  // Reglas de comisión, % de reparto y config de puntos.
   const { data: settings } = await supabase
     .from("business_settings")
-    .select("commission_threshold, commission_percent, commission_flat")
+    .select(
+      "commission_threshold, commission_percent, commission_flat, point_value_usd, redeem_min_points, redeem_max_pct"
+    )
     .eq("operator_id", tid)
     .maybeSingle();
   const rules = (settings ?? {
@@ -351,6 +356,9 @@ export async function acceptOrder(id: string) {
     commission_threshold: number;
     commission_percent: number;
     commission_flat: number;
+    point_value_usd?: number;
+    redeem_min_points?: number;
+    redeem_max_pct?: number;
   };
   const { data: meProf } = await supabase
     .from("profiles")
@@ -402,7 +410,33 @@ export async function acceptOrder(id: string) {
     beneficiaryId = (b as { id?: string } | null)?.id ?? null;
   }
 
-  const commission = calcCommission(amountUsd, rules);
+  // Comisión base. Si el cliente pidió usar puntos, aplicamos un descuento
+  // TOPADO a un % de la comisión (la casa siempre conserva la mayor parte).
+  let commission = calcCommission(amountUsd, rules);
+  let pointsUsed = 0;
+  let discount = 0;
+  if (order.redeem && order.client_id) {
+    const pointValue = Number(rules.point_value_usd ?? 0.05) || 0;
+    const minPts = Number(rules.redeem_min_points ?? 100) || 0;
+    const maxPct = Number(rules.redeem_max_pct ?? 50) || 0;
+    const { data: led } = await supabase
+      .from("points_ledger")
+      .select("delta")
+      .eq("client_id", order.client_id);
+    const balance = ((led as { delta: number }[]) ?? []).reduce(
+      (s, r) => s + Number(r.delta),
+      0
+    );
+    if (balance >= minPts && pointValue > 0 && commission > 0) {
+      const maxByPoints = balance * pointValue;
+      const maxByCap = commission * (maxPct / 100); // tope: % de la comisión
+      discount = Math.min(maxByPoints, maxByCap);
+      pointsUsed = Math.ceil(discount / pointValue);
+      discount = Math.min(round2(pointsUsed * pointValue), commission);
+      commission = round2(commission - discount);
+    }
+  }
+
   const c = computeRemittance({
     amountUsd,
     commission,
@@ -448,15 +482,31 @@ export async function acceptOrder(id: string) {
     return;
   }
 
+  // Canje: descuenta los puntos usados (asiento negativo) y guarda el descuento.
+  if (pointsUsed > 0 && order.client_id) {
+    await supabase.from("points_ledger").insert({
+      operator_id: tid,
+      client_id: order.client_id,
+      delta: -pointsUsed,
+      reason: "canje",
+      order_id: order.id,
+    });
+  }
+
   await supabase
     .from("orders")
-    .update({ remittance_id: remId })
+    .update({
+      remittance_id: remId,
+      points_used: pointsUsed || null,
+      discount_usd: discount || null,
+    })
     .eq("id", id);
 
   await logActivity("pedido.aceptar", {
     entityType: "pedido",
     entityId: id,
     entityLabel: `$${amountUsd}`,
+    details: pointsUsed > 0 ? { descuento: discount, puntos: pointsUsed } : undefined,
   });
 
   revalidatePath("/pedidos");
@@ -1199,6 +1249,21 @@ export async function updateBusinessSettings(formData: FormData) {
       .from("business_settings")
       .update({ points_per_usd: trimmed === "" ? 1 : num(ppu) })
       .eq(keyField, keyVal);
+  }
+  // Config del canje (aparte, tolerante — 0019).
+  const pv = formData.get("point_value_usd");
+  const rmin = formData.get("redeem_min_points");
+  const rmax = formData.get("redeem_max_pct");
+  if (pv !== null || rmin !== null || rmax !== null) {
+    const patch: Record<string, number> = {};
+    if (pv !== null && String(pv).trim() !== "") patch.point_value_usd = num(pv);
+    if (rmin !== null && String(rmin).trim() !== "")
+      patch.redeem_min_points = Math.round(num(rmin));
+    if (rmax !== null && String(rmax).trim() !== "")
+      patch.redeem_max_pct = num(rmax);
+    if (Object.keys(patch).length > 0) {
+      await supabase.from("business_settings").update(patch).eq(keyField, keyVal);
+    }
   }
   revalidatePath("/ajustes");
   revalidatePath("/remesas/nueva");

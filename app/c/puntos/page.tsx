@@ -44,8 +44,8 @@ export default async function PuntosPage() {
         </p>
         <p className="tabular mt-1 text-4xl font-extrabold">{balance} puntos</p>
         <p className="mt-1 text-xs text-white/70">
-          Ganas puntos con cada remesa entregada. Pronto podrás canjearlos por
-          descuentos.
+          Ganas puntos con cada remesa entregada. Úsalos al pedir tu próxima
+          remesa para un descuento.
         </p>
       </div>
 

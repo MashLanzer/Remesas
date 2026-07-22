@@ -35,6 +35,9 @@ export interface Order {
   delivered_at: string | null;
   received_at: string | null;
   track_token: string | null;
+  redeem?: boolean | null;
+  points_used?: number | null;
+  discount_usd?: number | null;
   created_at: string;
 }
 
@@ -166,6 +169,9 @@ export interface BusinessSettings {
   settle_threshold?: number | null;
   monthly_goal?: number | null;
   points_per_usd?: number | null;
+  point_value_usd?: number | null;
+  redeem_min_points?: number | null;
+  redeem_max_pct?: number | null;
   updated_at: string;
 }
 

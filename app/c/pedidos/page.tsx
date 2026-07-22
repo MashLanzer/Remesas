@@ -46,6 +46,15 @@ export default async function MisPedidosPage() {
                     Para {o.beneficiary_name || "—"}
                     {o.province ? ` · ${o.province}` : ""}
                   </p>
+                  {o.discount_usd ? (
+                    <p className="mt-0.5 text-xs font-semibold text-income">
+                      🎁 Descuento por puntos: −{usd(Number(o.discount_usd))}
+                    </p>
+                  ) : o.redeem && o.status === "pendiente" ? (
+                    <p className="mt-0.5 text-xs text-primary">
+                      Pediste usar tus puntos
+                    </p>
+                  ) : null}
                 </div>
                 <OrderStatusBadge order={o} />
               </div>

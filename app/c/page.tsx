@@ -38,23 +38,33 @@ export default async function ClienteHome() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [offers, rates, orders, points, brandRes, profileRes] =
+  const [offers, rates, orders, points, cfgRes, profileRes] =
     await Promise.all([
       getActiveOffers(),
       getExchangeRates(),
       getMyOrders(),
       getMyPoints(),
-      supabase.rpc("my_business_name"),
+      supabase.rpc("my_client_config"),
       user
         ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
     ]);
   const recentOrders = orders.slice(0, 3);
 
+  const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
+    | {
+        business_name?: string | null;
+        point_value_usd?: number | null;
+        redeem_min_points?: number | null;
+      }
+    | null;
+
   const firstName =
     (profileRes.data?.full_name as string | undefined)?.trim().split(" ")[0] ??
     null;
-  const brand = (brandRes.data as string | null) || "Giro";
+  const brand = cfg?.business_name || "Giro";
+  const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
+  const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
   return (
     <div className="space-y-6">
@@ -97,7 +107,12 @@ export default async function ClienteHome() {
       )}
 
       {/* Pedir remesa */}
-      <ClientOrderButton rates={rates} />
+      <ClientOrderButton
+        rates={rates}
+        pointsBalance={points.balance}
+        redeemMin={redeemMin}
+        pointValue={pointValue}
+      />
 
       {/* Mis pedidos recientes */}
       {recentOrders.length > 0 && (

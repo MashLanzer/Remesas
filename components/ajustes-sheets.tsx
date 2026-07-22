@@ -159,23 +159,73 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
               placeholder="Ej: 1000"
             />
           </Field>
-          <Field
-            label="Puntos por cada $1 enviado"
-            hint="Los clientes ganan puntos al entregarse su remesa. Ej: 1 = un punto por dólar."
-          >
-            <Input
-              type="number"
-              name="points_per_usd"
-              min="0"
-              step="0.1"
-              defaultValue={
-                settings.points_per_usd != null
-                  ? String(settings.points_per_usd)
-                  : "1"
-              }
-              placeholder="1"
-            />
-          </Field>
+          <p className="pt-1 text-xs font-medium text-muted-foreground">
+            Puntos de fidelidad (clientes)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Puntos por $1" hint="Al entregar la remesa.">
+              <Input
+                type="number"
+                name="points_per_usd"
+                min="0"
+                step="0.1"
+                defaultValue={
+                  settings.points_per_usd != null
+                    ? String(settings.points_per_usd)
+                    : "1"
+                }
+                placeholder="1"
+              />
+            </Field>
+            <Field label="Valor de 1 punto ($)" hint="Ej: 0.05 → 100 pts = $5.">
+              <Input
+                type="number"
+                name="point_value_usd"
+                min="0"
+                step="0.01"
+                defaultValue={
+                  settings.point_value_usd != null
+                    ? String(settings.point_value_usd)
+                    : "0.05"
+                }
+                placeholder="0.05"
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Mínimo para canjear" hint="Puntos.">
+              <Input
+                type="number"
+                name="redeem_min_points"
+                min="0"
+                step="1"
+                defaultValue={
+                  settings.redeem_min_points != null
+                    ? String(settings.redeem_min_points)
+                    : "100"
+                }
+                placeholder="100"
+              />
+            </Field>
+            <Field
+              label="Tope del descuento (%)"
+              hint="Del total de la comisión. La casa conserva el resto."
+            >
+              <Input
+                type="number"
+                name="redeem_max_pct"
+                min="0"
+                max="100"
+                step="1"
+                defaultValue={
+                  settings.redeem_max_pct != null
+                    ? String(settings.redeem_max_pct)
+                    : "50"
+                }
+                placeholder="50"
+              />
+            </Field>
+          </div>
 
           <Button type="submit" className="w-full">
             Guardar configuración
