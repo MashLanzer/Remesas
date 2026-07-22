@@ -14,6 +14,18 @@ import { cn } from "@/lib/utils";
 
 type Opt = { value: string; label: string; disabled?: boolean };
 
+// Aplana el contenido de un <option> a texto, aunque sea varias partes
+// (p. ej. {nombre}{ · provincia}) o esté anidado.
+function nodeText(node: ReactNode): string {
+  if (node == null || node === false || node === true) return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(nodeText).join("");
+  if (isValidElement(node)) {
+    return nodeText((node.props as { children?: ReactNode }).children);
+  }
+  return "";
+}
+
 function parseOptions(children: ReactNode): Opt[] {
   const out: Opt[] = [];
   Children.forEach(children, (child) => {
@@ -25,10 +37,7 @@ function parseOptions(children: ReactNode): Opt[] {
       disabled?: boolean;
     };
     const value = props.value != null ? String(props.value) : "";
-    const label =
-      typeof props.children === "string" || typeof props.children === "number"
-        ? String(props.children)
-        : value;
+    const label = nodeText(props.children).trim() || value;
     out.push({ value, label, disabled: props.disabled });
   });
   return out;
