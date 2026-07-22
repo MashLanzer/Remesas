@@ -13,6 +13,7 @@ import {
   Textarea,
   EmptyState,
 } from "@/components/ui";
+import { Sheet } from "@/components/sheet";
 import { createClientRecord, createBeneficiary } from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -106,18 +107,25 @@ export function AgendaView({
       </div>
 
       <Button
-        variant={showForm ? "secondary" : "primary"}
+        variant="primary"
         className="mb-4 w-full"
-        onClick={() => setShowForm((s) => !s)}
+        onClick={() => setShowForm(true)}
       >
         <Plus className="h-4 w-4" />
-        {showForm ? "Cerrar" : tab === "clientes" ? "Añadir cliente" : "Añadir beneficiario"}
+        {tab === "clientes" ? "Añadir cliente" : "Añadir beneficiario"}
       </Button>
 
-      {showForm && tab === "clientes" && <ClientForm onDone={() => setShowForm(false)} />}
-      {showForm && tab === "beneficiarios" && (
-        <BeneficiaryForm clients={clients} onDone={() => setShowForm(false)} />
-      )}
+      <Sheet
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={tab === "clientes" ? "Nuevo cliente" : "Nuevo beneficiario"}
+      >
+        {tab === "clientes" ? (
+          <ClientForm onDone={() => setShowForm(false)} />
+        ) : (
+          <BeneficiaryForm clients={clients} onDone={() => setShowForm(false)} />
+        )}
+      </Sheet>
 
       {tab === "clientes" ? (
         fClients.length === 0 ? (
@@ -230,32 +238,29 @@ function ContactCard({
 
 function ClientForm({ onDone }: { onDone: () => void }) {
   return (
-    <Card className="mb-4">
-      <form action={async (fd) => { await createClientRecord(fd); onDone(); }} className="space-y-3">
-        <Field label="Nombre">
-          <Input name="name" required placeholder="Nombre del cliente" />
+    <form action={async (fd) => { await createClientRecord(fd); onDone(); }} className="space-y-3">
+      <Field label="Nombre">
+        <Input name="name" required placeholder="Nombre del cliente" />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Teléfono">
+          <Input name="phone" placeholder="+1…" />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Teléfono">
-            <Input name="phone" placeholder="+1…" />
-          </Field>
-          <Field label="País">
-            <Input name="country" placeholder="EE.UU." />
-          </Field>
-        </div>
-        <Field label="Notas">
-          <Textarea name="notes" rows={2} />
+        <Field label="País">
+          <Input name="country" placeholder="EE.UU." />
         </Field>
-        <Button type="submit" className="w-full">Guardar cliente</Button>
-      </form>
-    </Card>
+      </div>
+      <Field label="Notas">
+        <Textarea name="notes" rows={2} />
+      </Field>
+      <Button type="submit" className="w-full">Guardar cliente</Button>
+    </form>
   );
 }
 
 function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () => void }) {
   return (
-    <Card className="mb-4">
-      <form action={async (fd) => { await createBeneficiary(fd); onDone(); }} className="space-y-3">
+    <form action={async (fd) => { await createBeneficiary(fd); onDone(); }} className="space-y-3">
         <Field label="Nombre">
           <Input name="name" required placeholder="Nombre en Cuba" />
         </Field>
@@ -299,8 +304,7 @@ function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () =>
             </Select>
           </Field>
         </div>
-        <Button type="submit" className="w-full">Guardar beneficiario</Button>
-      </form>
-    </Card>
+      <Button type="submit" className="w-full">Guardar beneficiario</Button>
+    </form>
   );
 }
