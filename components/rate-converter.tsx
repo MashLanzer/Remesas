@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ArrowLeftRight } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Card, Select } from "@/components/ui";
 import { localAmount, usd } from "@/lib/utils";
 import { DELIVERY_CURRENCIES, type ExchangeRate } from "@/lib/types";
 
@@ -69,17 +69,18 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
             <ArrowLeftRight className="h-4 w-4" />
           </button>
 
-          <select
+          <Select
+            title="Moneda"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="flex-1 rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            className="flex-1 px-3 py-2"
           >
             {available.map((c) => (
               <option key={c} value={c}>
                 {c} · {localAmount(ratesByCurrency[c] ?? 0)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex gap-2">

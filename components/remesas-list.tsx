@@ -12,7 +12,7 @@ import {
   Calendar,
   Undo2,
 } from "lucide-react";
-import { Card, Badge, EmptyState } from "@/components/ui";
+import { Card, Badge, EmptyState, Select } from "@/components/ui";
 import { usd, formatDate, localAmount } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { updateRemittanceStatus } from "@/app/actions";
@@ -206,16 +206,17 @@ export function RemesasList({
       {/* Controles: orden, fechas, exportar */}
       <div className="mb-3 flex items-center gap-2">
         <div className="relative flex-1">
-          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <select
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Select
+            title="Ordenar por"
             value={sort}
             onChange={(e) => setSort(e.target.value as typeof sort)}
-            className="w-full rounded-xl border border-input bg-card py-2 pl-8 pr-3 text-xs font-medium text-foreground outline-none"
+            className="bg-card py-2 pl-8 text-xs font-medium"
           >
             <option value="fecha">Más recientes</option>
             <option value="monto">Mayor monto</option>
             <option value="ganancia">Mayor ganancia</option>
-          </select>
+          </Select>
         </div>
         <button
           onClick={() => setShowDates((s) => !s)}

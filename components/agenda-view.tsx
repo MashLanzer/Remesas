@@ -96,14 +96,15 @@ export function AgendaView({
             className="w-full rounded-xl border border-input bg-card py-2.5 pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20"
           />
         </div>
-        <select
+        <Select
+          title="Ordenar"
           value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}
-          className="rounded-xl border border-input bg-card px-3 py-2.5 text-xs font-medium text-foreground outline-none"
+          className="w-auto bg-card px-3 py-2.5 text-xs font-medium"
         >
           <option value="nombre">A-Z</option>
           <option value="actividad">Activos</option>
-        </select>
+        </Select>
       </div>
 
       <Button

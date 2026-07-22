@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Select } from "@/components/ui";
 import type { Profile } from "@/lib/types";
 
 export function RepartidorFilter({
@@ -16,15 +17,13 @@ export function RepartidorFilter({
       <label className="mb-1 block text-xs font-medium text-muted-foreground">
         Repartidor
       </label>
-      <select
+      <Select
+        title="Repartidor"
         value={value}
         onChange={(e) => {
           const rep = e.target.value;
-          router.push(
-            `/finanzas?tab=cuentas${rep ? `&rep=${rep}` : ""}`
-          );
+          router.push(`/finanzas?tab=cuentas${rep ? `&rep=${rep}` : ""}`);
         }}
-        className="w-full rounded-xl border border-input bg-background py-2.5 pl-3 pr-9 text-sm text-foreground outline-none"
       >
         <option value="">Todos (combinado)</option>
         {repartidores.map((r) => (
@@ -32,7 +31,7 @@ export function RepartidorFilter({
             {r.full_name || "Repartidor"}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

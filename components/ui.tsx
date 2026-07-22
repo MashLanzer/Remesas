@@ -2,6 +2,9 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+// Select con lista estilizada (hoja) en lugar del desplegable nativo.
+export { Select } from "@/components/select";
+
 // === Card ===
 export function Card({
   children,
@@ -166,18 +169,6 @@ const fieldClass =
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(fieldClass, props.className)} />;
-}
-
-export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={cn(
-        "w-full rounded-xl border border-input bg-background py-2.5 pl-3 pr-9 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20",
-        props.className
-      )}
-    />
-  );
 }
 
 export function Textarea(

@@ -15,7 +15,7 @@ import {
   PieChart,
   ArrowLeftRight,
 } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Card, Select } from "@/components/ui";
 import { Sheet, SheetTrigger } from "@/components/sheet";
 import { usd, localAmount, cn } from "@/lib/utils";
 import type { Remittance } from "@/lib/types";
@@ -333,10 +333,11 @@ export function ReportesView({
       {/* #9 Filtros moneda / método */}
       {(currencyOptions.length > 1 || methodOptions.length > 1) && (
         <div className="flex gap-2">
-          <select
+          <Select
+            title="Moneda"
             value={curFilter}
             onChange={(e) => setCurFilter(e.target.value)}
-            className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
+            className="flex-1 bg-card px-3 py-2"
           >
             <option value="">Todas las monedas</option>
             {currencyOptions.map((c) => (
@@ -344,11 +345,12 @@ export function ReportesView({
                 {c}
               </option>
             ))}
-          </select>
-          <select
+          </Select>
+          <Select
+            title="Método"
             value={methodFilter}
             onChange={(e) => setMethodFilter(e.target.value)}
-            className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
+            className="flex-1 bg-card px-3 py-2"
           >
             <option value="">Todos los métodos</option>
             {methodOptions.map((m) => (
@@ -356,7 +358,7 @@ export function ReportesView({
                 {m}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       )}
 
@@ -803,17 +805,18 @@ function CompareColumn({
 }) {
   return (
     <div className="rounded-xl border border-border p-3">
-      <select
+      <Select
+        title="Mes"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mb-2 w-full rounded-lg border border-border bg-card px-2 py-1 text-xs font-semibold capitalize text-foreground"
+        className="mb-2 rounded-lg bg-card px-2 py-1 text-xs font-semibold capitalize"
       >
         {months.map((m) => (
           <option key={m} value={m}>
             {monthLabel(m)}
           </option>
         ))}
-      </select>
+      </Select>
       <div className="space-y-1.5">
         <CmpRow label="Enviado" value={usd(data.sent)} />
         <CmpRow label="Ganancia" value={usd(data.profit)} tone />
