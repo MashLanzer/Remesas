@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Package, Star, ChevronRight } from "lucide-react";
+import { Sparkles, Package, Star, ChevronRight, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveOffers,
@@ -113,6 +113,24 @@ export default async function ClienteHome() {
         redeemMin={redeemMin}
         pointValue={pointValue}
       />
+
+      {/* Tienda */}
+      <Link href="/c/tienda" className="block">
+        <Card className="flex items-center justify-between transition active:scale-[0.99]">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ShoppingBag className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-bold text-foreground">Tienda</p>
+              <p className="text-xs text-muted-foreground">
+                Combos, recargas y más para Cuba
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        </Card>
+      </Link>
 
       {/* Mis pedidos recientes */}
       {recentOrders.length > 0 && (

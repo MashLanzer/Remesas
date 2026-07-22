@@ -35,12 +35,14 @@ export function DashboardView({
   name,
   isOperador = true,
   pendingOrders = 0,
+  pendingStoreOrders = 0,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
   name: string | null;
   isOperador?: boolean;
   pendingOrders?: number;
+  pendingStoreOrders?: number;
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
@@ -145,6 +147,24 @@ export function DashboardView({
               </p>
               <p className="text-xs text-muted-foreground">
                 Clientes esperando que aceptes
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-primary" />
+          </Card>
+        </Link>
+      )}
+
+      {/* Pedidos de tienda nuevos */}
+      {pendingStoreOrders > 0 && (
+        <Link href="/tienda" className="block">
+          <Card className="flex items-center justify-between border-primary/30 bg-primary/5">
+            <div>
+              <p className="text-sm font-semibold text-primary">
+                {pendingStoreOrders} pedido{pendingStoreOrders > 1 ? "s" : ""} de
+                tienda
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Combos y recargas por atender
               </p>
             </div>
             <ArrowRight className="h-5 w-5 text-primary" />

@@ -343,7 +343,7 @@ export async function getAlertCount(): Promise<number> {
     teamAlert = count ?? 0;
   }
 
-  // Pedidos nuevos de clientes por atender (personal).
+  // Pedidos nuevos de clientes por atender (personal): remesas + tienda.
   let ordersAlert = 0;
   if (ctx.tenantId) {
     const { count } = await supabase
@@ -351,7 +351,12 @@ export async function getAlertCount(): Promise<number> {
       .select("id", { count: "exact", head: true })
       .eq("operator_id", ctx.tenantId)
       .eq("status", "pendiente");
-    ordersAlert = count ?? 0;
+    const { count: sc } = await supabase
+      .from("store_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("operator_id", ctx.tenantId)
+      .eq("status", "pendiente");
+    ordersAlert = (count ?? 0) + (sc ?? 0);
   }
 
   return (
@@ -382,6 +387,63 @@ export interface ActivityEntry {
   entity_label: string | null;
   details: Record<string, unknown> | null;
   created_at: string;
+}
+
+// ===== Tienda (productos + pedidos) =====
+
+export async function getProducts(): Promise<import("@/lib/types").Product[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  return (data as import("@/lib/types").Product[]) ?? [];
+}
+
+export async function getActiveProducts(): Promise<
+  import("@/lib/types").Product[]
+> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("products")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .eq("active", true)
+    .order("category", { ascending: true });
+  return (data as import("@/lib/types").Product[]) ?? [];
+}
+
+export async function getMyStoreOrders(): Promise<
+  import("@/lib/types").StoreOrder[]
+> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return [];
+  const { data } = await supabase
+    .from("store_orders")
+    .select("*")
+    .eq("client_id", ctx.userId)
+    .order("created_at", { ascending: false });
+  return (data as import("@/lib/types").StoreOrder[]) ?? [];
+}
+
+export async function getStoreOrders(): Promise<
+  import("@/lib/types").StoreOrder[]
+> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("store_orders")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  return (data as import("@/lib/types").StoreOrder[]) ?? [];
 }
 
 // ===== Puntos =====

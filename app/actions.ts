@@ -193,6 +193,158 @@ export async function deleteOffer(id: string) {
   revalidatePath("/c");
 }
 
+// ===== Tienda: productos (operador) =====
+
+export async function createProduct(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase.from("products").insert({
+    operator_id: ctx.tenantId,
+    name: str(formData.get("name")) ?? "Producto",
+    description: str(formData.get("description")),
+    price_usd: num(formData.get("price_usd")),
+    category: str(formData.get("category")),
+    emoji: str(formData.get("emoji")),
+    active: true,
+    created_by: ctx.userId,
+  });
+  revalidatePath("/productos");
+  revalidatePath("/c/tienda");
+  revalidatePath("/c");
+}
+
+export async function toggleProduct(id: string, active: boolean) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("products")
+    .update({ active })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+  revalidatePath("/productos");
+  revalidatePath("/c/tienda");
+}
+
+export async function deleteProduct(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("products")
+    .delete()
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+  revalidatePath("/productos");
+  revalidatePath("/c/tienda");
+}
+
+// ===== Tienda: pedidos (cliente pide, personal gestiona) =====
+
+export async function createStoreOrder(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
+
+  const productId = str(formData.get("product_id"));
+  if (!productId) return;
+  // Precio y nombre desde el producto (fuente de verdad, no del cliente).
+  const { data: prod } = await supabase
+    .from("products")
+    .select("name, price_usd, active")
+    .eq("id", productId)
+    .eq("operator_id", ctx.tenantId)
+    .maybeSingle();
+  const p = prod as { name?: string; price_usd?: number; active?: boolean } | null;
+  if (!p || p.active === false) return;
+
+  const qty = Math.max(1, Math.round(num(formData.get("qty")) || 1));
+  const price = Number(p.price_usd) || 0;
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", ctx.userId)
+    .single();
+  const prof = (me ?? {}) as { full_name?: string | null; phone?: string | null };
+
+  await supabase.from("store_orders").insert({
+    operator_id: ctx.tenantId,
+    client_id: ctx.userId,
+    client_name: prof.full_name ?? null,
+    client_phone: prof.phone ?? null,
+    product_id: productId,
+    product_name: p.name ?? "Producto",
+    price_usd: price,
+    qty,
+    total_usd: round2(price * qty),
+    recipient_name: str(formData.get("recipient_name")),
+    recipient_phone: str(formData.get("recipient_phone")),
+    address: str(formData.get("address")),
+    note: str(formData.get("note")),
+    status: "pendiente",
+  });
+  revalidatePath("/c/tienda");
+  revalidatePath("/c/pedidos");
+  redirect("/c/pedidos");
+}
+
+export async function cancelStoreOrder(id: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("store_orders")
+    .delete()
+    .eq("id", id)
+    .eq("status", "pendiente");
+  revalidatePath("/c/pedidos");
+}
+
+export async function acceptStoreOrder(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return;
+  await supabase
+    .from("store_orders")
+    .update({ status: "aceptado", accepted_by: ctx.userId, accepted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId)
+    .eq("status", "pendiente");
+  await logActivity("tienda.aceptar", { entityType: "tienda", entityId: id });
+  revalidatePath("/tienda");
+  revalidatePath("/c");
+}
+
+export async function rejectStoreOrder(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return;
+  await supabase
+    .from("store_orders")
+    .update({ status: "rechazado", accepted_by: ctx.userId })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId)
+    .eq("status", "pendiente");
+  await logActivity("tienda.rechazar", { entityType: "tienda", entityId: id });
+  revalidatePath("/tienda");
+  revalidatePath("/c");
+}
+
+export async function markStoreDelivered(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return;
+  await supabase
+    .from("store_orders")
+    .update({ delivered_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId)
+    .is("delivered_at", null);
+  await logActivity("tienda.entregar", { entityType: "tienda", entityId: id });
+  revalidatePath("/tienda");
+  revalidatePath("/c");
+}
+
 // ===== Pedidos (los crea el cliente; los acepta el personal) =====
 
 function isStaff(ctx: Awaited<ReturnType<typeof getSessionContext>>): boolean {
@@ -410,31 +562,31 @@ export async function acceptOrder(id: string) {
     beneficiaryId = (b as { id?: string } | null)?.id ?? null;
   }
 
-  // Comisión base. Si el cliente pidió usar puntos, aplicamos un descuento
-  // TOPADO a un % de la comisión (la casa siempre conserva la mayor parte).
+  // Comisión base. Si el cliente pidió usar puntos, la reserva se hace de forma
+  // ATÓMICA en la base (redeem_points, con lock por cliente): así dos pedidos
+  // simultáneos no pueden gastar el saldo dos veces. El descuento está topado a
+  // un % de la comisión (la casa siempre conserva la mayor parte).
   let commission = calcCommission(amountUsd, rules);
   let pointsUsed = 0;
   let discount = 0;
-  if (order.redeem && order.client_id) {
-    const pointValue = Number(rules.point_value_usd ?? 0.05) || 0;
-    const minPts = Number(rules.redeem_min_points ?? 100) || 0;
-    const maxPct = Number(rules.redeem_max_pct ?? 50) || 0;
-    const { data: led } = await supabase
-      .from("points_ledger")
-      .select("delta")
-      .eq("client_id", order.client_id);
-    const balance = ((led as { delta: number }[]) ?? []).reduce(
-      (s, r) => s + Number(r.delta),
-      0
-    );
-    if (balance >= minPts && pointValue > 0 && commission > 0) {
-      const maxByPoints = balance * pointValue;
-      const maxByCap = commission * (maxPct / 100); // tope: % de la comisión
-      discount = Math.min(maxByPoints, maxByCap);
-      pointsUsed = Math.ceil(discount / pointValue);
-      discount = Math.min(round2(pointsUsed * pointValue), commission);
-      commission = round2(commission - discount);
-    }
+  if (order.redeem && order.client_id && commission > 0) {
+    const pointValue = Number(rules.point_value_usd ?? 0.05) || 0.05;
+    const minPts = Math.round(Number(rules.redeem_min_points ?? 100)) || 100;
+    const maxPct = Number(rules.redeem_max_pct ?? 50) || 50;
+    const { data: rd } = await supabase.rpc("redeem_points", {
+      p_client: order.client_id,
+      p_order: order.id,
+      p_commission: commission,
+      p_point_value: pointValue,
+      p_min_points: minPts,
+      p_max_pct: maxPct,
+    });
+    const r = (Array.isArray(rd) ? rd[0] : rd) as
+      | { points_used?: number; discount?: number }
+      | null;
+    pointsUsed = Number(r?.points_used) || 0;
+    discount = Number(r?.discount) || 0;
+    if (discount > 0) commission = round2(commission - discount);
   }
 
   const c = computeRemittance({
@@ -475,24 +627,25 @@ export async function acceptOrder(id: string) {
     .single();
   const remId = (rem as { id?: string } | null)?.id ?? null;
 
-  // Si la remesa no se creó, devuelve el pedido a pendiente (no queda "aceptado"
-  // sin remesa).
+  // Si la remesa no se creó, devuelve el pedido a pendiente y REEMBOLSA los
+  // puntos que ya reservó redeem_points (no queda "aceptado" sin remesa ni el
+  // cliente pierde puntos por nada).
   if (!remId) {
+    if (pointsUsed > 0 && order.client_id) {
+      await supabase.from("points_ledger").insert({
+        operator_id: tid,
+        client_id: order.client_id,
+        delta: pointsUsed,
+        reason: "ajuste",
+        order_id: order.id,
+      });
+    }
     await revertToPending();
     return;
   }
 
-  // Canje: descuenta los puntos usados (asiento negativo) y guarda el descuento.
-  if (pointsUsed > 0 && order.client_id) {
-    await supabase.from("points_ledger").insert({
-      operator_id: tid,
-      client_id: order.client_id,
-      delta: -pointsUsed,
-      reason: "canje",
-      order_id: order.id,
-    });
-  }
-
+  // Los puntos ya se descontaron atómicamente en redeem_points; aquí solo se
+  // guarda el resultado en el pedido.
   await supabase
     .from("orders")
     .update({
@@ -824,6 +977,8 @@ export async function setClientPaid(id: string, paid: boolean) {
 
 export async function updateRemittanceStatus(id: string, status: string) {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return; // solo el personal cambia estados
   await supabase.from("remittances").update({ status }).eq("id", id);
 
   // Refleja la entrega en el pedido vinculado (seguimiento del cliente/

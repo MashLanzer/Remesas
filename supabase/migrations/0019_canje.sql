@@ -12,6 +12,47 @@ alter table public.business_settings
 alter table public.business_settings
   add column if not exists redeem_max_pct numeric default 50;       -- tope: % de la comisión
 
+-- Reserva atómica de puntos para el canje. Con lock por cliente evita el
+-- "double-spend": si el cliente canjea en dos pedidos a la vez, el segundo ve
+-- el saldo ya descontado y no vuelve a descontar. Redondea a la baja (nunca pasa
+-- el tope ni deja el saldo negativo). Solo la llama el personal desde acceptOrder.
+create or replace function public.redeem_points(
+  p_client uuid,
+  p_order uuid,
+  p_commission numeric,
+  p_point_value numeric,
+  p_min_points integer,
+  p_max_pct numeric
+)
+returns table (points_used integer, discount numeric)
+language plpgsql security definer set search_path = public as $$
+declare
+  bal integer;
+  maxcap numeric;
+  pts integer;
+begin
+  if not public.current_is_staff() then
+    return query select 0, 0::numeric; return;
+  end if;
+  perform pg_advisory_xact_lock(hashtext(p_client::text));
+  select coalesce(sum(delta), 0) into bal
+    from public.points_ledger where client_id = p_client;
+  maxcap := p_commission * (p_max_pct / 100.0);
+  if bal < p_min_points or p_point_value <= 0 or maxcap <= 0 then
+    return query select 0, 0::numeric; return;
+  end if;
+  pts := least(bal, floor(maxcap / p_point_value));
+  if pts <= 0 then
+    return query select 0, 0::numeric; return;
+  end if;
+  insert into public.points_ledger (operator_id, client_id, delta, reason, order_id)
+    values (public.current_operator_id(), p_client, -pts, 'canje', p_order);
+  return query select pts, least(round(pts * p_point_value, 2), p_commission);
+end $$;
+grant execute on function
+  public.redeem_points(uuid, uuid, numeric, numeric, integer, numeric)
+  to authenticated;
+
 -- Config visible para el cliente (marca + puntos), sin exponer comisiones.
 create or replace function public.my_client_config()
 returns table (
@@ -27,6 +68,7 @@ language sql stable security definer set search_path = public as $$
   limit 1
 $$;
 grant execute on function public.my_client_config() to authenticated;
+revoke execute on function public.my_client_config() from public, anon;
 
 -- Canje en el pedido.
 alter table public.orders add column if not exists redeem boolean default false;

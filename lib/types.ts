@@ -14,6 +14,48 @@ export const OFFER_KINDS = [
 
 export type OfferKind = (typeof OFFER_KINDS)[number]["key"];
 
+export const PRODUCT_CATEGORIES = [
+  { key: "recarga", label: "Recargas", emoji: "📱" },
+  { key: "combo", label: "Combos", emoji: "📦" },
+  { key: "otro", label: "Otros", emoji: "🛍️" },
+] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number]["key"];
+
+export interface Product {
+  id: string;
+  operator_id: string | null;
+  name: string;
+  description: string | null;
+  price_usd: number;
+  category: ProductCategory | null;
+  emoji: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface StoreOrder {
+  id: string;
+  operator_id: string | null;
+  client_id: string | null;
+  client_name: string | null;
+  client_phone: string | null;
+  product_id: string | null;
+  product_name: string | null;
+  price_usd: number;
+  qty: number;
+  total_usd: number;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  address: string | null;
+  note: string | null;
+  status: OrderStatus;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+}
+
 export type OrderStatus = "pendiente" | "aceptado" | "rechazado";
 
 export interface Order {
