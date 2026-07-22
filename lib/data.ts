@@ -6,6 +6,7 @@ import {
   type BusinessSettings,
   type Client,
   type ExchangeRate,
+  type Offer,
   type Profile,
   type RateHistory,
   type Remittance,
@@ -17,6 +18,7 @@ export interface SessionContext {
   userId: string | null;
   role: UserRole | null;
   isOperador: boolean;
+  isCliente: boolean; // usuario final (lado cliente)
   tenantId: string | null; // negocio (operador) al que pertenece; null = legacy sin migrar
   memberStatus: string | null; // 'active' | 'pending' | null
   needsOnboarding: boolean; // multi-negocio activo y aún sin rol elegido
@@ -34,6 +36,7 @@ export async function getSessionContext(): Promise<SessionContext> {
       userId: null,
       role: "operador",
       isOperador: true,
+      isCliente: false,
       tenantId: null,
       memberStatus: null,
       needsOnboarding: false,
@@ -73,12 +76,17 @@ export async function getSessionContext(): Promise<SessionContext> {
   const memberStatus = (row?.member_status as string) ?? null;
   // Sin migrar (legacy): null/operador se tratan como operador para no romper.
   // Con multi-negocio: operador estricto; null => onboarding pendiente.
-  const isOperador = multiTenant ? role === "operador" : role !== "repartidor";
+  const isOperador = multiTenant
+    ? role === "operador"
+    : role !== "repartidor" && role !== "cliente";
+  const isCliente = role === "cliente";
   const needsOnboarding = multiTenant && role == null;
-  // tenantId solo si de verdad pertenece a un negocio activo, igual que la
-  // función current_operator_id() de RLS (operador, o repartidor 'active').
+  // tenantId solo si pertenece a un negocio activo, igual que la función
+  // current_operator_id() de RLS (operador, repartidor 'active', o cliente).
   const isActiveMember =
-    role === "operador" || (role === "repartidor" && memberStatus === "active");
+    role === "operador" ||
+    role === "cliente" ||
+    (role === "repartidor" && memberStatus === "active");
   const tenantId = multiTenant
     ? isActiveMember
       ? (row?.operator_id ?? (role === "operador" ? user.id : null))
@@ -89,6 +97,7 @@ export async function getSessionContext(): Promise<SessionContext> {
     userId: user.id,
     role,
     isOperador,
+    isCliente,
     tenantId,
     memberStatus,
     needsOnboarding,
@@ -357,6 +366,40 @@ export interface ActivityEntry {
   entity_label: string | null;
   details: Record<string, unknown> | null;
   created_at: string;
+}
+
+// ===== Ofertas =====
+
+// Todas las ofertas del negocio (para gestionarlas el operador).
+export async function getOffers(): Promise<Offer[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("offers")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  return (data as Offer[]) ?? [];
+}
+
+// Ofertas activas y vigentes (las que ve el cliente).
+export async function getActiveOffers(): Promise<Offer[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("offers")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+  return ((data as Offer[]) ?? []).filter(
+    (o) =>
+      (!o.starts_at || o.starts_at <= today) &&
+      (!o.ends_at || o.ends_at >= today)
+  );
 }
 
 export async function getActivityLog(limit = 100): Promise<ActivityEntry[]> {

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useFormState } from "react-dom";
-import { UserCog, Truck, ArrowLeft, ArrowRight } from "lucide-react";
+import { UserCog, Truck, User, ArrowLeft, ArrowRight } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
-import { joinOperator } from "@/app/actions";
+import { joinOperator, becomeCliente } from "@/app/actions";
 
 export function OnboardingView() {
   const [mode, setMode] = useState<"choose" | "join">("choose");
@@ -29,6 +29,26 @@ export function OnboardingView() {
 
         {mode === "choose" ? (
           <div className="space-y-3">
+            <form action={becomeCliente}>
+              <button
+                type="submit"
+                className="flex w-full items-center gap-3 rounded-2xl border border-primary/40 bg-primary/5 p-4 text-left transition active:scale-[0.98] hover:bg-primary/10"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-6 w-6" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-foreground">
+                    Soy cliente
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Envío a mi familia. Veo ofertas y tasas del día.
+                  </span>
+                </span>
+                <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+              </button>
+            </form>
+
             {/* Registro de operador deshabilitado por ahora. */}
             <div
               aria-disabled

@@ -27,6 +27,8 @@ export default async function AppLayout({
   // Onboarding / equipo: elegir rol y aprobación de repartidores.
   const ctx = await getSessionContext();
   if (ctx.needsOnboarding) redirect("/onboarding");
+  // El cliente tiene su propia app (lado público).
+  if (ctx.isCliente) redirect("/c");
   // Solo el repartidor ya aprobado ('active') entra; cualquier otro estado
   // (pendiente, u otro) espera en /pendiente.
   if (ctx.role === "repartidor" && ctx.memberStatus !== "active") {

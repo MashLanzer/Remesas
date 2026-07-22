@@ -141,6 +141,73 @@ export async function joinOperator(
   redirect("/pendiente");
 }
 
+// El usuario entra como cliente (lado público): ve ofertas y tasas del negocio.
+// Registro abierto: se asocia al negocio por defecto (el operador principal).
+export async function becomeCliente() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: opId } = await supabase.rpc("default_operator");
+
+  await supabase
+    .from("profiles")
+    .update({
+      role: "cliente",
+      operator_id: (opId as string) ?? null,
+      member_status: "active",
+    })
+    .eq("id", user.id);
+
+  revalidatePath("/", "layout");
+  redirect("/c");
+}
+
+// ===== Ofertas (las publica el operador) =====
+
+export async function createOffer(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase.from("offers").insert({
+    operator_id: ctx.tenantId,
+    title: str(formData.get("title")) ?? "Oferta",
+    description: str(formData.get("description")),
+    kind: str(formData.get("kind")),
+    emoji: str(formData.get("emoji")),
+    active: true,
+    starts_at: str(formData.get("starts_at")),
+    ends_at: str(formData.get("ends_at")),
+    created_by: ctx.userId,
+  });
+  await logActivity("oferta.crear", {
+    entityType: "oferta",
+    entityLabel: str(formData.get("title")) ?? "Oferta",
+  });
+  revalidatePath("/ofertas");
+  revalidatePath("/c");
+}
+
+export async function toggleOffer(id: string, active: boolean) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador) return;
+  await supabase.from("offers").update({ active }).eq("id", id);
+  revalidatePath("/ofertas");
+  revalidatePath("/c");
+}
+
+export async function deleteOffer(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador) return;
+  await supabase.from("offers").delete().eq("id", id);
+  revalidatePath("/ofertas");
+  revalidatePath("/c");
+}
+
 // El operador acepta a un repartidor pendiente de su equipo.
 export async function approveMember(userId: string) {
   const supabase = await createClient();

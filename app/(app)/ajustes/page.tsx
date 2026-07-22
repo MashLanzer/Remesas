@@ -5,6 +5,8 @@ import {
   getTeam,
   getActivityLog,
 } from "@/lib/data";
+import Link from "next/link";
+import { Megaphone, ChevronRight } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
@@ -47,6 +49,31 @@ export default async function AjustesPage() {
         <section>
           <SectionTitle>Negocio</SectionTitle>
           <SettingsSheet settings={settings} />
+        </section>
+      )}
+
+      {/* Ofertas (solo operador) */}
+      {ctx.isOperador && (
+        <section>
+          <SectionTitle>Ofertas</SectionTitle>
+          <Link href="/ofertas" className="block">
+            <Card className="flex items-center justify-between transition active:scale-[0.99]">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
+                  <Megaphone className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Ofertas para clientes
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Publica promociones y tasas especiales
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Card>
+          </Link>
         </section>
       )}
 

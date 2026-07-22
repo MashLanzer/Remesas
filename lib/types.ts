@@ -1,6 +1,31 @@
 // Tipos de datos que reflejan el esquema de la base de datos (Supabase).
 
-export type UserRole = "operador" | "repartidor";
+export type UserRole = "operador" | "repartidor" | "cliente";
+
+// Ofertas que publica el negocio y ve el cliente.
+export const OFFER_KINDS = [
+  { key: "tasa", label: "Tasa especial", emoji: "🔥" },
+  { key: "sin_comision", label: "Sin comisión", emoji: "🎉" },
+  { key: "bono", label: "Bono / Referido", emoji: "🎁" },
+  { key: "combo", label: "Combo", emoji: "📦" },
+  { key: "express", label: "Entrega express", emoji: "⚡" },
+  { key: "otro", label: "Anuncio", emoji: "📣" },
+] as const;
+
+export type OfferKind = (typeof OFFER_KINDS)[number]["key"];
+
+export interface Offer {
+  id: string;
+  operator_id: string | null;
+  title: string;
+  description: string | null;
+  kind: OfferKind | null;
+  emoji: string | null;
+  active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_at: string;
+}
 
 export type RemittanceStatus = "pendiente" | "entregado" | "liquidado";
 
