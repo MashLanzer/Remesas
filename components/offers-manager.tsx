@@ -5,19 +5,66 @@ import { Plus, Trash2, Eye, EyeOff } from "lucide-react";
 import { Card, Button, Field, Input, Select, Textarea, EmptyState } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { createOffer, toggleOffer, deleteOffer } from "@/app/actions";
-import { OFFER_KINDS, type Offer } from "@/lib/types";
+import { OFFER_KINDS, OFFER_TEMPLATES, type Offer } from "@/lib/types";
+
+type Draft = {
+  title: string;
+  kind: string;
+  description: string;
+  emoji: string;
+};
+
+const EMPTY: Draft = { title: "", kind: "tasa", description: "", emoji: "" };
 
 export function OffersManager({ offers }: { offers: Offer[] }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
+  const [draft, setDraft] = useState<Draft>(EMPTY);
+
+  function openBlank() {
+    setDraft(EMPTY);
+    setOpen(true);
+  }
+
+  function openTemplate(t: (typeof OFFER_TEMPLATES)[number]) {
+    setDraft({
+      title: t.title,
+      kind: t.kind,
+      description: t.description,
+      emoji: t.emoji,
+    });
+    setOpen(true);
+  }
+
+  const set = (k: keyof Draft) => (v: string) =>
+    setDraft((d) => ({ ...d, [k]: v }));
 
   return (
     <div className="space-y-4">
-      <Button className="w-full" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" /> Nueva oferta
+      <Button className="w-full" onClick={openBlank}>
+        <Plus className="h-4 w-4" /> Nueva promoción
       </Button>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Nueva oferta">
+      {/* Plantillas para empezar rápido */}
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Empezar con una plantilla
+        </p>
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          {OFFER_TEMPLATES.map((t) => (
+            <button
+              key={t.title}
+              onClick={() => openTemplate(t)}
+              className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition active:scale-95"
+            >
+              <span className="text-base">{t.emoji}</span>
+              {t.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Sheet open={open} onClose={() => setOpen(false)} title="Nueva promoción">
         <form
           action={async (fd) => {
             await createOffer(fd);
@@ -25,11 +72,23 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
           }}
           className="space-y-3"
         >
+          <input type="hidden" name="emoji" value={draft.emoji} />
           <Field label="Título">
-            <Input name="title" required placeholder="Ej: Hoy CUP 450 especial" />
+            <Input
+              name="title"
+              required
+              placeholder="Ej: Hoy CUP 450 especial"
+              value={draft.title}
+              onChange={(e) => set("title")(e.target.value)}
+            />
           </Field>
           <Field label="Tipo">
-            <Select name="kind" defaultValue="tasa" title="Tipo de oferta">
+            <Select
+              name="kind"
+              value={draft.kind}
+              onChange={(e) => set("kind")(e.target.value)}
+              title="Tipo de promoción"
+            >
               {OFFER_KINDS.map((k) => (
                 <option key={k.key} value={k.key}>
                   {k.emoji} {k.label}
@@ -41,7 +100,9 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
             <Textarea
               name="description"
               rows={2}
-              placeholder="Detalles de la oferta…"
+              placeholder="Detalles de la promoción…"
+              value={draft.description}
+              onChange={(e) => set("description")(e.target.value)}
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -53,15 +114,15 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
             </Field>
           </div>
           <Button type="submit" className="w-full">
-            Publicar oferta
+            Publicar promoción
           </Button>
         </form>
       </Sheet>
 
       {offers.length === 0 ? (
         <EmptyState
-          title="Sin ofertas"
-          description="Publica promociones o tasas especiales para tus clientes."
+          title="Sin promociones"
+          description="Toca una plantilla de arriba o crea la tuya desde cero."
         />
       ) : (
         <div className="space-y-2">
@@ -95,7 +156,7 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
                 </button>
                 <button
                   onClick={() => {
-                    if (confirm(`¿Eliminar la oferta "${o.title}"?`))
+                    if (confirm(`¿Eliminar la promoción "${o.title}"?`))
                       start(() => deleteOffer(o.id));
                   }}
                   disabled={pending}

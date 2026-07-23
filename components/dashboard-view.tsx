@@ -9,10 +9,8 @@ import {
   ArrowRight,
   Wallet,
   Megaphone,
-  ShoppingBag,
   Boxes,
   Inbox,
-  ShoppingCart,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
@@ -46,9 +44,7 @@ export function DashboardView({
   name,
   isOperador = true,
   pendingOrders = 0,
-  pendingStoreOrders = 0,
   offersCount = 0,
-  productsCount = 0,
   packagesCount = 0,
 }: {
   remittances: Remittance[];
@@ -56,9 +52,7 @@ export function DashboardView({
   name: string | null;
   isOperador?: boolean;
   pendingOrders?: number;
-  pendingStoreOrders?: number;
   offersCount?: number;
-  productsCount?: number;
   packagesCount?: number;
 }) {
   const isRep = !isOperador;
@@ -153,10 +147,12 @@ export function DashboardView({
         })}
       </div>
 
-      {/* Tu tienda (solo operador) */}
+      {/* Paquetes y promociones (solo operador) */}
       {!isRep && (
         <div>
-          <h2 className="mb-3 text-base font-bold text-foreground">Tu tienda</h2>
+          <h2 className="mb-3 text-base font-bold text-foreground">
+            Paquetes y promociones
+          </h2>
           <div className="grid grid-cols-2 gap-3">
             <StoreCard
               href="/paquetes"
@@ -167,14 +163,8 @@ export function DashboardView({
             <StoreCard
               href="/ofertas"
               icon={Megaphone}
-              title="Ofertas"
+              title="Promociones"
               subtitle={`${offersCount} publicadas`}
-            />
-            <StoreCard
-              href="/productos"
-              icon={ShoppingBag}
-              title="Productos"
-              subtitle={`${productsCount} en catálogo`}
             />
             <StoreCard
               href="/pedidos"
@@ -182,13 +172,6 @@ export function DashboardView({
               title="Pedidos"
               subtitle={`${pendingOrders} nuevos`}
               highlight={pendingOrders > 0}
-            />
-            <StoreCard
-              href="/tienda"
-              icon={ShoppingCart}
-              title="Tienda"
-              subtitle={`${pendingStoreOrders} nuevos`}
-              highlight={pendingStoreOrders > 0}
             />
           </div>
         </div>
@@ -205,24 +188,6 @@ export function DashboardView({
               </p>
               <p className="text-xs text-muted-foreground">
                 Clientes esperando que aceptes
-              </p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-primary" />
-          </Card>
-        </Link>
-      )}
-
-      {/* Pedidos de tienda nuevos */}
-      {pendingStoreOrders > 0 && (
-        <Link href="/tienda" className="block">
-          <Card className="flex items-center justify-between border-primary/30 bg-primary/5">
-            <div>
-              <p className="text-sm font-semibold text-primary">
-                {pendingStoreOrders} pedido{pendingStoreOrders > 1 ? "s" : ""} de
-                tienda
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Combos y recargas por atender
               </p>
             </div>
             <ArrowRight className="h-5 w-5 text-primary" />

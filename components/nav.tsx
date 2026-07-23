@@ -12,7 +12,6 @@ import {
   Plus,
   UserPlus,
   Megaphone,
-  ShoppingBag,
   Boxes,
   X,
 } from "lucide-react";
@@ -91,21 +90,15 @@ export function BottomNav({ isOperador = true }: { isOperador?: boolean } = {}) 
               {isOperador && (
                 <>
                   <FabLink
-                    href="/ofertas"
-                    icon={<Megaphone className="h-4 w-4" />}
-                    label="Nueva oferta"
-                    onClick={() => setMenu(false)}
-                  />
-                  <FabLink
-                    href="/productos"
-                    icon={<ShoppingBag className="h-4 w-4" />}
-                    label="Nuevo producto"
-                    onClick={() => setMenu(false)}
-                  />
-                  <FabLink
                     href="/paquetes"
                     icon={<Boxes className="h-4 w-4" />}
                     label="Nuevo paquete"
+                    onClick={() => setMenu(false)}
+                  />
+                  <FabLink
+                    href="/ofertas"
+                    icon={<Megaphone className="h-4 w-4" />}
+                    label="Nueva promoción"
                     onClick={() => setMenu(false)}
                   />
                 </>

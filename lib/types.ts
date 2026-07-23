@@ -14,6 +14,80 @@ export const OFFER_KINDS = [
 
 export type OfferKind = (typeof OFFER_KINDS)[number]["key"];
 
+// Plantillas de promociones listas para usar (el operador las toca y se
+// rellenan solas; luego ajusta y publica).
+export const OFFER_TEMPLATES = [
+  {
+    emoji: "🔥",
+    title: "Tasa especial hoy",
+    kind: "tasa",
+    description: "Mejor tasa por tiempo limitado. ¡Aprovecha!",
+  },
+  {
+    emoji: "🎉",
+    title: "Sin comisión",
+    kind: "sin_comision",
+    description: "Envía tu próxima remesa sin comisión.",
+  },
+  {
+    emoji: "🎁",
+    title: "Trae un amigo",
+    kind: "bono",
+    description: "Gana un bono por cada amigo que invites a enviar.",
+  },
+  {
+    emoji: "⚡",
+    title: "Entrega express",
+    kind: "express",
+    description: "Entrega el mismo día en tu zona.",
+  },
+] as const;
+
+// Plantillas de paquetes de remesa. Se definen por el USD que paga el cliente;
+// el monto que recibe la familia se calcula en vivo con la tasa (nunca fijo).
+export const PACKAGE_TEMPLATES = [
+  {
+    emoji: "🎁",
+    title: "Paquete Ayuda",
+    amount_usd: 50,
+    delivery_currency: "CUP",
+    highlight: "",
+    description: "Un envío rápido para la familia.",
+  },
+  {
+    emoji: "👨‍👩‍👧",
+    title: "Paquete Familia",
+    amount_usd: 100,
+    delivery_currency: "CUP",
+    highlight: "Más popular",
+    description: "El apoyo del mes para los tuyos.",
+  },
+  {
+    emoji: "⚡",
+    title: "Envío Express",
+    amount_usd: 30,
+    delivery_currency: "CUP",
+    highlight: "Entrega hoy",
+    description: "Rápido, para lo urgente.",
+  },
+  {
+    emoji: "🎂",
+    title: "Combo Cumpleaños",
+    amount_usd: 75,
+    delivery_currency: "CUP",
+    highlight: "Sorpresa",
+    description: "Para celebrar a distancia.",
+  },
+  {
+    emoji: "💵",
+    title: "Paquete Dólares",
+    amount_usd: 100,
+    delivery_currency: "USD",
+    highlight: "",
+    description: "Entrega directa en USD.",
+  },
+] as const;
+
 export const PRODUCT_CATEGORIES = [
   { key: "recarga", label: "Recargas", emoji: "📱" },
   { key: "combo", label: "Combos", emoji: "📦" },

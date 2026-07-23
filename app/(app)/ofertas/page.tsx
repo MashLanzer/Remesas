@@ -21,7 +21,7 @@ export default async function OfertasPage() {
         <ArrowLeft className="h-4 w-4" /> Ajustes
       </Link>
       <PageHeader
-        title="Ofertas"
+        title="Promociones"
         subtitle="Lo que ven tus clientes en su app"
       />
       <OffersManager offers={offers} />

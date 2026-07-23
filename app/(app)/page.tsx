@@ -3,9 +3,7 @@ import {
   getSettlements,
   getSessionContext,
   getOrders,
-  getStoreOrders,
   getOffers,
-  getProducts,
   getPackages,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -22,14 +20,12 @@ export default async function DashboardPage() {
 
   const ctx = await getSessionContext();
 
-  const [remittances, settlements, pendingOrders, storeOrders, offers, products, packages, profileRes] =
+  const [remittances, settlements, pendingOrders, offers, packages, profileRes] =
     await Promise.all([
       getRemittances(),
       getSettlements(),
       getOrders({ pendingOnly: true }),
-      getStoreOrders(),
       ctx.isOperador ? getOffers() : Promise.resolve([]),
-      ctx.isOperador ? getProducts() : Promise.resolve([]),
       ctx.isOperador ? getPackages() : Promise.resolve([]),
       user
         ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
@@ -38,7 +34,6 @@ export default async function DashboardPage() {
 
   const partnerBalance = calcPartnerBalance(remittances, settlements);
   const name = profileRes.data?.full_name ?? null;
-  const pendingStore = storeOrders.filter((o) => o.status === "pendiente").length;
 
   return (
     <DashboardView
@@ -47,9 +42,7 @@ export default async function DashboardPage() {
       name={name}
       isOperador={ctx.isOperador}
       pendingOrders={pendingOrders.length}
-      pendingStoreOrders={pendingStore}
       offersCount={offers.length}
-      productsCount={products.length}
       packagesCount={packages.length}
     />
   );

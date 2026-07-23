@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Store, Package, Star, Send } from "lucide-react";
+import { Home, Gift, Package, Star, Send } from "lucide-react";
 
 const items = [
   { href: "/c", label: "Inicio", icon: Home, exact: true },
-  { href: "/c/tienda", label: "Tienda", icon: Store },
+  { href: "/c/tienda", label: "Paquetes", icon: Gift },
   { href: "/c/pedidos", label: "Pedidos", icon: Package },
   { href: "/c/puntos", label: "Puntos", icon: Star },
 ];
