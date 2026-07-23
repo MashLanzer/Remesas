@@ -2,7 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, ChevronRight, Pin } from "lucide-react";
+import {
+  Plus,
+  Search,
+  ChevronRight,
+  Pin,
+  Users,
+  MapPin,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import {
   Card,
   Button,
@@ -44,6 +53,11 @@ export function AgendaView({
 
   const term = q.trim().toLowerCase();
 
+  const totalOwed = useMemo(
+    () => Object.values(clientStats).reduce((s, st) => s + (st.owed ?? 0), 0),
+    [clientStats]
+  );
+
   function sortFn<T extends { id: string; name: string; pinned?: boolean }>(
     stats: Record<string, ContactStat>
   ) {
@@ -77,6 +91,22 @@ export function AgendaView({
 
   return (
     <div>
+      {/* Resumen */}
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <StatMini icon={Users} label="Clientes" value={String(clients.length)} />
+        <StatMini
+          icon={MapPin}
+          label="Beneficiarios"
+          value={String(beneficiaries.length)}
+        />
+        <StatMini
+          icon={Wallet}
+          label="Por cobrar"
+          value={usd(totalOwed)}
+          warn={totalOwed > 0}
+        />
+      </div>
+
       <div className="mb-4 flex gap-2">
         <TabButton active={tab === "clientes"} onClick={() => { setTab("clientes"); setShowForm(false); }}>
           Clientes ({clients.length})
@@ -168,6 +198,35 @@ export function AgendaView({
         </div>
       )}
     </div>
+  );
+}
+
+function StatMini({
+  icon: Icon,
+  label,
+  value,
+  warn = false,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  warn?: boolean;
+}) {
+  return (
+    <Card className="p-3 text-center">
+      <Icon
+        className={cn("mx-auto h-4 w-4", warn ? "text-warning" : "text-primary")}
+      />
+      <p
+        className={cn(
+          "tabular mt-1 truncate text-base font-bold",
+          warn ? "text-warning" : "text-foreground"
+        )}
+      >
+        {value}
+      </p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+    </Card>
   );
 }
 
