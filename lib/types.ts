@@ -57,7 +57,7 @@ export const PACKAGE_TEMPLATES = [
   {
     emoji: "👨‍👩‍👧",
     title: "Paquete Familia",
-    amount_usd: 100,
+    amount_usd: 150,
     delivery_currency: "CUP",
     highlight: "Más popular",
     description: "El apoyo del mes para los tuyos.",

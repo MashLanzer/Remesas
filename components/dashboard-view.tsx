@@ -2,16 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Plus,
-  Send,
-  BarChart3,
-  ArrowRight,
-  Wallet,
-  Megaphone,
-  Boxes,
-  Inbox,
-} from "lucide-react";
+import { Plus, Send, ArrowRight, Wallet, LayoutGrid } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -22,13 +13,6 @@ const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
   entregado: "emerald",
   liquidado: "blue",
 };
-
-const actions = [
-  { href: "/remesas/nueva", label: "Nueva", icon: Plus },
-  { href: "/remesas", label: "Remesas", icon: Send },
-  { href: "/finanzas?tab=cuentas", label: "Cuentas", icon: Wallet },
-  { href: "/finanzas?tab=reportes", label: "Reportes", icon: BarChart3 },
-];
 
 const periods = [
   { key: "todo", label: "Todo" },
@@ -44,19 +28,27 @@ export function DashboardView({
   name,
   isOperador = true,
   pendingOrders = 0,
-  offersCount = 0,
-  packagesCount = 0,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
   name: string | null;
   isOperador?: boolean;
   pendingOrders?: number;
-  offersCount?: number;
-  packagesCount?: number;
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
+
+  // Accesos rápidos: solo lo útil. El operador tiene "Gestión" (paquetes,
+  // promociones y pedidos en su propia página); el repartidor, sus remesas.
+  const actions = isRep
+    ? [
+        { href: "/remesas/nueva", label: "Nueva remesa", icon: Plus },
+        { href: "/remesas", label: "Remesas", icon: Send },
+      ]
+    : [
+        { href: "/remesas/nueva", label: "Nueva remesa", icon: Plus },
+        { href: "/gestion", label: "Gestión", icon: LayoutGrid },
+      ];
 
   const filtered = useMemo(() => {
     if (period === "todo") return remittances;
@@ -131,51 +123,25 @@ export function DashboardView({
       </div>
 
       {/* Acciones rápidas */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {actions.map((a) => {
           const Icon = a.icon;
           return (
-            <Link key={a.href} href={a.href} className="flex flex-col items-center gap-2">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card text-primary transition active:scale-95">
-                <Icon className="h-6 w-6" />
+            <Link
+              key={a.href}
+              href={a.href}
+              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition active:scale-[0.98]"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Icon className="h-5 w-5" />
               </span>
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-sm font-semibold text-foreground">
                 {a.label}
               </span>
             </Link>
           );
         })}
       </div>
-
-      {/* Paquetes y promociones (solo operador) */}
-      {!isRep && (
-        <div>
-          <h2 className="mb-3 text-base font-bold text-foreground">
-            Paquetes y promociones
-          </h2>
-          <div className="grid grid-cols-2 gap-3">
-            <StoreCard
-              href="/paquetes"
-              icon={Boxes}
-              title="Paquetes"
-              subtitle={`${packagesCount} publicados`}
-            />
-            <StoreCard
-              href="/ofertas"
-              icon={Megaphone}
-              title="Promociones"
-              subtitle={`${offersCount} publicadas`}
-            />
-            <StoreCard
-              href="/pedidos"
-              icon={Inbox}
-              title="Pedidos"
-              subtitle={`${pendingOrders} nuevos`}
-              highlight={pendingOrders > 0}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Pedidos nuevos de clientes */}
       {pendingOrders > 0 && (
@@ -306,52 +272,5 @@ export function DashboardView({
         )}
       </div>
     </div>
-  );
-}
-
-function StoreCard({
-  href,
-  icon: Icon,
-  title,
-  subtitle,
-  highlight = false,
-}: {
-  href: string;
-  icon: typeof Megaphone;
-  title: string;
-  subtitle: string;
-  highlight?: boolean;
-}) {
-  return (
-    <Link href={href} className="block">
-      <Card
-        className={cn(
-          "flex items-center gap-3 p-3.5 transition active:scale-[0.99]",
-          highlight && "border-primary/30 bg-primary/5"
-        )}
-      >
-        <span
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-            highlight
-              ? "bg-primary/15 text-primary"
-              : "bg-primary/10 text-primary"
-          )}
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-foreground">{title}</p>
-          <p
-            className={cn(
-              "truncate text-xs",
-              highlight ? "font-semibold text-primary" : "text-muted-foreground"
-            )}
-          >
-            {subtitle}
-          </p>
-        </div>
-      </Card>
-    </Link>
   );
 }
