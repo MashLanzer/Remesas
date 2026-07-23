@@ -1,76 +1,273 @@
-import { getMyOrders } from "@/lib/data";
-import { Card, EmptyState, PageHeader } from "@/components/ui";
-import { OrderStatusBadge } from "@/components/order-status-badge";
+import { createClient } from "@/lib/supabase/server";
+import { getMyOrders, getExchangeRates, getMyPoints } from "@/lib/data";
+import { Card, PageHeader } from "@/components/ui";
+import {
+  OrderStatusBadge,
+  orderDisplay,
+} from "@/components/order-status-badge";
 import { OrderTimeline } from "@/components/order-timeline";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
+import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { usd } from "@/lib/utils";
+import {
+  Truck,
+  CheckCircle2,
+  Send,
+  Package,
+  Check,
+  PartyPopper,
+  Star,
+  type LucideIcon,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
-  const orders = await getMyOrders();
+  const supabase = await createClient();
+  const [orders, rates, points, cfgRes] = await Promise.all([
+    getMyOrders(),
+    getExchangeRates(),
+    getMyPoints(),
+    supabase.rpc("my_client_config"),
+  ]);
+
+  const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
+    | { point_value_usd?: number | null; redeem_min_points?: number | null }
+    | null;
+  const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
+  const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
+
+  // ---- Estado vacío: pantalla útil, no un cartel solo ----
+  if (orders.length === 0) {
+    return (
+      <div>
+        <PageHeader title="Mis pedidos" />
+        <div className="flex flex-col items-center pt-4 text-center">
+          <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+            <Package className="h-8 w-8" />
+          </span>
+          <h2 className="mt-4 text-lg font-bold text-foreground">
+            Aún no has enviado
+          </h2>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Tu primer envío aparecerá aquí con seguimiento en vivo, paso a paso
+            hasta tu familia.
+          </p>
+          <div className="mt-5 w-full">
+            <EnviarRemesaCta
+              rates={rates}
+              pointsBalance={points.balance}
+              redeemMin={redeemMin}
+              pointValue={pointValue}
+              variant="primary"
+            />
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h3 className="mb-3 text-sm font-bold text-foreground">
+            Cómo funciona
+          </h3>
+          <div className="space-y-3">
+            <HowStep
+              n={1}
+              icon={Send}
+              title="Pides tu remesa"
+              desc="Eliges el monto y quién recibe en Cuba."
+            />
+            <HowStep
+              n={2}
+              icon={Check}
+              title="El negocio la acepta"
+              desc="Confirma el envío y empieza el reparto."
+            />
+            <HowStep
+              n={3}
+              icon={PartyPopper}
+              title="Entrega con seguimiento"
+              desc="Sigues cada paso hasta que llega a tu familia."
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <Star className="h-5 w-5 shrink-0 text-primary" />
+          <p className="text-sm text-foreground">
+            Ganas <span className="font-semibold">puntos con cada envío</span>{" "}
+            para descuentos en tus próximas remesas.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Con pedidos: resumen + activos + historial ----
+  const active = orders.filter((o) => {
+    const d = orderDisplay(o);
+    return d === "pendiente" || d === "en_reparto";
+  });
+  const history = orders.filter((o) => {
+    const d = orderDisplay(o);
+    return d === "entregado" || d === "recibido" || d === "rechazado";
+  });
+  const entregadas = orders.filter((o) => {
+    const d = orderDisplay(o);
+    return d === "entregado" || d === "recibido";
+  }).length;
+  const totalEnviado = orders
+    .filter((o) => orderDisplay(o) !== "rechazado")
+    .reduce((s, o) => s + Number(o.amount_usd), 0);
 
   return (
-    <div>
+    <div className="space-y-5">
       <PageHeader title="Mis pedidos" subtitle="Sigue el estado de tus envíos" />
 
-      {orders.length === 0 ? (
-        <EmptyState
-          title="Aún no has pedido"
-          description="Cuando pidas una remesa, aquí verás su estado en vivo."
-        />
-      ) : (
-        <div className="space-y-3">
-          {orders.map((o) => (
-            <Card key={o.id} className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-foreground">
-                    {usd(Number(o.amount_usd))}
-                    {o.delivery_currency ? (
-                      <span className="ml-1 text-xs font-medium text-muted-foreground">
-                        en {o.delivery_currency}
-                      </span>
+      {/* Resumen */}
+      <div className="grid grid-cols-3 gap-2">
+        <Stat icon={Truck} label="En proceso" value={String(active.length)} />
+        <Stat icon={CheckCircle2} label="Entregadas" value={String(entregadas)} />
+        <Stat icon={Send} label="Enviado" value={usd(totalEnviado)} />
+      </div>
+
+      {/* Activos */}
+      {active.length > 0 && (
+        <section>
+          <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Activos
+          </h2>
+          <div className="space-y-3">
+            {active.map((o) => (
+              <Card key={o.id} className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-foreground">
+                      {usd(Number(o.amount_usd))}
+                      {o.delivery_currency ? (
+                        <span className="ml-1 text-xs font-medium text-muted-foreground">
+                          en {o.delivery_currency}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      Para {o.beneficiary_name || "—"}
+                      {o.province ? ` · ${o.province}` : ""}
+                    </p>
+                    {o.discount_usd ? (
+                      <p className="mt-0.5 text-xs font-semibold text-income">
+                        🎁 Descuento por puntos: −{usd(Number(o.discount_usd))}
+                      </p>
+                    ) : o.redeem && o.status === "pendiente" ? (
+                      <p className="mt-0.5 text-xs text-primary">
+                        Pediste usar tus puntos
+                      </p>
                     ) : null}
+                  </div>
+                  <OrderStatusBadge order={o} />
+                </div>
+
+                <div className="border-t border-border pt-3">
+                  <OrderTimeline
+                    status={o.status}
+                    created_at={o.created_at}
+                    accepted_at={o.accepted_at}
+                    delivered_at={o.delivered_at}
+                    received_at={o.received_at}
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                  {o.status === "aceptado" && o.track_token && (
+                    <ShareTrackButton token={o.track_token} />
+                  )}
+                  {o.status === "pendiente" && <CancelOrderButton id={o.id} />}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Historial */}
+      {history.length > 0 && (
+        <section>
+          <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Historial
+          </h2>
+          <div className="space-y-2">
+            {history.map((o) => (
+              <Card
+                key={o.id}
+                className="flex items-center justify-between gap-3 p-3.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {usd(Number(o.amount_usd))}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">
+                      · {o.beneficiary_name || "—"}
+                    </span>
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    Para {o.beneficiary_name || "—"}
-                    {o.province ? ` · ${o.province}` : ""}
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(o.created_at).toLocaleDateString("es-ES", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </p>
-                  {o.discount_usd ? (
-                    <p className="mt-0.5 text-xs font-semibold text-income">
-                      🎁 Descuento por puntos: −{usd(Number(o.discount_usd))}
-                    </p>
-                  ) : o.redeem && o.status === "pendiente" ? (
-                    <p className="mt-0.5 text-xs text-primary">
-                      Pediste usar tus puntos
-                    </p>
-                  ) : null}
                 </div>
                 <OrderStatusBadge order={o} />
-              </div>
-
-              <div className="border-t border-border pt-3">
-                <OrderTimeline
-                  status={o.status}
-                  created_at={o.created_at}
-                  accepted_at={o.accepted_at}
-                  delivered_at={o.delivered_at}
-                  received_at={o.received_at}
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                {o.status === "aceptado" && o.track_token && (
-                  <ShareTrackButton token={o.track_token} />
-                )}
-                {o.status === "pendiente" && <CancelOrderButton id={o.id} />}
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        </section>
       )}
+    </div>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <Card className="p-3 text-center">
+      <Icon className="mx-auto h-4 w-4 text-primary" />
+      <p className="tabular mt-1 truncate text-base font-bold text-foreground">
+        {value}
+      </p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+    </Card>
+  );
+}
+
+function HowStep({
+  n,
+  icon: Icon,
+  title,
+  desc,
+}: {
+  n: number;
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          {n}
+        </span>
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
+      </div>
     </div>
   );
 }
