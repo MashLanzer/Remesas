@@ -148,23 +148,48 @@ export async function createOffer(formData: FormData) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
-  await supabase.from("offers").insert({
-    operator_id: ctx.tenantId,
-    title: str(formData.get("title")) ?? "Oferta",
-    description: str(formData.get("description")),
-    kind: str(formData.get("kind")),
-    emoji: str(formData.get("emoji")),
-    active: true,
-    starts_at: str(formData.get("starts_at")),
-    ends_at: str(formData.get("ends_at")),
-    created_by: ctx.userId,
-  });
+  const { data: inserted } = await supabase
+    .from("offers")
+    .insert({
+      operator_id: ctx.tenantId,
+      title: str(formData.get("title")) ?? "Oferta",
+      description: str(formData.get("description")),
+      kind: str(formData.get("kind")),
+      emoji: str(formData.get("emoji")),
+      active: true,
+      starts_at: str(formData.get("starts_at")),
+      ends_at: str(formData.get("ends_at")),
+      created_by: ctx.userId,
+    })
+    .select("id")
+    .single();
+  const offerId = (inserted as { id?: string } | null)?.id ?? null;
+  if (offerId) await uploadOfferImage(supabase, formData, offerId);
   await logActivity("oferta.crear", {
     entityType: "oferta",
     entityLabel: str(formData.get("title")) ?? "Oferta",
   });
   revalidatePath("/ofertas");
   revalidatePath("/c");
+}
+
+// Sube la imagen del anuncio (si hay) al bucket público "receipts" (ruta
+// offers/…) y guarda la URL. Tolerante: si no hay archivo, no hace nada.
+async function uploadOfferImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  offerId: string
+) {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `offers/${offerId}/img-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  await supabase.from("offers").update({ image_url: data.publicUrl }).eq("id", offerId);
 }
 
 export async function toggleOffer(id: string, active: boolean) {

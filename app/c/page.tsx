@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Package, Star, Gift, ChevronRight } from "lucide-react";
+import { Package, Star, Gift, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveOffers,
@@ -10,29 +10,12 @@ import {
 } from "@/lib/data";
 import { Card } from "@/components/ui";
 import { localAmount, packageReceives } from "@/lib/utils";
-import { RateConverter } from "@/components/rate-converter";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
+import { CalculadoraSheet } from "@/components/calculadora-sheet";
+import { OffersView } from "@/components/offers-view";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { OFFER_KINDS, type Offer } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-function kindMeta(o: Offer) {
-  const k = OFFER_KINDS.find((x) => x.key === o.kind);
-  return { emoji: o.emoji || k?.emoji || "📣", label: k?.label ?? "Anuncio" };
-}
-
-function validity(o: Offer): string | null {
-  if (o.ends_at) return `Válido hasta ${fmt(o.ends_at)}`;
-  if (o.starts_at) return `Desde ${fmt(o.starts_at)}`;
-  return null;
-}
-function fmt(d: string): string {
-  return new Date(d + "T00:00:00").toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "short",
-  });
-}
 
 export default async function ClienteHome() {
   const supabase = await createClient();
@@ -53,7 +36,7 @@ export default async function ClienteHome() {
         : Promise.resolve({ data: null }),
     ]);
   const recentOrders = orders.slice(0, 3);
-  const featuredOffers = offers.slice(0, 3);
+  const featuredOffers = offers.slice(0, 6);
   const featuredPackages = packages.slice(0, 6);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
@@ -79,7 +62,7 @@ export default async function ClienteHome() {
 
   return (
     <div className="space-y-6">
-      {/* Hero: saludo + puntos + tasa del día + enviar */}
+      {/* Hero: saludo + puntos + tasa del día + enviar + calculadora */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 p-5 text-white shadow-xl shadow-primary/20">
         <div
           className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10 blur-2xl"
@@ -121,13 +104,14 @@ export default async function ClienteHome() {
             </p>
           )}
 
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <EnviarRemesaCta
               rates={rates}
               pointsBalance={points.balance}
               redeemMin={redeemMin}
               pointValue={pointValue}
             />
+            <CalculadoraSheet rates={rates} />
           </div>
         </div>
       </div>
@@ -154,11 +138,7 @@ export default async function ClienteHome() {
                 rates
               );
               return (
-                <Link
-                  key={p.id}
-                  href="/c/tienda"
-                  className="w-40 shrink-0"
-                >
+                <Link key={p.id} href="/c/tienda" className="w-40 shrink-0">
                   <Card className="flex h-full flex-col gap-2 p-4 transition active:scale-[0.98]">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
                       {p.emoji || "🎁"}
@@ -195,53 +175,13 @@ export default async function ClienteHome() {
         </section>
       )}
 
-      {/* Calculadora */}
-      <section>
-        <h2 className="mb-2 text-sm font-bold text-foreground">
-          ¿Cuánto recibe tu familia?
-        </h2>
-        <RateConverter rates={rates} />
-      </section>
-
-      {/* Ofertas (solo si hay) */}
+      {/* Anuncios / ofertas (solo si hay) */}
       {featuredOffers.length > 0 && (
         <section>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
-            <Sparkles className="h-4 w-4 text-primary" /> Ofertas
+            <Star className="h-4 w-4 text-primary" /> Anuncios
           </h2>
-          <div className="space-y-3">
-            {featuredOffers.map((o) => {
-              const m = kindMeta(o);
-              const v = validity(o);
-              return (
-                <Card key={o.id} className="flex gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
-                    {m.emoji}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-foreground">
-                        {o.title}
-                      </p>
-                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {m.label}
-                      </span>
-                    </div>
-                    {o.description && (
-                      <p className="mt-0.5 text-sm text-muted-foreground">
-                        {o.description}
-                      </p>
-                    )}
-                    {v && (
-                      <p className="mt-1 text-[11px] font-medium text-primary">
-                        {v}
-                      </p>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+          <OffersView offers={featuredOffers} />
         </section>
       )}
 
@@ -261,17 +201,19 @@ export default async function ClienteHome() {
           </div>
           <div className="space-y-2">
             {recentOrders.map((o) => (
-              <Card key={o.id} className="flex items-center justify-between p-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {o.beneficiary_name || "Beneficiario"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    ${Number(o.amount_usd)} · {o.delivery_currency || ""}
-                  </p>
-                </div>
-                <OrderStatusBadge order={o} />
-              </Card>
+              <Link key={o.id} href="/c/pedidos" className="block">
+                <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {o.beneficiary_name || "Beneficiario"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      ${Number(o.amount_usd)} · {o.delivery_currency || ""}
+                    </p>
+                  </div>
+                  <OrderStatusBadge order={o} />
+                </Card>
+              </Link>
             ))}
           </div>
         </section>

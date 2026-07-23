@@ -165,6 +165,7 @@ export interface Offer {
   description: string | null;
   kind: OfferKind | null;
   emoji: string | null;
+  image_url: string | null;
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;

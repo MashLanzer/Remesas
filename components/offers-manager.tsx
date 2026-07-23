@@ -113,6 +113,17 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
               <Input type="date" name="ends_at" />
             </Field>
           </div>
+          <Field label="Imagen (opcional)">
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
+            />
+          </Field>
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            Un anuncio con foto llama más la atención del cliente.
+          </p>
           <Button type="submit" className="w-full">
             Publicar promoción
           </Button>
@@ -130,9 +141,18 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
             const k = OFFER_KINDS.find((x) => x.key === o.kind);
             return (
               <Card key={o.id} className="flex items-center gap-3 p-3.5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-xl">
-                  {o.emoji || k?.emoji || "📣"}
-                </span>
+                {o.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={o.image_url}
+                    alt=""
+                    className="h-10 w-10 shrink-0 rounded-2xl object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-xl">
+                    {o.emoji || k?.emoji || "📣"}
+                  </span>
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">
                     {o.title}
