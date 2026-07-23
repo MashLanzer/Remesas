@@ -13,6 +13,7 @@ import {
   UserPlus,
   Megaphone,
   ShoppingBag,
+  Boxes,
   X,
 } from "lucide-react";
 import { Sheet } from "@/components/sheet";
@@ -99,6 +100,12 @@ export function BottomNav({ isOperador = true }: { isOperador?: boolean } = {}) 
                     href="/productos"
                     icon={<ShoppingBag className="h-4 w-4" />}
                     label="Nuevo producto"
+                    onClick={() => setMenu(false)}
+                  />
+                  <FabLink
+                    href="/paquetes"
+                    icon={<Boxes className="h-4 w-4" />}
+                    label="Nuevo paquete"
                     onClick={() => setMenu(false)}
                   />
                 </>

@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Sparkles, Package, Star, ChevronRight, Send } from "lucide-react";
+import { Sparkles, Package, Star, ChevronRight, Send, Gift } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveOffers,
+  getActivePackages,
   getExchangeRates,
   getMyOrders,
   getMyPoints,
@@ -37,9 +38,10 @@ export default async function ClienteHome() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [offers, rates, orders, points, cfgRes, profileRes] =
+  const [offers, packages, rates, orders, points, cfgRes, profileRes] =
     await Promise.all([
       getActiveOffers(),
+      getActivePackages(),
       getExchangeRates(),
       getMyOrders(),
       getMyPoints(),
@@ -50,6 +52,7 @@ export default async function ClienteHome() {
     ]);
   const recentOrders = orders.slice(0, 2);
   const featuredOffers = offers.slice(0, 3);
+  const featuredPackages = packages.slice(0, 3);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { business_name?: string | null }
@@ -103,6 +106,49 @@ export default async function ClienteHome() {
           <ChevronRight className="h-5 w-5 shrink-0 text-white/80" />
         </div>
       </Link>
+
+      {/* Paquetes de remesa destacados */}
+      {featuredPackages.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Gift className="h-4 w-4 text-primary" /> Paquetes de remesa
+            </h2>
+            <Link href="/c/tienda" className="text-xs font-semibold text-primary">
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {featuredPackages.map((p) => (
+              <Link key={p.id} href="/c/tienda" className="block">
+                <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+                    {p.emoji || "🎁"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-foreground">
+                      {p.title}
+                    </p>
+                    {p.highlight && (
+                      <p className="truncate text-xs font-semibold text-income">
+                        {p.highlight}
+                      </p>
+                    )}
+                  </div>
+                  <span className="tabular shrink-0 text-sm font-bold text-foreground">
+                    ${Number(p.amount_usd)}
+                    {p.delivery_currency ? (
+                      <span className="ml-1 text-[11px] font-medium text-muted-foreground">
+                        {p.delivery_currency}
+                      </span>
+                    ) : null}
+                  </span>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Tasa del día */}
       <section>

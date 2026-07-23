@@ -11,6 +11,7 @@ import {
   type Profile,
   type RateHistory,
   type Remittance,
+  type RemittancePackage,
   type Settlement,
   type UserRole,
 } from "@/lib/types";
@@ -530,6 +531,37 @@ export async function getActiveOffers(): Promise<Offer[]> {
       (!o.starts_at || o.starts_at <= today) &&
       (!o.ends_at || o.ends_at >= today)
   );
+}
+
+// ===== Paquetes de remesa =====
+
+// Todos los paquetes del negocio (para gestionarlos el operador).
+export async function getPackages(): Promise<RemittancePackage[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("remittance_packages")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("sort", { ascending: true })
+    .order("created_at", { ascending: false });
+  return (data as RemittancePackage[]) ?? [];
+}
+
+// Paquetes activos (los que ve el cliente).
+export async function getActivePackages(): Promise<RemittancePackage[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("remittance_packages")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .eq("active", true)
+    .order("sort", { ascending: true })
+    .order("created_at", { ascending: false });
+  return (data as RemittancePackage[]) ?? [];
 }
 
 export async function getActivityLog(limit = 100): Promise<ActivityEntry[]> {

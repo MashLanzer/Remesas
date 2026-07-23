@@ -77,6 +77,7 @@ export interface Order {
   delivered_at: string | null;
   received_at: string | null;
   track_token: string | null;
+  package_id?: string | null;
   redeem?: boolean | null;
   points_used?: number | null;
   discount_usd?: number | null;
@@ -93,6 +94,20 @@ export interface Offer {
   active: boolean;
   starts_at: string | null;
   ends_at: string | null;
+  created_at: string;
+}
+
+export interface RemittancePackage {
+  id: string;
+  operator_id: string | null;
+  title: string;
+  description: string | null;
+  emoji: string | null;
+  amount_usd: number;
+  delivery_currency: DeliveryCurrency | null;
+  highlight: string | null;
+  active: boolean;
+  sort: number;
   created_at: string;
 }
 

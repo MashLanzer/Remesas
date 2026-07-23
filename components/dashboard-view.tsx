@@ -10,6 +10,7 @@ import {
   Wallet,
   Megaphone,
   ShoppingBag,
+  Boxes,
   Inbox,
   ShoppingCart,
 } from "lucide-react";
@@ -48,6 +49,7 @@ export function DashboardView({
   pendingStoreOrders = 0,
   offersCount = 0,
   productsCount = 0,
+  packagesCount = 0,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
@@ -57,6 +59,7 @@ export function DashboardView({
   pendingStoreOrders?: number;
   offersCount?: number;
   productsCount?: number;
+  packagesCount?: number;
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
@@ -155,6 +158,12 @@ export function DashboardView({
         <div>
           <h2 className="mb-3 text-base font-bold text-foreground">Tu tienda</h2>
           <div className="grid grid-cols-2 gap-3">
+            <StoreCard
+              href="/paquetes"
+              icon={Boxes}
+              title="Paquetes"
+              subtitle={`${packagesCount} publicados`}
+            />
             <StoreCard
               href="/ofertas"
               icon={Megaphone}

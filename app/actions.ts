@@ -193,6 +193,60 @@ export async function deleteOffer(id: string) {
   revalidatePath("/c");
 }
 
+// ===== Paquetes de remesa (los publica el operador) =====
+
+export async function createPackage(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase.from("remittance_packages").insert({
+    operator_id: ctx.tenantId,
+    title: str(formData.get("title")) ?? "Paquete",
+    description: str(formData.get("description")),
+    emoji: str(formData.get("emoji")),
+    amount_usd: num(formData.get("amount_usd")),
+    delivery_currency: str(formData.get("delivery_currency")),
+    highlight: str(formData.get("highlight")),
+    active: true,
+    created_by: ctx.userId,
+  });
+  await logActivity("paquete.crear", {
+    entityType: "paquete",
+    entityLabel: str(formData.get("title")) ?? "Paquete",
+  });
+  revalidatePath("/paquetes");
+  revalidatePath("/c/tienda");
+  revalidatePath("/c");
+}
+
+export async function togglePackage(id: string, active: boolean) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("remittance_packages")
+    .update({ active })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+  revalidatePath("/paquetes");
+  revalidatePath("/c/tienda");
+  revalidatePath("/c");
+}
+
+export async function deletePackage(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  await supabase
+    .from("remittance_packages")
+    .delete()
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+  revalidatePath("/paquetes");
+  revalidatePath("/c/tienda");
+  revalidatePath("/c");
+}
+
 // ===== Tienda: productos (operador) =====
 
 export async function createProduct(formData: FormData) {
@@ -363,8 +417,35 @@ export async function createOrder(formData: FormData) {
   const ctx = await getSessionContext();
   if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
 
+  // Si el pedido viene de un paquete, el monto y la moneda salen del paquete
+  // real (fuente de verdad); el cliente no los fija. El trigger de la base lo
+  // blinda además a nivel de datos.
+  const packageId = str(formData.get("package_id"));
+  let amount = num(formData.get("amount_usd"));
+  let currency = str(formData.get("delivery_currency"));
+  let note = str(formData.get("note"));
+  if (packageId) {
+    const { data: pkgRow } = await supabase
+      .from("remittance_packages")
+      .select("title, amount_usd, delivery_currency, highlight, active")
+      .eq("id", packageId)
+      .eq("operator_id", ctx.tenantId)
+      .maybeSingle();
+    const pkg = pkgRow as {
+      title?: string;
+      amount_usd?: number;
+      delivery_currency?: string | null;
+      highlight?: string | null;
+      active?: boolean;
+    } | null;
+    if (!pkg || pkg.active === false) return;
+    amount = Number(pkg.amount_usd) || 0;
+    currency = pkg.delivery_currency ?? currency;
+    const label = `Paquete: ${pkg.title ?? "Paquete"}${pkg.highlight ? ` — ${pkg.highlight}` : ""}`;
+    note = note ? `${label}\n${note}` : label;
+  }
+
   // Datos mínimos: monto positivo y nombre del beneficiario.
-  const amount = num(formData.get("amount_usd"));
   const benefName = str(formData.get("beneficiary_name"));
   if (amount <= 0 || !benefName) return;
 
@@ -384,8 +465,9 @@ export async function createOrder(formData: FormData) {
     beneficiary_name: benefName,
     beneficiary_phone: str(formData.get("beneficiary_phone")),
     province: str(formData.get("province")),
-    delivery_currency: str(formData.get("delivery_currency")),
-    note: str(formData.get("note")),
+    delivery_currency: currency,
+    note,
+    package_id: packageId,
     redeem: formData.get("redeem") != null,
     status: "pendiente",
   });
