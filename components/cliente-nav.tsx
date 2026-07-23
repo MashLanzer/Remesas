@@ -1,0 +1,90 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Home, Store, Package, Star, Send } from "lucide-react";
+
+const items = [
+  { href: "/c", label: "Inicio", icon: Home, exact: true },
+  { href: "/c/tienda", label: "Tienda", icon: Store },
+  { href: "/c/pedidos", label: "Pedidos", icon: Package },
+  { href: "/c/puntos", label: "Puntos", icon: Star },
+];
+
+export function ClienteNav() {
+  const pathname = usePathname();
+  const [saver, setSaver] = useState(false);
+
+  useEffect(() => {
+    setSaver(document.documentElement.classList.contains("data-saver"));
+  }, []);
+
+  const left = items.slice(0, 2);
+  const right = items.slice(2);
+
+  return (
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 backdrop-blur">
+      <div className="relative mx-auto flex max-w-md items-stretch justify-around">
+        {left.map((item) => (
+          <NavItem key={item.href} item={item} pathname={pathname} saver={saver} />
+        ))}
+
+        {/* Hueco para el FAB */}
+        <div className="w-16 shrink-0" aria-hidden />
+
+        {right.map((item) => (
+          <NavItem key={item.href} item={item} pathname={pathname} saver={saver} />
+        ))}
+
+        {/* FAB central: Enviar remesa */}
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
+          <Link
+            href="/c/enviar"
+            prefetch={saver ? false : undefined}
+            aria-label="Enviar remesa"
+            className="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition active:scale-90"
+          >
+            <Send className="h-6 w-6" />
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function NavItem({
+  item,
+  pathname,
+  saver,
+}: {
+  item: (typeof items)[number];
+  pathname: string;
+  saver: boolean;
+}) {
+  const active = item.exact
+    ? pathname === item.href
+    : pathname.startsWith(item.href);
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      prefetch={saver ? false : undefined}
+      className={cn(
+        "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition",
+        active ? "text-primary" : "text-muted-foreground"
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-8 w-14 items-center justify-center rounded-full transition",
+          active && "bg-primary/12 text-primary"
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      {item.label}
+    </Link>
+  );
+}

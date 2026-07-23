@@ -11,6 +11,8 @@ import {
   Wallet,
   Plus,
   UserPlus,
+  Megaphone,
+  ShoppingBag,
   X,
 } from "lucide-react";
 import { Sheet } from "@/components/sheet";
@@ -23,7 +25,7 @@ const items = [
   { href: "/finanzas", label: "Finanzas", icon: Wallet },
 ];
 
-export function BottomNav() {
+export function BottomNav({ isOperador = true }: { isOperador?: boolean } = {}) {
   const pathname = usePathname();
   const [saver, setSaver] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -85,6 +87,22 @@ export function BottomNav() {
                 </span>
                 Nuevo cliente
               </button>
+              {isOperador && (
+                <>
+                  <FabLink
+                    href="/ofertas"
+                    icon={<Megaphone className="h-4 w-4" />}
+                    label="Nueva oferta"
+                    onClick={() => setMenu(false)}
+                  />
+                  <FabLink
+                    href="/productos"
+                    icon={<ShoppingBag className="h-4 w-4" />}
+                    label="Nuevo producto"
+                    onClick={() => setMenu(false)}
+                  />
+                </>
+              )}
             </div>
           )}
           <button

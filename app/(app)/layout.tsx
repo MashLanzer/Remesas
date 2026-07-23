@@ -66,7 +66,7 @@ export default async function AppLayout({
       <main className="mx-auto max-w-md animate-fade-up px-4 pb-24 pt-4">
         {children}
       </main>
-      <BottomNav />
+      <BottomNav isOperador={ctx.isOperador} />
     </div>
   );
 }

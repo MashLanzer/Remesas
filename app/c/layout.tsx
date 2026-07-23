@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
+import { ClienteNav } from "@/components/cliente-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -46,9 +47,10 @@ export default async function ClienteLayout({
           </form>
         </div>
       </header>
-      <main className="mx-auto max-w-md animate-fade-up px-4 pb-16 pt-4">
+      <main className="mx-auto max-w-md animate-fade-up px-4 pb-28 pt-4">
         {children}
       </main>
+      <ClienteNav />
     </div>
   );
 }

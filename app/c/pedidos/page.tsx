@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getMyOrders, getMyStoreOrders } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -18,12 +16,6 @@ export default async function MisPedidosPage() {
 
   return (
     <div>
-      <Link
-        href="/c"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Inicio
-      </Link>
       <PageHeader title="Mis pedidos" subtitle="Sigue el estado de tus envíos" />
 
       {orders.length === 0 && storeOrders.length === 0 ? (

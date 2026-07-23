@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ArrowLeft, Star, Gift, Send, Settings2 } from "lucide-react";
+import { Star, Gift, Send, Settings2 } from "lucide-react";
 import { getMyPoints } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 
@@ -29,12 +28,6 @@ export default async function PuntosPage() {
 
   return (
     <div>
-      <Link
-        href="/c"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Inicio
-      </Link>
       <PageHeader title="Mis puntos" />
 
       {/* Saldo */}

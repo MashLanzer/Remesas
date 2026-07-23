@@ -2,7 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Send, BarChart3, ArrowRight, Wallet } from "lucide-react";
+import {
+  Plus,
+  Send,
+  BarChart3,
+  ArrowRight,
+  Wallet,
+  Megaphone,
+  ShoppingBag,
+  Inbox,
+  ShoppingCart,
+} from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -36,6 +46,8 @@ export function DashboardView({
   isOperador = true,
   pendingOrders = 0,
   pendingStoreOrders = 0,
+  offersCount = 0,
+  productsCount = 0,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
@@ -43,6 +55,8 @@ export function DashboardView({
   isOperador?: boolean;
   pendingOrders?: number;
   pendingStoreOrders?: number;
+  offersCount?: number;
+  productsCount?: number;
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
@@ -135,6 +149,41 @@ export function DashboardView({
           );
         })}
       </div>
+
+      {/* Tu tienda (solo operador) */}
+      {!isRep && (
+        <div>
+          <h2 className="mb-3 text-base font-bold text-foreground">Tu tienda</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <StoreCard
+              href="/ofertas"
+              icon={Megaphone}
+              title="Ofertas"
+              subtitle={`${offersCount} publicadas`}
+            />
+            <StoreCard
+              href="/productos"
+              icon={ShoppingBag}
+              title="Productos"
+              subtitle={`${productsCount} en catálogo`}
+            />
+            <StoreCard
+              href="/pedidos"
+              icon={Inbox}
+              title="Pedidos"
+              subtitle={`${pendingOrders} nuevos`}
+              highlight={pendingOrders > 0}
+            />
+            <StoreCard
+              href="/tienda"
+              icon={ShoppingCart}
+              title="Tienda"
+              subtitle={`${pendingStoreOrders} nuevos`}
+              highlight={pendingStoreOrders > 0}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Pedidos nuevos de clientes */}
       {pendingOrders > 0 && (
@@ -283,5 +332,52 @@ export function DashboardView({
         )}
       </div>
     </div>
+  );
+}
+
+function StoreCard({
+  href,
+  icon: Icon,
+  title,
+  subtitle,
+  highlight = false,
+}: {
+  href: string;
+  icon: typeof Megaphone;
+  title: string;
+  subtitle: string;
+  highlight?: boolean;
+}) {
+  return (
+    <Link href={href} className="block">
+      <Card
+        className={cn(
+          "flex items-center gap-3 p-3.5 transition active:scale-[0.99]",
+          highlight && "border-primary/30 bg-primary/5"
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+            highlight
+              ? "bg-primary/15 text-primary"
+              : "bg-primary/10 text-primary"
+          )}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-foreground">{title}</p>
+          <p
+            className={cn(
+              "truncate text-xs",
+              highlight ? "font-semibold text-primary" : "text-muted-foreground"
+            )}
+          >
+            {subtitle}
+          </p>
+        </div>
+      </Card>
+    </Link>
   );
 }
