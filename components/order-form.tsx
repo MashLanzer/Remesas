@@ -54,7 +54,7 @@ export function OrderForm({
           name="amount_usd"
           inputMode="decimal"
           step="0.01"
-          min="0"
+          min="1"
           placeholder="100"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}

@@ -1,4 +1,4 @@
-import { getMyOrders, getMyStoreOrders } from "@/lib/data";
+import { getMyOrders } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { OrderTimeline } from "@/components/order-timeline";
@@ -9,65 +9,19 @@ import { usd } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
-  const [orders, storeOrders] = await Promise.all([
-    getMyOrders(),
-    getMyStoreOrders(),
-  ]);
+  const orders = await getMyOrders();
 
   return (
     <div>
       <PageHeader title="Mis pedidos" subtitle="Sigue el estado de tus envíos" />
 
-      {orders.length === 0 && storeOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <EmptyState
           title="Aún no has pedido"
-          description="Cuando pidas una remesa o un producto, aquí verás su estado."
+          description="Cuando pidas una remesa, aquí verás su estado en vivo."
         />
       ) : (
         <div className="space-y-3">
-          {storeOrders.length > 0 && (
-            <>
-              <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Tienda
-              </h2>
-              {storeOrders.map((o) => (
-                <Card key={o.id} className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-foreground">
-                        {o.qty}× {o.product_name || "Producto"}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {usd(Number(o.total_usd))} · para{" "}
-                        {o.recipient_name || "—"}
-                      </p>
-                    </div>
-                    <OrderStatusBadge order={o} />
-                  </div>
-                  <div className="border-t border-border pt-3">
-                    <OrderTimeline
-                      status={o.status}
-                      created_at={o.created_at}
-                      accepted_at={o.accepted_at}
-                      delivered_at={o.delivered_at}
-                      received_at={null}
-                      hideReceived
-                    />
-                  </div>
-                  {o.status === "pendiente" && (
-                    <div className="border-t border-border pt-3">
-                      <CancelOrderButton id={o.id} store />
-                    </div>
-                  )}
-                </Card>
-              ))}
-              {orders.length > 0 && (
-                <h2 className="px-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Remesas
-                </h2>
-              )}
-            </>
-          )}
           {orders.map((o) => (
             <Card key={o.id} className="space-y-3">
               <div className="flex items-start justify-between gap-3">

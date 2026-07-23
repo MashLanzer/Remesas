@@ -199,12 +199,14 @@ export async function createPackage(formData: FormData) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
+  const amount = num(formData.get("amount_usd"));
+  if (amount <= 0) return; // un paquete sin monto no tiene sentido
   await supabase.from("remittance_packages").insert({
     operator_id: ctx.tenantId,
     title: str(formData.get("title")) ?? "Paquete",
     description: str(formData.get("description")),
     emoji: str(formData.get("emoji")),
-    amount_usd: num(formData.get("amount_usd")),
+    amount_usd: amount,
     delivery_currency: str(formData.get("delivery_currency")),
     highlight: str(formData.get("highlight")),
     active: true,

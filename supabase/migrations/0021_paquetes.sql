@@ -25,7 +25,10 @@ create index if not exists remittance_packages_operator_idx
 alter table public.remittance_packages enable row level security;
 drop policy if exists "remittance_packages_select" on public.remittance_packages;
 create policy "remittance_packages_select" on public.remittance_packages
-  for select using (operator_id = public.current_operator_id());
+  for select using (
+    operator_id = public.current_operator_id()
+    and (active or public.current_is_operador())
+  );
 drop policy if exists "remittance_packages_write" on public.remittance_packages;
 create policy "remittance_packages_write" on public.remittance_packages
   for all
