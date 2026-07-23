@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Check, X, User, MapPin, Phone } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { acceptOrder, rejectOrder } from "@/app/actions";
+import { acceptOrder, rejectOrder, cancelAcceptedOrder } from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
@@ -110,16 +110,35 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
           </h2>
           <div className="space-y-2">
             {resto.map((o) => (
-              <Card key={o.id} className="flex items-center justify-between p-3.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {usd(Number(o.amount_usd))} · {o.beneficiary_name || "—"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {o.client_name || "—"} · {formatDate(o.created_at.slice(0, 10))}
-                  </p>
+              <Card key={o.id} className="space-y-2.5 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {usd(Number(o.amount_usd))} · {o.beneficiary_name || "—"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {o.client_name || "—"} ·{" "}
+                      {formatDate(o.created_at.slice(0, 10))}
+                    </p>
+                  </div>
+                  <OrderStatusBadge order={o} />
                 </div>
-                <OrderStatusBadge order={o} />
+                {o.status === "aceptado" && (
+                  <button
+                    onClick={() => {
+                      if (
+                        confirm(
+                          "¿Cancelar este pedido? Se borrará la remesa vinculada y el cliente dejará de ver el envío."
+                        )
+                      )
+                        act(o.id, cancelAcceptedOrder);
+                    }}
+                    disabled={busy === o.id}
+                    className="w-full rounded-xl border border-border py-2 text-xs font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    Cancelar pedido
+                  </button>
+                )}
               </Card>
             ))}
           </div>

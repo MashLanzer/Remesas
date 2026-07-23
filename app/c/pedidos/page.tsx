@@ -115,8 +115,13 @@ export default async function MisPedidosPage() {
     const d = orderDisplay(o);
     return d === "entregado" || d === "recibido";
   }).length;
+  // "Enviado" cuenta solo lo que ya llegó a la familia (entregado/recibido),
+  // no lo pendiente ni lo que está en camino.
   const totalEnviado = orders
-    .filter((o) => orderDisplay(o) !== "rechazado")
+    .filter((o) => {
+      const d = orderDisplay(o);
+      return d === "entregado" || d === "recibido";
+    })
     .reduce((s, o) => s + Number(o.amount_usd), 0);
 
   return (

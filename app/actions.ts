@@ -1145,10 +1145,69 @@ export async function updateRemittanceStatus(id: string, status: string) {
 export async function deleteRemittance(id: string) {
   const supabase = await createClient();
   await logActivity("remesa.borrar", { entityType: "remesa", entityId: id });
+  // Si esta remesa nació de un pedido de cliente, refléjalo en el pedido: deja
+  // de mostrarse "en camino" y queda cancelado (si no, el cliente seguiría
+  // viendo un trayecto fantasma en su app).
+  await supabase
+    .from("orders")
+    .update({
+      status: "rechazado",
+      remittance_id: null,
+      accepted_at: null,
+      delivered_at: null,
+      received_at: null,
+    })
+    .eq("remittance_id", id);
   await supabase.from("remittances").delete().eq("id", id);
   revalidatePath("/remesas");
   revalidatePath("/");
+  revalidatePath("/c");
+  revalidatePath("/c/pedidos");
   redirect("/remesas");
+}
+
+// El personal cancela un pedido ya ACEPTADO: borra la remesa vinculada (si la
+// hay) y devuelve el pedido a "rechazado", limpiando el seguimiento. Así el
+// cliente deja de ver un envío que ya no existe.
+export async function cancelAcceptedOrder(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return;
+
+  const { data: ord } = await supabase
+    .from("orders")
+    .select("remittance_id")
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId)
+    .maybeSingle();
+  const remId =
+    (ord as { remittance_id?: string | null } | null)?.remittance_id ?? null;
+  if (remId) {
+    await supabase
+      .from("remittances")
+      .delete()
+      .eq("id", remId)
+      .eq("operator_id", ctx.tenantId);
+  }
+
+  await supabase
+    .from("orders")
+    .update({
+      status: "rechazado",
+      remittance_id: null,
+      accepted_at: null,
+      delivered_at: null,
+      received_at: null,
+    })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+
+  await logActivity("pedido.cancelar", { entityType: "pedido", entityId: id });
+  revalidatePath("/pedidos");
+  revalidatePath("/remesas");
+  revalidatePath("/");
+  revalidatePath("/c");
+  revalidatePath("/c/pedidos");
 }
 
 // ============ CLIENTES ============
