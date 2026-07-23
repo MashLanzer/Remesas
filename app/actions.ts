@@ -632,16 +632,38 @@ export async function acceptOrder(id: string) {
   const split =
     Number((meProf as { default_split_percent?: number } | null)?.default_split_percent) || 50;
 
-  // Cliente (reusar por teléfono si ya existe; si no, crear).
+  // Cliente de agenda enlazado a la CUENTA real del cliente (user_id), no al
+  // teléfono: así dos personas distintas nunca se fusionan aunque compartan
+  // número. Orden: (1) buscar por cuenta; (2) adoptar un registro viejo del
+  // mismo teléfono SOLO si aún no tiene cuenta asignada (compatibilidad con
+  // datos anteriores); (3) crear uno nuevo enlazado a la cuenta.
   let clientId: string | null = null;
-  if (order.client_phone) {
-    const { data: existing } = await supabase
+  if (order.client_id) {
+    const { data: byUser } = await supabase
       .from("clients")
       .select("id")
       .eq("operator_id", tid)
-      .eq("phone", order.client_phone)
+      .eq("user_id", order.client_id)
       .maybeSingle();
-    clientId = (existing as { id?: string } | null)?.id ?? null;
+    clientId = (byUser as { id?: string } | null)?.id ?? null;
+
+    if (!clientId && order.client_phone) {
+      const { data: byPhone } = await supabase
+        .from("clients")
+        .select("id, user_id")
+        .eq("operator_id", tid)
+        .eq("phone", order.client_phone)
+        .maybeSingle();
+      const bp = byPhone as { id?: string; user_id?: string | null } | null;
+      // Solo adopta si ese registro no está ya reclamado por otra cuenta.
+      if (bp?.id && !bp.user_id) {
+        clientId = bp.id;
+        await supabase
+          .from("clients")
+          .update({ user_id: order.client_id })
+          .eq("id", clientId);
+      }
+    }
   }
   if (!clientId && order.client_name) {
     const { data: c } = await supabase
@@ -650,6 +672,7 @@ export async function acceptOrder(id: string) {
         name: order.client_name,
         phone: order.client_phone,
         operator_id: tid,
+        ...(order.client_id ? { user_id: order.client_id } : {}),
       })
       .select("id")
       .single();

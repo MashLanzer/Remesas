@@ -226,6 +226,7 @@ export interface Client {
   phone: string | null;
   country: string | null;
   notes: string | null;
+  user_id?: string | null; // cuenta real del cliente (si pidió desde su app)
   pinned?: boolean;
   created_at: string;
 }
