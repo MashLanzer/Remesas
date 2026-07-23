@@ -5,6 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Home, Gift, Package, Star, Send } from "lucide-react";
+import { Sheet } from "@/components/sheet";
+import { OrderForm } from "@/components/order-form";
+import type { ExchangeRate } from "@/lib/types";
 
 const items = [
   { href: "/c", label: "Inicio", icon: Home, exact: true },
@@ -13,9 +16,20 @@ const items = [
   { href: "/c/puntos", label: "Puntos", icon: Star },
 ];
 
-export function ClienteNav() {
+export function ClienteNav({
+  rates = [],
+  pointsBalance = 0,
+  redeemMin = 100,
+  pointValue = 0.05,
+}: {
+  rates?: ExchangeRate[];
+  pointsBalance?: number;
+  redeemMin?: number;
+  pointValue?: number;
+}) {
   const pathname = usePathname();
   const [saver, setSaver] = useState(false);
+  const [enviar, setEnviar] = useState(false);
 
   useEffect(() => {
     setSaver(document.documentElement.classList.contains("data-saver"));
@@ -38,18 +52,32 @@ export function ClienteNav() {
           <NavItem key={item.href} item={item} pathname={pathname} saver={saver} />
         ))}
 
-        {/* FAB central: Enviar remesa */}
+        {/* FAB central: enviar remesa (abre en sheet) */}
         <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
-          <Link
-            href="/c/enviar"
-            prefetch={saver ? false : undefined}
+          <button
+            type="button"
+            onClick={() => setEnviar(true)}
             aria-label="Enviar remesa"
-            className="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition active:scale-90"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition active:scale-90"
           >
             <Send className="h-6 w-6" />
-          </Link>
+          </button>
         </div>
       </div>
+
+      <Sheet
+        open={enviar}
+        onClose={() => setEnviar(false)}
+        title="Enviar una remesa"
+      >
+        <OrderForm
+          rates={rates}
+          onDone={() => setEnviar(false)}
+          pointsBalance={pointsBalance}
+          redeemMin={redeemMin}
+          pointValue={pointValue}
+        />
+      </Sheet>
     </nav>
   );
 }

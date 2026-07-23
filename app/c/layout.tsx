@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionContext } from "@/lib/data";
+import { getSessionContext, getExchangeRates, getMyPoints } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteNav } from "@/components/cliente-nav";
 
@@ -22,6 +22,18 @@ export default async function ClienteLayout({
   if (ctx.needsOnboarding) redirect("/onboarding");
   // Esta área es solo para clientes; el resto va a la app de negocio.
   if (!ctx.isCliente) redirect("/");
+
+  // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
+  const [rates, points, cfgRes] = await Promise.all([
+    getExchangeRates(),
+    getMyPoints(),
+    supabase.rpc("my_client_config"),
+  ]);
+  const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
+    | { point_value_usd?: number | null; redeem_min_points?: number | null }
+    | null;
+  const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
+  const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,7 +62,12 @@ export default async function ClienteLayout({
       <main className="mx-auto max-w-md animate-fade-up px-4 pb-28 pt-4">
         {children}
       </main>
-      <ClienteNav />
+      <ClienteNav
+        rates={rates}
+        pointsBalance={points.balance}
+        redeemMin={redeemMin}
+        pointValue={pointValue}
+      />
     </div>
   );
 }

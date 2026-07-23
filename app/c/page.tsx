@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Package, Star, ChevronRight, Send, Gift } from "lucide-react";
+import { Sparkles, Package, Star, Gift } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveOffers,
@@ -11,6 +11,7 @@ import {
 import { Card, EmptyState } from "@/components/ui";
 import { localAmount, packageReceives } from "@/lib/utils";
 import { RateConverter } from "@/components/rate-converter";
+import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { OFFER_KINDS, type Offer } from "@/lib/types";
 
@@ -56,13 +57,19 @@ export default async function ClienteHome() {
   const featuredPackages = packages.slice(0, 3);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
-    | { business_name?: string | null }
+    | {
+        business_name?: string | null;
+        point_value_usd?: number | null;
+        redeem_min_points?: number | null;
+      }
     | null;
 
   const firstName =
     (profileRes.data?.full_name as string | undefined)?.trim().split(" ")[0] ??
     null;
   const brand = cfg?.business_name || "Giro";
+  const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
+  const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
   return (
     <div className="space-y-6">
@@ -92,21 +99,13 @@ export default async function ClienteHome() {
         </Link>
       </div>
 
-      {/* CTA principal: enviar remesa */}
-      <Link href="/c/enviar" className="block">
-        <div className="flex items-center gap-4 rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 p-5 text-white shadow-xl transition active:scale-[0.99]">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-            <Send className="h-6 w-6" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-base font-bold">Enviar una remesa</p>
-            <p className="text-xs text-white/80">
-              Tu familia recibe en pocas horas
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-white/80" />
-        </div>
-      </Link>
+      {/* CTA principal: enviar remesa (abre en sheet) */}
+      <EnviarRemesaCta
+        rates={rates}
+        pointsBalance={points.balance}
+        redeemMin={redeemMin}
+        pointValue={pointValue}
+      />
 
       {/* Paquetes de remesa destacados */}
       {featuredPackages.length > 0 && (
