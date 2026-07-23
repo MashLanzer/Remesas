@@ -12,6 +12,7 @@ import {
   type RemittancePackage,
 } from "@/lib/types";
 import { usd, localAmount, packageReceives } from "@/lib/utils";
+import { useDialog } from "@/components/confirm";
 
 type Draft = {
   title: string;
@@ -41,6 +42,7 @@ export function PackagesManager({
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const { confirm } = useDialog();
 
   const preview = packageReceives(
     parseFloat(draft.amount_usd) || 0,
@@ -247,8 +249,14 @@ export function PackagesManager({
                   {p.active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`¿Eliminar "${p.title}"?`))
+                  onClick={async () => {
+                    if (
+                      await confirm({
+                        title: "Eliminar paquete",
+                        message: `¿Eliminar "${p.title}"?`,
+                        confirmLabel: "Eliminar",
+                      })
+                    )
                       start(() => deletePackage(p.id));
                   }}
                   disabled={pending}

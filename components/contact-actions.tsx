@@ -18,6 +18,7 @@ import {
   deleteBeneficiary,
 } from "@/app/actions";
 import { DELIVERY_CURRENCIES, type Beneficiary, type Client } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 export function ContactActions({
   kind,
@@ -33,12 +34,20 @@ export function ContactActions({
   const [editing, setEditing] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
+  const { confirm } = useDialog();
 
   const id = client?.id ?? beneficiary?.id ?? "";
   const name = client?.name ?? beneficiary?.name ?? "";
 
-  function onDelete() {
-    if (!confirm(`¿Eliminar a ${name}?`)) return;
+  async function onDelete() {
+    if (
+      !(await confirm({
+        title: "Eliminar contacto",
+        message: `¿Eliminar a ${name}? Esta acción no se puede deshacer.`,
+        confirmLabel: "Eliminar",
+      }))
+    )
+      return;
     start(async () => {
       if (kind === "cliente") await deleteClientRecord(id);
       else await deleteBeneficiary(id);

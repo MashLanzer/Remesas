@@ -13,6 +13,7 @@ import {
 import { Card } from "@/components/ui";
 import { approveMember, removeMember, regenerateCode } from "@/app/actions";
 import type { Profile } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 export function TeamManager({
   code,
@@ -25,6 +26,7 @@ export function TeamManager({
 }) {
   const [pendingTx, start] = useTransition();
   const [copied, setCopied] = useState(false);
+  const { confirm } = useDialog();
 
   function copy() {
     if (!code) return;
@@ -71,8 +73,14 @@ export function TeamManager({
             <Share2 className="h-4 w-4" /> Compartir
           </button>
           <button
-            onClick={() => {
-              if (confirm("¿Regenerar el código? El anterior dejará de servir."))
+            onClick={async () => {
+              if (
+                await confirm({
+                  title: "Regenerar código",
+                  message: "¿Regenerar el código? El anterior dejará de servir.",
+                  confirmLabel: "Regenerar",
+                })
+              )
                 start(() => regenerateCode());
             }}
             disabled={pendingTx}
@@ -110,11 +118,12 @@ export function TeamManager({
                     <Check className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        confirm(
-                          `¿Rechazar la solicitud de ${p.full_name || "este repartidor"}? Tendría que volver a pedir unirse.`
-                        )
+                        await confirm({
+                          message: `¿Rechazar la solicitud de ${p.full_name || "este repartidor"}? Tendría que volver a pedir unirse.`,
+                          confirmLabel: "Quitar",
+                        })
                       )
                         start(() => removeMember(p.id));
                     }}
@@ -162,8 +171,13 @@ export function TeamManager({
                   </div>
                 </div>
                 <button
-                  onClick={() => {
-                    if (confirm(`¿Quitar a ${p.full_name || "este repartidor"}? Sus remesas se quedan contigo.`))
+                  onClick={async () => {
+                    if (
+                      await confirm({
+                        message: `¿Quitar a ${p.full_name || "este repartidor"}? Sus remesas se quedan contigo.`,
+                        confirmLabel: "Quitar",
+                      })
+                    )
                       start(() => removeMember(p.id));
                   }}
                   disabled={pendingTx}

@@ -3,13 +3,22 @@
 import { useTransition } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { confirmReceived } from "@/app/actions";
+import { useDialog } from "@/components/confirm";
 
 export function ConfirmReceivedButton({ token }: { token: string }) {
   const [pending, start] = useTransition();
+  const { confirm } = useDialog();
   return (
     <button
-      onClick={() => {
-        if (confirm("¿Confirmas que ya recibiste el dinero?"))
+      onClick={async () => {
+        if (
+          await confirm({
+            title: "Confirmar recepción",
+            message: "¿Confirmas que ya recibiste el dinero?",
+            confirmLabel: "Sí, recibí",
+            destructive: false,
+          })
+        )
           start(() => confirmReceived(token));
       }}
       disabled={pending}

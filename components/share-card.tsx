@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { Share2, X, MessageCircle, QrCode, Download, ArrowLeft } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
+import { useDialog } from "@/components/confirm";
 
 export function ShareCard({
   name,
@@ -21,6 +22,7 @@ export function ShareCard({
   cashapp?: string | null;
   paypal?: string | null;
 }) {
+  const { notify } = useDialog();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -87,7 +89,7 @@ export function ShareCard({
     }
     try {
       await navigator.clipboard.writeText(text);
-      alert("Tarjeta copiada al portapapeles");
+      notify("Tarjeta copiada al portapapeles");
     } catch {
       /* nada */
     }

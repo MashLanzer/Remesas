@@ -15,6 +15,7 @@ import { Sheet } from "@/components/sheet";
 import { createSettlement, deleteSettlement } from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import type { Settlement } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 export function SettlementView({
   settlements,
@@ -148,6 +149,7 @@ function SettlementCard({
   onEdit: () => void;
 }) {
   const [pending, start] = useTransition();
+  const { confirm } = useDialog();
   const toCuba = s.direction === "us_to_cuba";
   return (
     <Card className="p-3.5">
@@ -184,8 +186,15 @@ function SettlementCard({
           </button>
           <button
             disabled={pending}
-            onClick={() => {
-              if (confirm("¿Eliminar este pago?")) start(() => deleteSettlement(s.id));
+            onClick={async () => {
+              if (
+                await confirm({
+                  title: "Eliminar pago",
+                  message: "¿Eliminar este pago?",
+                  confirmLabel: "Eliminar",
+                })
+              )
+                start(() => deleteSettlement(s.id));
             }}
             className="rounded-lg p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
             aria-label="Eliminar pago"

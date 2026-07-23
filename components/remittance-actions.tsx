@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 import { updateRemittanceStatus, deleteRemittance } from "@/app/actions";
 import { cn } from "@/lib/utils";
 import type { RemittanceStatus } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 const statuses: { key: RemittanceStatus; label: string }[] = [
   { key: "pendiente", label: "Pendiente" },
@@ -21,6 +22,7 @@ export function RemittanceActions({
   current: RemittanceStatus;
 }) {
   const [pending, start] = useTransition();
+  const { confirm } = useDialog();
 
   return (
     <div className="space-y-3">
@@ -46,8 +48,14 @@ export function RemittanceActions({
         variant="danger"
         className="w-full"
         disabled={pending}
-        onClick={() => {
-          if (confirm("¿Eliminar esta remesa? No se puede deshacer.")) {
+        onClick={async () => {
+          if (
+            await confirm({
+              title: "Eliminar remesa",
+              message: "¿Eliminar esta remesa? No se puede deshacer.",
+              confirmLabel: "Eliminar",
+            })
+          ) {
             start(() => deleteRemittance(id));
           }
         }}

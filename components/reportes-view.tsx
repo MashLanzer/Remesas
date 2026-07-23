@@ -19,6 +19,7 @@ import { Card, Select } from "@/components/ui";
 import { Sheet, SheetTrigger } from "@/components/sheet";
 import { usd, localAmount, cn } from "@/lib/utils";
 import type { Remittance } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 type Period = "mes" | "pasado" | "anio" | "todo";
 
@@ -78,6 +79,7 @@ export function ReportesView({
   remittances: Remittance[];
   monthlyGoal?: number;
 }) {
+  const { notify } = useDialog();
   const [period, setPeriod] = useState<Period>("mes");
   const [curFilter, setCurFilter] = useState<string>("");
   const [methodFilter, setMethodFilter] = useState<string>("");
@@ -277,7 +279,7 @@ export function ReportesView({
     }
     try {
       await navigator.clipboard.writeText(text);
-      alert("Resumen copiado al portapapeles");
+      notify("Resumen copiado al portapapeles");
     } catch {
       /* nada */
     }

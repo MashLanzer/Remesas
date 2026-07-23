@@ -7,10 +7,12 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { acceptOrder, rejectOrder, cancelAcceptedOrder } from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import type { Order } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 export function OrdersManager({ orders }: { orders: Order[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
+  const { confirm } = useDialog();
 
   const pendientes = orders.filter((o) => o.status === "pendiente");
   const resto = orders.filter((o) => o.status !== "pendiente");
@@ -125,11 +127,14 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                 </div>
                 {o.status === "aceptado" && (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        confirm(
-                          "¿Cancelar este pedido? Se borrará la remesa vinculada y el cliente dejará de ver el envío."
-                        )
+                        await confirm({
+                          title: "Cancelar pedido",
+                          message:
+                            "Se borrará la remesa vinculada y el cliente dejará de ver el envío.",
+                          confirmLabel: "Sí, cancelar",
+                        })
                       )
                         act(o.id, cancelAcceptedOrder);
                     }}

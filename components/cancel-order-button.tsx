@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { X } from "lucide-react";
 import { cancelOrder, cancelStoreOrder } from "@/app/actions";
+import { useDialog } from "@/components/confirm";
 
 export function CancelOrderButton({
   id,
@@ -12,10 +13,17 @@ export function CancelOrderButton({
   store?: boolean;
 }) {
   const [pending, start] = useTransition();
+  const { confirm } = useDialog();
   return (
     <button
-      onClick={() => {
-        if (confirm("¿Cancelar este pedido?"))
+      onClick={async () => {
+        if (
+          await confirm({
+            title: "Cancelar pedido",
+            message: "¿Cancelar este pedido?",
+            confirmLabel: "Sí, cancelar",
+          })
+        )
           start(() => (store ? cancelStoreOrder(id) : cancelOrder(id)));
       }}
       disabled={pending}

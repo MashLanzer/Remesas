@@ -6,6 +6,7 @@ import { Card, Button, Field, Input, Select, Textarea, EmptyState } from "@/comp
 import { Sheet } from "@/components/sheet";
 import { createOffer, toggleOffer, deleteOffer } from "@/app/actions";
 import { OFFER_KINDS, OFFER_TEMPLATES, type Offer } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 type Draft = {
   title: string;
@@ -20,6 +21,7 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const { confirm } = useDialog();
 
   function openBlank() {
     setDraft(EMPTY);
@@ -175,8 +177,14 @@ export function OffersManager({ offers }: { offers: Offer[] }) {
                   )}
                 </button>
                 <button
-                  onClick={() => {
-                    if (confirm(`¿Eliminar la promoción "${o.title}"?`))
+                  onClick={async () => {
+                    if (
+                      await confirm({
+                        title: "Eliminar promoción",
+                        message: `¿Eliminar la promoción "${o.title}"?`,
+                        confirmLabel: "Eliminar",
+                      })
+                    )
                       start(() => deleteOffer(o.id));
                   }}
                   disabled={pending}
