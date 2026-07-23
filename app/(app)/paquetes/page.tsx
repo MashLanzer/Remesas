@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getPackages, getSessionContext } from "@/lib/data";
+import { getExchangeRates, getPackages, getSessionContext } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { PackagesManager } from "@/components/packages-manager";
 
@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function PaquetesPage() {
   const ctx = await getSessionContext();
   if (!ctx.isOperador) redirect("/ajustes");
-  const packages = await getPackages();
+  const [packages, rates] = await Promise.all([
+    getPackages(),
+    getExchangeRates(),
+  ]);
 
   return (
     <div>
@@ -24,7 +27,7 @@ export default async function PaquetesPage() {
         title="Paquetes de remesa"
         subtitle="Ofertas de envío listas para que el cliente pida con un toque"
       />
-      <PackagesManager packages={packages} />
+      <PackagesManager packages={packages} rates={rates} />
     </div>
   );
 }

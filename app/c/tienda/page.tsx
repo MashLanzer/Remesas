@@ -1,4 +1,4 @@
-import { getActivePackages, getActiveProducts } from "@/lib/data";
+import { getActivePackages, getActiveProducts, getExchangeRates } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { PackagesView } from "@/components/packages-view";
 import { StoreView } from "@/components/store-view";
@@ -6,9 +6,10 @@ import { StoreView } from "@/components/store-view";
 export const dynamic = "force-dynamic";
 
 export default async function TiendaPage() {
-  const [packages, products] = await Promise.all([
+  const [packages, products, rates] = await Promise.all([
     getActivePackages(),
     getActiveProducts(),
+    getExchangeRates(),
   ]);
 
   const hasProducts = products.length > 0;
@@ -20,7 +21,7 @@ export default async function TiendaPage() {
         subtitle="Paquetes de remesa listos para enviar a tu familia"
       />
 
-      <PackagesView packages={packages} />
+      <PackagesView packages={packages} rates={rates} />
 
       {hasProducts && (
         <div className="mt-6">

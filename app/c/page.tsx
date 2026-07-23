@@ -9,6 +9,7 @@ import {
   getMyPoints,
 } from "@/lib/data";
 import { Card, EmptyState } from "@/components/ui";
+import { localAmount, packageReceives } from "@/lib/utils";
 import { RateConverter } from "@/components/rate-converter";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { OFFER_KINDS, type Offer } from "@/lib/types";
@@ -119,33 +120,47 @@ export default async function ClienteHome() {
             </Link>
           </div>
           <div className="space-y-2">
-            {featuredPackages.map((p) => (
-              <Link key={p.id} href="/c/tienda" className="block">
-                <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
-                    {p.emoji || "🎁"}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-foreground">
-                      {p.title}
-                    </p>
-                    {p.highlight && (
-                      <p className="truncate text-xs font-semibold text-income">
-                        {p.highlight}
-                      </p>
-                    )}
-                  </div>
-                  <span className="tabular shrink-0 text-sm font-bold text-foreground">
-                    ${Number(p.amount_usd)}
-                    {p.delivery_currency ? (
-                      <span className="ml-1 text-[11px] font-medium text-muted-foreground">
-                        {p.delivery_currency}
-                      </span>
-                    ) : null}
-                  </span>
-                </Card>
-              </Link>
-            ))}
+            {featuredPackages.map((p) => {
+              const receives = packageReceives(
+                p.amount_usd,
+                p.delivery_currency,
+                rates
+              );
+              return (
+                <Link key={p.id} href="/c/tienda" className="block">
+                  <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+                      {p.emoji || "🎁"}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-bold text-foreground">
+                          {p.title}
+                        </p>
+                        {p.highlight && (
+                          <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                            {p.highlight}
+                          </span>
+                        )}
+                      </div>
+                      {receives != null && p.delivery_currency !== "USD" && (
+                        <p className="truncate text-xs font-semibold text-income">
+                          Recibe ~{localAmount(receives)} {p.delivery_currency}
+                        </p>
+                      )}
+                    </div>
+                    <span className="tabular shrink-0 text-sm font-bold text-foreground">
+                      ${Number(p.amount_usd)}
+                      {p.delivery_currency ? (
+                        <span className="ml-1 text-[11px] font-medium text-muted-foreground">
+                          {p.delivery_currency}
+                        </span>
+                      ) : null}
+                    </span>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

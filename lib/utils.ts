@@ -25,6 +25,25 @@ export function localAmount(amount: number | null | undefined): string {
   });
 }
 
+/** Estimación EN VIVO de lo que recibe la familia por un paquete: el monto en
+ *  USD multiplicado por la tasa actual de esa moneda. Así el "recibe X" se
+ *  reacomoda solo cuando cambia la tasa (nadie pierde por un número fijo viejo).
+ *  Devuelve null si no hay tasa activa para la moneda (no se puede estimar). */
+export function packageReceives(
+  amountUsd: number | null | undefined,
+  currency: string | null | undefined,
+  rates: { currency: string; rate: number; active?: boolean }[]
+): number | null {
+  const amt = Number(amountUsd) || 0;
+  if (!currency) return null;
+  if (currency === "USD") return amt;
+  const r = rates.find((x) => x.currency === currency);
+  if (!r || r.active === false) return null;
+  const rate = Number(r.rate) || 0;
+  if (rate <= 0) return null;
+  return amt * rate;
+}
+
 /** Formatea una fecha ISO a formato legible es-ES. */
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return "—";
