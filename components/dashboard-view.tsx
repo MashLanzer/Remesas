@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Send, ArrowRight, Wallet, LayoutGrid } from "lucide-react";
+import {
+  Plus,
+  Send,
+  ArrowRight,
+  Wallet,
+  LayoutGrid,
+  Inbox,
+  ArrowRightLeft,
+} from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -38,16 +46,18 @@ export function DashboardView({
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
 
-  // Accesos rápidos: solo lo útil. El operador tiene "Gestión" (paquetes,
-  // promociones y pedidos en su propia página); el repartidor, sus remesas.
+  // Accesos rápidos: solo lo útil y que no repita la barra inferior
+  // (Inicio/Remesas/Agenda/Finanzas).
   const actions = isRep
     ? [
         { href: "/remesas/nueva", label: "Nueva remesa", icon: Plus },
-        { href: "/remesas", label: "Remesas", icon: Send },
+        { href: "/pedidos", label: "Pedidos", icon: Inbox },
       ]
     : [
         { href: "/remesas/nueva", label: "Nueva remesa", icon: Plus },
         { href: "/gestion", label: "Gestión", icon: LayoutGrid },
+        { href: "/pedidos", label: "Pedidos", icon: Inbox },
+        { href: "/tasas", label: "Tasas", icon: ArrowRightLeft },
       ];
 
   const filtered = useMemo(() => {
