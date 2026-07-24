@@ -1378,6 +1378,21 @@ export async function deleteBeneficiary(id: string) {
   revalidatePath("/agenda");
 }
 
+// Vincular / desvincular un beneficiario a un cliente (client_id).
+export async function setBeneficiaryClient(
+  beneficiaryId: string,
+  clientId: string | null
+) {
+  const supabase = await createClient();
+  await supabase
+    .from("beneficiaries")
+    .update({ client_id: clientId })
+    .eq("id", beneficiaryId);
+  revalidatePath("/agenda");
+  revalidatePath(`/agenda/beneficiario/${beneficiaryId}`);
+  if (clientId) revalidatePath(`/agenda/cliente/${clientId}`);
+}
+
 // Fusiona contactos duplicados en uno (el que se mantiene). Reasigna sus
 // remesas (y, para clientes, sus beneficiarios) al que se queda y borra los
 // demás. Sin pérdida de historial. Solo el operador.

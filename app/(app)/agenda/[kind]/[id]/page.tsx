@@ -7,7 +7,6 @@ import {
   Plus,
   Send,
   User,
-  ChevronRight,
   Repeat,
   Clock,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import { Card, Badge } from "@/components/ui";
 import { ContactActions } from "@/components/contact-actions";
 import { ContactTopActions } from "@/components/contact-top-actions";
 import { QuickNote } from "@/components/quick-note";
+import { ClientBeneficiaries } from "@/components/client-beneficiaries";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -83,9 +83,6 @@ export default async function ContactoPage({
     .reduce((s, r) => s + Number(r.total_received), 0);
 
   // Vínculos
-  const associatedBenefs = isClient
-    ? allBeneficiaries.filter((b) => b.client_id === id)
-    : [];
   const associatedClient =
     !isClient && beneficiary?.client_id
       ? clients.find((c) => c.id === beneficiary.client_id) ?? null
@@ -230,35 +227,18 @@ export default async function ContactoPage({
       {/* Nota rápida */}
       <QuickNote kind={kind} id={id} notes={contact.notes} />
 
-      {/* Beneficiarios asociados (clientes) */}
-      {isClient && associatedBenefs.length > 0 && (
-        <div>
-          <h2 className="mb-2 text-sm font-bold text-foreground">
-            Beneficiarios ({associatedBenefs.length})
-          </h2>
-          <div className="space-y-2">
-            {associatedBenefs.map((b) => (
-              <Link key={b.id} href={`/agenda/beneficiario/${b.id}`} className="block">
-                <Card className="flex items-center gap-3 p-3 transition active:scale-[0.99]">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                    {b.name.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {b.name}
-                    </p>
-                    {b.province && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {b.province}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
+      {/* Beneficiarios asociados (clientes): añadir/quitar manualmente */}
+      {isClient && (
+        <ClientBeneficiaries
+          clientId={id}
+          beneficiaries={allBeneficiaries.map((b) => ({
+            id: b.id,
+            name: b.name,
+            province: b.province ?? null,
+            client_id: b.client_id ?? null,
+          }))}
+          clientNames={Object.fromEntries(clients.map((c) => [c.id, c.name]))}
+        />
       )}
 
       <ContactActions
