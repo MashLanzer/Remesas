@@ -17,9 +17,12 @@ import {
   Target,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
-import { usd, formatDate } from "@/lib/utils";
-import { cn } from "@/lib/utils";
-import type { Remittance, RemittanceStatus } from "@/lib/types";
+import { usd, formatDate, localAmount, cn } from "@/lib/utils";
+import type {
+  Remittance,
+  RemittanceStatus,
+  ExchangeRate,
+} from "@/lib/types";
 
 const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
   pendiente: "amber",
@@ -71,6 +74,7 @@ export function DashboardView({
   isOperador = true,
   pendingOrders = 0,
   monthlyGoal = 0,
+  rates = [],
 }: {
   remittances: Remittance[];
   partnerBalance: number;
@@ -78,6 +82,7 @@ export function DashboardView({
   isOperador?: boolean;
   pendingOrders?: number;
   monthlyGoal?: number;
+  rates?: ExchangeRate[];
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
@@ -168,6 +173,10 @@ export function DashboardView({
 
   const hasDaySummary =
     pending.length > 0 || unpaid.length > 0 || pendingOrders > 0;
+
+  const activeRates = rates.filter(
+    (r) => r.active !== false && Number(r.rate) > 0
+  );
 
   return (
     <div className="space-y-5">
@@ -319,6 +328,29 @@ export function DashboardView({
           );
         })}
       </div>
+
+      {/* Tasas del día: tira compacta tocable hacia Tasas */}
+      {activeRates.length > 0 && (
+        <Link
+          href="/tasas"
+          className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 py-0.5"
+        >
+          <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+            1 USD =
+          </span>
+          {activeRates.map((r) => (
+            <span
+              key={r.currency}
+              className="shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1.5 text-xs transition active:scale-95"
+            >
+              <span className="tabular font-bold text-foreground">
+                {localAmount(Number(r.rate))}
+              </span>{" "}
+              <span className="text-muted-foreground">{r.currency}</span>
+            </span>
+          ))}
+        </Link>
+      )}
 
       {/* Métricas */}
       <div className="grid grid-cols-2 gap-3">

@@ -4,6 +4,7 @@ import {
   getSessionContext,
   getOrders,
   getBusinessSettings,
+  getExchangeRates,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
@@ -19,12 +20,13 @@ export default async function DashboardPage() {
 
   const ctx = await getSessionContext();
 
-  const [remittances, settlements, pendingOrders, settings, profileRes] =
+  const [remittances, settlements, pendingOrders, settings, rates, profileRes] =
     await Promise.all([
       getRemittances(),
       getSettlements(),
       getOrders({ pendingOnly: true }),
       getBusinessSettings(),
+      getExchangeRates(),
       user
         ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
@@ -42,6 +44,7 @@ export default async function DashboardPage() {
       isOperador={ctx.isOperador}
       pendingOrders={pendingOrders.length}
       monthlyGoal={monthlyGoal}
+      rates={rates}
     />
   );
 }
