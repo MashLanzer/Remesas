@@ -21,11 +21,13 @@ export function ClienteNav({
   pointsBalance = 0,
   redeemMin = 100,
   pointValue = 0.05,
+  beneficiaries = [],
 }: {
   rates?: ExchangeRate[];
   pointsBalance?: number;
   redeemMin?: number;
   pointValue?: number;
+  beneficiaries?: { name: string; phone: string | null; province: string | null }[];
 }) {
   const pathname = usePathname();
   const [saver, setSaver] = useState(false);
@@ -76,6 +78,7 @@ export function ClienteNav({
           pointsBalance={pointsBalance}
           redeemMin={redeemMin}
           pointValue={pointValue}
+          beneficiaries={beneficiaries}
         />
       </Sheet>
     </nav>

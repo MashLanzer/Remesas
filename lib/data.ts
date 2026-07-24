@@ -496,6 +496,46 @@ export async function getMyOrders(): Promise<Order[]> {
   return (data as Order[]) ?? [];
 }
 
+// Beneficiarios que el cliente ya usó (derivados de sus pedidos), para reusar.
+export async function getMyBeneficiaries(): Promise<
+  { name: string; phone: string | null; province: string | null }[]
+> {
+  const orders = await getMyOrders();
+  const seen = new Set<string>();
+  const out: { name: string; phone: string | null; province: string | null }[] =
+    [];
+  for (const o of orders) {
+    const name = o.beneficiary_name?.trim();
+    if (!name) continue;
+    const key = `${name.toLowerCase()}|${o.beneficiary_phone ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      name,
+      phone: o.beneficiary_phone ?? null,
+      province: o.province ?? null,
+    });
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
+// Contacto del negocio del cliente (RPC SECURITY DEFINER — RLS-safe).
+export async function getMyOperatorContact(): Promise<{
+  businessName: string | null;
+  phone: string | null;
+}> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_operator_contact");
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { business_name?: string | null; phone?: string | null }
+    | null;
+  return {
+    businessName: row?.business_name ?? null,
+    phone: row?.phone ?? null,
+  };
+}
+
 // Pedidos del negocio (para el personal). opts.pendingOnly filtra los pendientes.
 export async function getOrders(
   opts: { pendingOnly?: boolean } = {}

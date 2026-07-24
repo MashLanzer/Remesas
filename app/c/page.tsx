@@ -7,13 +7,17 @@ import {
   getExchangeRates,
   getMyOrders,
   getMyPoints,
+  getMyBeneficiaries,
+  getMyOperatorContact,
 } from "@/lib/data";
 import { Card } from "@/components/ui";
 import { localAmount, packageReceives } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
+import { ContactBusiness } from "@/components/contact-business";
 import { OrderStatusBadge } from "@/components/order-status-badge";
+import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -23,18 +27,29 @@ export default async function ClienteHome() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [offers, packages, rates, orders, points, cfgRes, profileRes] =
-    await Promise.all([
-      getActiveOffers(),
-      getActivePackages(),
-      getExchangeRates(),
-      getMyOrders(),
-      getMyPoints(),
-      supabase.rpc("my_client_config"),
-      user
-        ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
-        : Promise.resolve({ data: null }),
-    ]);
+  const [
+    offers,
+    packages,
+    rates,
+    orders,
+    points,
+    cfgRes,
+    profileRes,
+    beneficiaries,
+    contact,
+  ] = await Promise.all([
+    getActiveOffers(),
+    getActivePackages(),
+    getExchangeRates(),
+    getMyOrders(),
+    getMyPoints(),
+    supabase.rpc("my_client_config"),
+    user
+      ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
+      : Promise.resolve({ data: null }),
+    getMyBeneficiaries(),
+    getMyOperatorContact(),
+  ]);
   const recentOrders = orders.slice(0, 3);
   const featuredOffers = [...offers]
     .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
@@ -112,6 +127,7 @@ export default async function ClienteHome() {
               pointsBalance={points.balance}
               redeemMin={redeemMin}
               pointValue={pointValue}
+              beneficiaries={beneficiaries}
             />
             <CalculadoraSheet rates={rates} />
           </div>
@@ -183,7 +199,11 @@ export default async function ClienteHome() {
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
             <Star className="h-4 w-4 text-primary" /> Anuncios
           </h2>
-          <OffersView offers={featuredOffers} />
+          <OffersView
+            offers={featuredOffers}
+            contactPhone={contact.phone}
+            businessName={contact.businessName}
+          />
         </section>
       )}
 
@@ -220,6 +240,70 @@ export default async function ClienteHome() {
           </div>
         </section>
       )}
+
+      {/* Primeros pasos (cliente nuevo, sin pedidos) */}
+      {recentOrders.length === 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-bold text-foreground">Cómo funciona</h2>
+          <div className="space-y-3">
+            <HowStep
+              n={1}
+              icon={<Send className="h-5 w-5" />}
+              title="Pide tu remesa"
+              desc="Elige el monto y quién recibe en Cuba."
+            />
+            <HowStep
+              n={2}
+              icon={<Check className="h-5 w-5" />}
+              title="El negocio la acepta"
+              desc="Confirma el envío y empieza el reparto."
+            />
+            <HowStep
+              n={3}
+              icon={<PartyPopper className="h-5 w-5" />}
+              title="Entrega con seguimiento"
+              desc="Sigues cada paso hasta tu familia."
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Contacto con el negocio */}
+      {contact.phone && (
+        <ContactBusiness
+          phone={contact.phone}
+          businessName={contact.businessName}
+          tone="soft"
+          label="¿Dudas? Escríbenos por WhatsApp"
+        />
+      )}
+    </div>
+  );
+}
+
+function HowStep({
+  n,
+  icon,
+  title,
+  desc,
+}: {
+  n: number;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        {icon}
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          {n}
+        </span>
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
+      </div>
     </div>
   );
 }

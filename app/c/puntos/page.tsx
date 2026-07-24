@@ -1,6 +1,8 @@
 import { Star, Gift, Send, Settings2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import { getMyPoints } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { usd } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -24,23 +26,54 @@ function when(iso: string): string {
 }
 
 export default async function PuntosPage() {
-  const { balance, entries } = await getMyPoints();
+  const supabase = await createClient();
+  const [{ balance, entries }, cfgRes] = await Promise.all([
+    getMyPoints(),
+    supabase.rpc("my_client_config"),
+  ]);
+  const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
+    | { point_value_usd?: number | null; redeem_min_points?: number | null }
+    | null;
+  const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
+  const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
+  const worth = balance * pointValue;
+  const canRedeem = balance >= redeemMin;
+  const missing = Math.max(redeemMin - balance, 0);
 
   return (
     <div>
       <PageHeader title="Mis puntos" />
 
       {/* Saldo */}
-      <div className="mb-5 rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-xl">
+      <div className="mb-4 rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-xl">
         <p className="flex items-center gap-1.5 text-sm font-medium text-white/75">
           <Star className="h-4 w-4" /> Tienes
         </p>
         <p className="tabular mt-1 text-4xl font-extrabold">{balance} puntos</p>
         <p className="mt-1 text-xs text-white/70">
-          Ganas puntos con cada remesa entregada. Úsalos al pedir tu próxima
-          remesa para un descuento.
+          ≈ {usd(worth)} en descuentos · ganas puntos con cada remesa entregada.
         </p>
       </div>
+
+      {/* Cómo canjear */}
+      <Card className="mb-5 space-y-2 border-primary/20 bg-primary/5">
+        <p className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+          <Gift className="h-4 w-4 text-primary" /> Cómo usar tus puntos
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Cada punto vale ≈ {usd(pointValue)}. Desde {redeemMin} puntos puedes
+          canjearlos por un descuento en la comisión de tu próxima remesa.
+        </p>
+        {canRedeem ? (
+          <p className="rounded-lg bg-income/10 px-2.5 py-1.5 text-xs font-semibold text-income">
+            ¡Puedes canjear! Marca “Usar mis puntos” al enviar tu próxima remesa.
+          </p>
+        ) : (
+          <p className="rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
+            Te faltan {missing} puntos para empezar a canjear.
+          </p>
+        )}
+      </Card>
 
       <h2 className="mb-2 text-sm font-bold text-foreground">Historial</h2>
       {entries.length === 0 ? (

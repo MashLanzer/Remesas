@@ -1,7 +1,13 @@
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionContext, getExchangeRates, getMyPoints } from "@/lib/data";
+import {
+  getSessionContext,
+  getExchangeRates,
+  getMyPoints,
+  getMyBeneficiaries,
+} from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteNav } from "@/components/cliente-nav";
 
@@ -24,10 +30,11 @@ export default async function ClienteLayout({
   if (!ctx.isCliente) redirect("/");
 
   // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
-  const [rates, points, cfgRes] = await Promise.all([
+  const [rates, points, cfgRes, beneficiaries] = await Promise.all([
     getExchangeRates(),
     getMyPoints(),
     supabase.rpc("my_client_config"),
+    getMyBeneficiaries(),
   ]);
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -47,16 +54,26 @@ export default async function ClienteLayout({
               Giro
             </span>
           </div>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
+          <div className="flex items-center gap-1">
+            <Link
+              href="/c/perfil"
               className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-              aria-label="Cerrar sesión"
-              title="Cerrar sesión"
+              aria-label="Mi perfil"
+              title="Mi perfil"
             >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </form>
+              <User className="h-5 w-5" />
+            </Link>
+            <form action="/auth/signout" method="post">
+              <button
+                type="submit"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-md animate-fade-up px-4 pb-28 pt-4">
@@ -67,6 +84,7 @@ export default async function ClienteLayout({
         pointsBalance={points.balance}
         redeemMin={redeemMin}
         pointValue={pointValue}
+        beneficiaries={beneficiaries}
       />
     </div>
   );

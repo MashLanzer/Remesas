@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMyOrders, getExchangeRates, getMyPoints } from "@/lib/data";
+import {
+  getMyOrders,
+  getExchangeRates,
+  getMyPoints,
+  getMyOperatorContact,
+} from "@/lib/data";
+import { ContactBusiness } from "@/components/contact-business";
 import { Card, PageHeader } from "@/components/ui";
 import {
   OrderStatusBadge,
@@ -25,11 +31,12 @@ export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
   const supabase = await createClient();
-  const [orders, rates, points, cfgRes] = await Promise.all([
+  const [orders, rates, points, cfgRes, contact] = await Promise.all([
     getMyOrders(),
     getExchangeRates(),
     getMyPoints(),
     supabase.rpc("my_client_config"),
+    getMyOperatorContact(),
   ]);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
@@ -225,10 +232,32 @@ export default async function MisPedidosPage() {
                     Motivo: {o.reject_reason}
                   </p>
                 )}
+                {o.status === "rechazado" && (
+                  <ContactBusiness
+                    phone={contact.phone}
+                    businessName={contact.businessName}
+                    tone="soft"
+                    label="Preguntar al negocio"
+                    message={`Hola${
+                      contact.businessName ? ` ${contact.businessName}` : ""
+                    }, sobre mi pedido de ${usd(
+                      Number(o.amount_usd)
+                    )} para ${o.beneficiary_name || "mi familiar"}.`}
+                  />
+                )}
               </Card>
             ))}
           </div>
         </section>
+      )}
+
+      {contact.phone && (
+        <ContactBusiness
+          phone={contact.phone}
+          businessName={contact.businessName}
+          tone="soft"
+          label="¿Dudas? Escríbenos por WhatsApp"
+        />
       )}
     </div>
   );

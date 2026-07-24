@@ -6,6 +6,7 @@ import { Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { recordOfferView } from "@/app/actions";
 import { cn } from "@/lib/utils";
+import { ContactBusiness } from "@/components/contact-business";
 import { OFFER_KINDS, type Offer } from "@/lib/types";
 
 function kindMeta(o: Offer) {
@@ -26,7 +27,15 @@ function validity(o: Offer): string | null {
   return null;
 }
 
-export function OffersView({ offers }: { offers: Offer[] }) {
+export function OffersView({
+  offers,
+  contactPhone,
+  businessName,
+}: {
+  offers: Offer[];
+  contactPhone?: string | null;
+  businessName?: string | null;
+}) {
   const [selected, setSelected] = useState<Offer | null>(null);
 
   if (offers.length === 0) return null;
@@ -125,6 +134,16 @@ export function OffersView({ offers }: { offers: Offer[] }) {
               <p className="text-xs font-medium text-primary">
                 {validity(selected)}
               </p>
+            )}
+            {contactPhone && (
+              <ContactBusiness
+                phone={contactPhone}
+                businessName={businessName}
+                label="Quiero esta promo"
+                message={`Hola${
+                  businessName ? ` ${businessName}` : ""
+                }, me interesa la promoción "${selected.title}".`}
+              />
             )}
           </div>
         )}

@@ -14,6 +14,7 @@ export function EnviarRemesaCta({
   pointValue = 0.05,
   variant = "hero",
   label = "Enviar una remesa",
+  beneficiaries = [],
 }: {
   rates: ExchangeRate[];
   pointsBalance?: number;
@@ -21,6 +22,7 @@ export function EnviarRemesaCta({
   pointValue?: number;
   variant?: "hero" | "primary";
   label?: string;
+  beneficiaries?: { name: string; phone: string | null; province: string | null }[];
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -49,6 +51,7 @@ export function EnviarRemesaCta({
           pointsBalance={pointsBalance}
           redeemMin={redeemMin}
           pointValue={pointValue}
+          beneficiaries={beneficiaries}
         />
       </Sheet>
     </>

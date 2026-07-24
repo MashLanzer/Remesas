@@ -142,6 +142,24 @@ export async function becomeCliente() {
   redirect("/c");
 }
 
+// El cliente edita sus datos básicos (nombre y teléfono).
+export async function updateClientProfile(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("profiles")
+    .update({
+      full_name: str(formData.get("full_name")),
+      phone: str(formData.get("phone")),
+    })
+    .eq("id", user.id);
+  revalidatePath("/c", "layout");
+  revalidatePath("/c/perfil");
+}
+
 // ===== Ofertas (las publica el operador) =====
 
 export async function createOffer(formData: FormData) {

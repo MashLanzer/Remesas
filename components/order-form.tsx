@@ -6,18 +6,22 @@ import { createOrder } from "@/app/actions";
 import { localAmount, usd } from "@/lib/utils";
 import { DELIVERY_CURRENCIES, type ExchangeRate } from "@/lib/types";
 
+type Benef = { name: string; phone: string | null; province: string | null };
+
 export function OrderForm({
   rates,
   onDone,
   pointsBalance = 0,
   redeemMin = 100,
   pointValue = 0.05,
+  beneficiaries = [],
 }: {
   rates: ExchangeRate[];
   onDone?: () => void;
   pointsBalance?: number;
   redeemMin?: number;
   pointValue?: number;
+  beneficiaries?: Benef[];
 }) {
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
@@ -35,6 +39,15 @@ export function OrderForm({
 
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<string>(available[0] ?? "CUP");
+  const [bName, setBName] = useState("");
+  const [bPhone, setBPhone] = useState("");
+  const [bProv, setBProv] = useState("");
+
+  function pickBenef(b: Benef) {
+    setBName(b.name);
+    setBPhone(b.phone ?? "");
+    setBProv(b.province ?? "");
+  }
 
   const amountNum = parseFloat(amount) || 0;
   const rate = ratesByCurrency[currency] ?? 0;
@@ -96,15 +109,56 @@ export function OrderForm({
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           ¿Quién recibe en Cuba?
         </p>
+
+        {beneficiaries.length > 0 && (
+          <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1">
+            {beneficiaries.map((b, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => pickBenef(b)}
+                className={
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition active:scale-95 " +
+                  (bName === b.name
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-foreground")
+                }
+              >
+                {b.name}
+                {b.province ? (
+                  <span className="text-muted-foreground">· {b.province}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        )}
+
         <Field label="Nombre del beneficiario">
-          <Input name="beneficiary_name" placeholder="Nombre de quien recibe" required />
+          <Input
+            name="beneficiary_name"
+            placeholder="Nombre de quien recibe"
+            value={bName}
+            onChange={(e) => setBName(e.target.value)}
+            required
+          />
         </Field>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <Field label="Teléfono">
-            <Input name="beneficiary_phone" inputMode="tel" placeholder="+53…" />
+            <Input
+              name="beneficiary_phone"
+              inputMode="tel"
+              placeholder="+53…"
+              value={bPhone}
+              onChange={(e) => setBPhone(e.target.value)}
+            />
           </Field>
           <Field label="Provincia">
-            <Input name="province" placeholder="Ej: La Habana" />
+            <Input
+              name="province"
+              placeholder="Ej: La Habana"
+              value={bProv}
+              onChange={(e) => setBProv(e.target.value)}
+            />
           </Field>
         </div>
       </div>
