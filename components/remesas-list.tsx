@@ -11,11 +11,12 @@ import {
   ArrowUpDown,
   Calendar,
   Undo2,
+  CircleDollarSign,
 } from "lucide-react";
 import { Card, Badge, EmptyState, Select } from "@/components/ui";
 import { usd, formatDate, localAmount } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { updateRemittanceStatus } from "@/app/actions";
+import { updateRemittanceStatus, setClientPaid } from "@/app/actions";
 import type { Remittance, RemittanceStatus } from "@/lib/types";
 
 const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
@@ -343,17 +344,31 @@ export function RemesasList({
 
 function RemesaCard({ r }: { r: Remittance }) {
   const [pending, start] = useTransition();
-  const [undo, setUndo] = useState(false);
+  const [undoDeliver, setUndoDeliver] = useState(false);
+  const [cobrada, setCobrada] = useState(false);
 
   function deliver() {
-    setUndo(true);
+    setUndoDeliver(true);
     start(() => updateRemittanceStatus(r.id, "entregado"));
-    setTimeout(() => setUndo(false), 6000);
+    setTimeout(() => setUndoDeliver(false), 6000);
   }
-  function undoDeliver() {
-    setUndo(false);
+  function undoDeliverFn() {
+    setUndoDeliver(false);
     start(() => updateRemittanceStatus(r.id, "pendiente"));
   }
+  function cobrar() {
+    setCobrada(true);
+    start(() => setClientPaid(r.id, true));
+    setTimeout(() => setCobrada(false), 6000);
+  }
+  function undoCobrar() {
+    setCobrada(false);
+    start(() => setClientPaid(r.id, false));
+  }
+
+  const showCobrar = cobrada || r.client_paid === false;
+  const showDeliver = undoDeliver || r.status === "pendiente";
+  const hasActions = showCobrar || showDeliver;
 
   return (
     <Card className="p-3.5">
@@ -386,30 +401,66 @@ function RemesaCard({ r }: { r: Remittance }) {
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-between border-t border-border pt-2 text-xs">
-        <span className="text-muted-foreground">
+      <div className="mt-2 border-t border-border pt-2">
+        <p className="text-xs text-muted-foreground">
           Ganancia {usd(r.total_profit)} · Tu parte {usd(r.my_share)}
-        </span>
-        {undo ? (
-          <button
-            disabled={pending}
-            onClick={undoDeliver}
-            className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-semibold text-muted-foreground transition active:scale-95 disabled:opacity-50"
-          >
-            <Undo2 className="h-3.5 w-3.5" /> Deshacer
-          </button>
-        ) : (
-          r.status === "pendiente" && (
-            <button
-              disabled={pending}
-              onClick={deliver}
-              className="inline-flex items-center gap-1 rounded-full bg-income/10 px-2.5 py-1 font-semibold text-income transition active:scale-95 disabled:opacity-50"
-            >
-              <Check className="h-3.5 w-3.5" /> Entregar
-            </button>
-          )
+        </p>
+        {hasActions && (
+          <div className="mt-2 flex gap-2">
+            {showCobrar &&
+              (cobrada ? (
+                <QuickBtn onClick={undoCobrar} disabled={pending} tone="muted">
+                  <Undo2 className="h-3.5 w-3.5" /> Deshacer
+                </QuickBtn>
+              ) : (
+                <QuickBtn onClick={cobrar} disabled={pending} tone="warning">
+                  <CircleDollarSign className="h-3.5 w-3.5" /> Cobrar
+                </QuickBtn>
+              ))}
+            {showDeliver &&
+              (undoDeliver ? (
+                <QuickBtn onClick={undoDeliverFn} disabled={pending} tone="muted">
+                  <Undo2 className="h-3.5 w-3.5" /> Deshacer
+                </QuickBtn>
+              ) : (
+                <QuickBtn onClick={deliver} disabled={pending} tone="income">
+                  <Check className="h-3.5 w-3.5" /> Entregar
+                </QuickBtn>
+              ))}
+          </div>
         )}
       </div>
     </Card>
+  );
+}
+
+function QuickBtn({
+  onClick,
+  disabled,
+  tone,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  tone: "income" | "warning" | "muted";
+  children: React.ReactNode;
+}) {
+  const toneCls =
+    tone === "income"
+      ? "bg-income/10 text-income"
+      : tone === "warning"
+      ? "bg-warning/10 text-warning"
+      : "bg-muted text-muted-foreground";
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold transition active:scale-95 disabled:opacity-50",
+        toneCls
+      )}
+    >
+      {children}
+    </button>
   );
 }
