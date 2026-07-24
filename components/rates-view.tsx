@@ -82,6 +82,9 @@ function RateRow({
   const [pending, start] = useTransition();
   const initial = rate ? String(rate.rate) : "";
   const [value, setValue] = useState(initial);
+  const [marketVal, setMarketVal] = useState(
+    rate?.market_rate ? String(rate.market_rate) : ""
+  );
   const [expanded, setExpanded] = useState(false);
 
   const active = rate?.active !== false;
@@ -96,10 +99,15 @@ function RateRow({
       ? ((currentRate - prev) / prev) * 100
       : null;
 
-  const market = rate?.market_rate ? Number(rate.market_rate) : null;
+  // Mercado y margen en vivo (según lo que estás escribiendo).
+  const mkNum = parseFloat(marketVal) || 0;
+  const rateNum = parseFloat(value) || 0;
   const spread =
-    market != null && market !== 0 && currentRate != null
-      ? ((currentRate - market) / market) * 100
+    mkNum > 0 && rateNum > 0 ? ((rateNum - mkNum) / mkNum) * 100 : null;
+  // Ganancia por cada $100 cuando tu tasa está por debajo del mercado.
+  const gainPer100 =
+    mkNum > 0 && rateNum > 0 && rateNum < mkNum
+      ? ((mkNum - rateNum) / mkNum) * 100
       : null;
 
   function bump(step: number) {
@@ -108,6 +116,10 @@ function RateRow({
   }
   function round() {
     setValue(String(roundStep(parseFloat(value) || 0)));
+  }
+  function applyMargin(pct: number) {
+    if (mkNum <= 0) return;
+    setValue(String(Number((mkNum * (1 - pct / 100)).toFixed(4))));
   }
 
   return (
@@ -210,7 +222,8 @@ function RateRow({
             name="market_rate"
             step="0.0001"
             min="0"
-            defaultValue={market != null ? String(market) : ""}
+            value={marketVal}
+            onChange={(e) => setMarketVal(e.target.value)}
             placeholder="opcional"
             className="w-24 rounded-lg border border-input bg-background px-2 py-1 text-center text-foreground outline-none focus:border-ring"
           />
@@ -240,6 +253,30 @@ function RateRow({
             </button>
           )}
         </div>
+
+        {/* Aplicar margen desde el mercado */}
+        {mkNum > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              Margen
+            </span>
+            {[3, 5, 8].map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => applyMargin(pct)}
+                className="flex-1 rounded-lg border border-border py-1.5 text-[11px] font-semibold text-foreground transition active:scale-95"
+              >
+                {pct}%
+              </button>
+            ))}
+            {gainPer100 != null && (
+              <span className="shrink-0 rounded-full bg-income/10 px-2 py-0.5 text-[10px] font-semibold text-income">
+                ≈ ${gainPer100.toFixed(2)} / $100
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Historial expandible */}
         {expanded && history.length >= 1 && (
