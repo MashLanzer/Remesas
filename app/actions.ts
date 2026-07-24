@@ -148,26 +148,41 @@ export async function createOffer(formData: FormData) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
-  const { data: inserted } = await supabase
-    .from("offers")
-    .insert({
-      operator_id: ctx.tenantId,
-      title: str(formData.get("title")) ?? "Oferta",
-      description: str(formData.get("description")),
-      kind: str(formData.get("kind")),
-      emoji: str(formData.get("emoji")),
-      active: true,
-      starts_at: str(formData.get("starts_at")),
-      ends_at: str(formData.get("ends_at")),
-      created_by: ctx.userId,
-    })
-    .select("id")
-    .single();
-  const offerId = (inserted as { id?: string } | null)?.id ?? null;
+  const id = str(formData.get("id"));
+  const values = {
+    title: str(formData.get("title")) ?? "Oferta",
+    description: str(formData.get("description")),
+    kind: str(formData.get("kind")),
+    emoji: str(formData.get("emoji")),
+    starts_at: str(formData.get("starts_at")),
+    ends_at: str(formData.get("ends_at")),
+  };
+  let offerId = id;
+  if (id) {
+    // Editar una promoción existente (sin tocar 'active' ni la imagen si no
+    // se sube una nueva).
+    await supabase
+      .from("offers")
+      .update(values)
+      .eq("id", id)
+      .eq("operator_id", ctx.tenantId);
+  } else {
+    const { data: inserted } = await supabase
+      .from("offers")
+      .insert({
+        operator_id: ctx.tenantId,
+        ...values,
+        active: true,
+        created_by: ctx.userId,
+      })
+      .select("id")
+      .single();
+    offerId = (inserted as { id?: string } | null)?.id ?? null;
+  }
   if (offerId) await uploadOfferImage(supabase, formData, offerId);
-  await logActivity("oferta.crear", {
+  await logActivity(id ? "oferta.editar" : "oferta.crear", {
     entityType: "oferta",
-    entityLabel: str(formData.get("title")) ?? "Oferta",
+    entityLabel: values.title,
   });
   revalidatePath("/ofertas");
   revalidatePath("/c");
