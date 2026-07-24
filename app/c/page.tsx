@@ -18,6 +18,7 @@ import { OffersView } from "@/components/offers-view";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteGreeting } from "@/components/cliente-greeting";
+import { QuickSendRow } from "@/components/quick-send-row";
 import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -175,6 +176,9 @@ export default async function ClienteHome() {
 
       {/* Calculadora (fuera del hero, más discreta) */}
       <CalculadoraSheet rates={rates} variant="plain" />
+
+      {/* Enviar rápido a tus beneficiarios */}
+      <QuickSendRow {...sendProps} />
 
       {/* Aviso de novedad en un pedido */}
       {recentEvent && (
