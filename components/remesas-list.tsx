@@ -171,6 +171,16 @@ export function RemesasList({
     setTo("");
   }
 
+  const todayStr = ymdLocal(new Date());
+  const isToday = from === todayStr && to === todayStr;
+  function toggleToday() {
+    if (isToday) clearDates();
+    else {
+      setFrom(todayStr);
+      setTo(todayStr);
+    }
+  }
+
   function exportCsv() {
     const headers = [
       "Fecha",
@@ -250,6 +260,17 @@ export function RemesasList({
             {counts[f.key] ? ` (${counts[f.key]})` : ""}
           </button>
         ))}
+        <button
+          onClick={toggleToday}
+          className={cn(
+            "flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition",
+            isToday
+              ? "bg-primary text-primary-foreground"
+              : "border border-border bg-card text-muted-foreground"
+          )}
+        >
+          <Calendar className="h-3 w-3" /> Hoy
+        </button>
       </div>
 
       {/* Controles: orden, fechas, exportar */}
