@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Share2, Download, ArrowLeft } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Share2, Download, ArrowLeft, Copy, Check } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
 import { Button } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { shareNodeAsImage } from "@/lib/share-image";
-import { localAmount } from "@/lib/utils";
+import { localAmount, cn } from "@/lib/utils";
 import type { ExchangeRate } from "@/lib/types";
 
 export function ShareRates({
@@ -21,11 +21,42 @@ export function ShareRates({
   const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const cardRef = useRef<HTMLDivElement>(null);
 
   const active = rates.filter(
     (r) => r.active !== false && Number(r.rate) > 0
   );
+  const shown = active.filter((r) => !excluded.has(r.currency));
+
+  const text = useMemo(() => {
+    const lines = shown.map(
+      (r) => `1 USD = ${localAmount(Number(r.rate))} ${r.currency}`
+    );
+    return `${brand} · Tasas del día\n${date}\n\n${lines.join(
+      "\n"
+    )}\n\nEnvía a Cuba con ${brand} ✈️`;
+  }, [shown, brand, date]);
+
+  function toggle(currency: string) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(currency)) next.delete(currency);
+      else next.add(currency);
+      return next;
+    });
+  }
+
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* nada */
+    }
+  }
 
   function close() {
     setOpen(false);
@@ -62,6 +93,30 @@ export function ShareRates({
       </Button>
 
       <Sheet open={open} onClose={close} title="Tasas del día">
+        {/* Elegir qué monedas incluir */}
+        {!imgUrl && active.length > 1 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {active.map((r) => {
+              const on = !excluded.has(r.currency);
+              return (
+                <button
+                  key={r.currency}
+                  type="button"
+                  onClick={() => toggle(r.currency)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-semibold transition active:scale-95",
+                    on
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground"
+                  )}
+                >
+                  {r.currency}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Tarjeta de tasas (estilo recibo) */}
         <div
           ref={cardRef}
@@ -89,7 +144,7 @@ export function ShareRates({
             <p className="mt-1 text-xs text-white/70">{date}</p>
 
             <div className="mt-5 space-y-3 border-t border-white/20 pt-4">
-              {active.map((r) => (
+              {shown.map((r) => (
                 <div
                   key={r.currency}
                   className="flex items-baseline justify-between gap-3"
@@ -147,14 +202,22 @@ export function ShareRates({
           ) : (
             <>
               <button
-                onClick={close}
-                className="flex-1 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+                onClick={copyText}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
               >
-                Cerrar
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 text-income" /> Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" /> Copiar texto
+                  </>
+                )}
               </button>
               <button
                 onClick={doShare}
-                disabled={sharing}
+                disabled={sharing || shown.length === 0}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-70"
               >
                 <Share2 className="h-4 w-4" />
