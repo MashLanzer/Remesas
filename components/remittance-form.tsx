@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Plus, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Plus,
+  Sparkles,
+  Bookmark,
+  Calculator,
+  ChevronDown,
+} from "lucide-react";
 import { Field, Input, Select, Textarea, Button, Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import {
@@ -29,6 +36,8 @@ import {
 
 const AMOUNT_PRESETS = [50, 100, 200, 500];
 const STALE_DAYS = 3;
+const DUP_WINDOW_MS = 60 * 60000; // 1 hora
+const TPL_KEY = "giro_send_templates";
 
 type COpt = { id: string; name: string };
 type BOpt = {
@@ -36,7 +45,9 @@ type BOpt = {
   name: string;
   province: string | null;
   client_id: string | null;
+  preferred_currency: string | null;
 };
+type SendTpl = { amount: number; currency: string; commission: number };
 
 export function RemittanceForm({
   clients,
@@ -52,6 +63,7 @@ export function RemittanceForm({
   defaultBeneficiaryId,
   repartidores = [],
   isOperador = true,
+  recentRemesas = [],
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
@@ -66,6 +78,7 @@ export function RemittanceForm({
   defaultBeneficiaryId?: string;
   repartidores?: Profile[];
   isOperador?: boolean;
+  recentRemesas?: { client_id: string | null; amount_usd: number; created_at: string }[];
 }) {
   const isEdit = !!initial;
   const source = initial ?? prefill;
@@ -100,6 +113,7 @@ export function RemittanceForm({
       name: b.name,
       province: b.province ?? null,
       client_id: b.client_id ?? null,
+      preferred_currency: b.preferred_currency ?? null,
     }))
   );
 
@@ -150,16 +164,92 @@ export function RemittanceForm({
     (b) => !(clientId && b.client_id === clientId)
   );
 
-  function onClientChange(v: string) {
-    setClientId(v);
-    const a = benefOpts.filter((b) => b.client_id === v);
-    if (a.length === 1) setBeneficiaryId(a[0].id);
-  }
-
   function onCurrencyChange(c: string) {
     setCurrency(c);
     const r = ratesByCurrency[c];
     if (r != null) setRate(String(r));
+  }
+
+  // Al elegir beneficiario, aplica su moneda preferida si la tiene.
+  function applyBeneficiary(id: string) {
+    setBeneficiaryId(id);
+    const b = benefOpts.find((x) => x.id === id);
+    if (
+      b?.preferred_currency &&
+      b.preferred_currency !== currency &&
+      (currencyOptions as string[]).includes(b.preferred_currency)
+    ) {
+      onCurrencyChange(b.preferred_currency);
+    }
+  }
+
+  function onClientChange(v: string) {
+    setClientId(v);
+    const a = benefOpts.filter((b) => b.client_id === v);
+    if (a.length === 1) applyBeneficiary(a[0].id);
+  }
+
+  // Posible duplicado: mismo cliente y monto en la última hora.
+  const dupWarn = useMemo(() => {
+    if (isEdit || !clientId || amountNum <= 0) return false;
+    const now = Date.now();
+    return recentRemesas.some(
+      (r) =>
+        r.client_id === clientId &&
+        Math.abs(r.amount_usd - amountNum) < 0.01 &&
+        now - new Date(r.created_at).getTime() < DUP_WINDOW_MS
+    );
+  }, [recentRemesas, clientId, amountNum, isEdit]);
+
+  // Plantillas de envío (guardadas en el dispositivo).
+  const [tpls, setTpls] = useState<SendTpl[]>([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TPL_KEY);
+      if (raw) setTpls(JSON.parse(raw));
+    } catch {
+      /* nada */
+    }
+  }, []);
+  function persistTpls(next: SendTpl[]) {
+    setTpls(next);
+    try {
+      localStorage.setItem(TPL_KEY, JSON.stringify(next));
+    } catch {
+      /* nada */
+    }
+  }
+  function saveTemplate() {
+    if (amountNum <= 0) return;
+    persistTpls(
+      [
+        { amount: amountNum, currency, commission: effectiveCommission },
+        ...tpls,
+      ].slice(0, 8)
+    );
+  }
+  function applyTemplate(t: SendTpl) {
+    setAmount(String(t.amount));
+    onCurrencyChange(t.currency);
+    setCommissionTouched(true);
+    setCommission(String(t.commission));
+  }
+
+  // Calculadora inversa: desde lo que recibe la familia.
+  const [invOpen, setInvOpen] = useState(false);
+  const [invLocal, setInvLocal] = useState("");
+  function solveFromLocal() {
+    const L = parseFloat(invLocal) || 0;
+    const rNum = parseFloat(rate) || 0;
+    if (L <= 0 || rNum <= 0) return;
+    let amt = L / rNum;
+    for (let i = 0; i < 6; i++) {
+      const comm = commissionTouched
+        ? parseFloat(commission) || 0
+        : calcCommission(amt, rules);
+      amt = L / rNum + comm;
+    }
+    setAmount(String(Number(amt.toFixed(2))));
   }
 
   // Aviso de tasa desactualizada.
@@ -215,7 +305,13 @@ export function RemittanceForm({
       });
       if (b) {
         setBenefOpts((p) => [
-          { id: b.id, name: b.name, province: b.province, client_id: b.client_id },
+          {
+            id: b.id,
+            name: b.name,
+            province: b.province,
+            client_id: b.client_id,
+            preferred_currency: null,
+          },
           ...p,
         ]);
         setBeneficiaryId(b.id);
@@ -238,6 +334,34 @@ export function RemittanceForm({
     >
       {isEdit && <input type="hidden" name="id" value={initial!.id} />}
       {!isEdit && <input ref={goRef} type="hidden" name="go" defaultValue="" />}
+
+      {/* Plantillas de envío */}
+      {tpls.length > 0 && (
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4">
+          {tpls.map((t, i) => (
+            <div
+              key={i}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 py-1.5 pl-3 pr-1.5 text-xs font-semibold text-foreground"
+            >
+              <button
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className="transition active:scale-95"
+              >
+                {usd(t.amount)} · {t.currency}
+              </button>
+              <button
+                type="button"
+                onClick={() => persistTpls(tpls.filter((_, idx) => idx !== i))}
+                aria-label="Borrar plantilla"
+                className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition active:scale-90"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Datos del envío */}
       <Card className="space-y-4">
@@ -269,7 +393,7 @@ export function RemittanceForm({
             <Select
               name="beneficiary_id"
               value={beneficiaryId}
-              onChange={(e) => setBeneficiaryId(e.target.value)}
+              onChange={(e) => applyBeneficiary(e.target.value)}
               className="flex-1"
             >
               <option value="">— Sin beneficiario —</option>
@@ -353,6 +477,12 @@ export function RemittanceForm({
               </button>
             ))}
           </div>
+          {dupWarn && (
+            <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              Ya registraste una remesa igual a este cliente hace poco. ¿Duplicado?
+            </p>
+          )}
         </Field>
 
         <Field
@@ -373,6 +503,15 @@ export function RemittanceForm({
               setCommission(e.target.value);
             }}
           />
+          {amountNum > 0 && (
+            <button
+              type="button"
+              onClick={saveTemplate}
+              className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-primary transition active:scale-95"
+            >
+              <Bookmark className="h-3.5 w-3.5" /> Guardar como plantilla de envío
+            </button>
+          )}
         </Field>
 
         <Field label="Método de pago recibido">
@@ -444,6 +583,41 @@ export function RemittanceForm({
           </p>
         </div>
 
+        {/* Calculadora inversa */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setInvOpen((v) => !v)}
+            className="flex w-full items-center justify-center gap-1.5 text-xs font-semibold text-muted-foreground transition active:scale-95"
+          >
+            <Calculator className="h-3.5 w-3.5" />
+            Calcular desde lo que recibe la familia
+            <ChevronDown
+              className={cn("h-3.5 w-3.5 transition", invOpen && "rotate-180")}
+            />
+          </button>
+          {invOpen && (
+            <div className="mt-2 flex items-end gap-2">
+              <Field label={`Recibe en ${currency}`}>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="Ej: 40000"
+                  value={invLocal}
+                  onChange={(e) => setInvLocal(e.target.value)}
+                />
+              </Field>
+              <button
+                type="button"
+                onClick={solveFromLocal}
+                className="mb-0.5 shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-95"
+              >
+                Aplicar
+              </button>
+            </div>
+          )}
+        </div>
+
         <Field
           label="Ganancia por cambio (spread, USD)"
           hint="Opcional. Solo si el diferencial de la tasa deja ganancia extra."
@@ -511,7 +685,7 @@ export function RemittanceForm({
         )}
 
         <Field
-          label="Comprobante (foto, opcional)"
+          label="Comprobante de pago del cliente (foto)"
           hint={
             initial?.receipt_url
               ? "Ya hay una foto guardada. Sube otra para reemplazarla."
@@ -521,6 +695,22 @@ export function RemittanceForm({
           <input
             type="file"
             name="receipt"
+            accept="image/*"
+            className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
+          />
+        </Field>
+
+        <Field
+          label="Comprobante de entrega (foto, opcional)"
+          hint={
+            initial?.delivery_proof_url
+              ? "Ya hay una foto guardada. Sube otra para reemplazarla."
+              : "Foto de la entrega en Cuba."
+          }
+        >
+          <input
+            type="file"
+            name="delivery_proof"
             accept="image/*"
             className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
           />

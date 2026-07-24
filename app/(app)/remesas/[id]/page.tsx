@@ -182,11 +182,24 @@ export default async function RemesaDetailPage({
       {r.receipt_url && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Comprobante
+            Comprobante de pago del cliente
           </p>
           <SmartImage
             src={r.receipt_url}
-            alt="Comprobante"
+            alt="Comprobante de pago"
+            className="w-full rounded-xl border border-border"
+          />
+        </Card>
+      )}
+
+      {r.delivery_proof_url && (
+        <Card className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Comprobante de entrega
+          </p>
+          <SmartImage
+            src={r.delivery_proof_url}
+            alt="Comprobante de entrega"
             className="w-full rounded-xl border border-border"
           />
         </Card>

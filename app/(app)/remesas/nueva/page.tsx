@@ -4,6 +4,7 @@ import {
   getClients,
   getExchangeRates,
   getRemittance,
+  getRemittances,
   getRepartidores,
   getSessionContext,
 } from "@/lib/data";
@@ -52,6 +53,14 @@ export default async function NuevaRemesaPage({
 
   const defaultSplit = Number(profileRes.data?.default_split_percent ?? 50);
 
+  // Últimas remesas (para avisar de posibles duplicados).
+  const allRemesas = await getRemittances();
+  const recentRemesas = allRemesas.slice(0, 40).map((r) => ({
+    client_id: r.client_id,
+    amount_usd: Number(r.amount_usd),
+    created_at: r.created_at,
+  }));
+
   return (
     <div>
       <PageHeader
@@ -71,6 +80,7 @@ export default async function NuevaRemesaPage({
         defaultBeneficiaryId={beneficiario}
         repartidores={repartidores}
         isOperador={ctx.isOperador}
+        recentRemesas={recentRemesas}
       />
     </div>
   );

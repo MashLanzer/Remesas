@@ -284,6 +284,7 @@ export interface Remittance {
   status: RemittanceStatus;
   client_paid: boolean;
   receipt_url: string | null;
+  delivery_proof_url?: string | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;

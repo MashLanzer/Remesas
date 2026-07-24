@@ -1028,6 +1028,28 @@ async function handleReceiptUpload(
     .eq("id", id);
 }
 
+// Comprobante de entrega (separado del pago del cliente). Tolerante si la
+// columna aún no existe (migración 0026).
+async function handleDeliveryProof(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  id: string
+) {
+  const file = formData.get("delivery_proof");
+  if (!(file instanceof File) || file.size === 0) return;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `remittances/${id}/entrega-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  await supabase
+    .from("remittances")
+    .update({ delivery_proof_url: data.publicUrl })
+    .eq("id", id);
+}
+
 // ============ REMESAS ============
 
 export async function createRemittance(formData: FormData) {
@@ -1091,7 +1113,10 @@ export async function createRemittance(formData: FormData) {
     .select("id")
     .single();
 
-  if (inserted?.id) await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
+  if (inserted?.id) {
+    await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
+    await handleDeliveryProof(supabase, formData, inserted.id);
+  }
 
   await logActivity("remesa.crear", {
     entityType: "remesa",
@@ -1173,6 +1198,7 @@ export async function updateRemittance(formData: FormData) {
   }
 
   await handleReceiptUpload(supabase, formData, "remittances", id);
+  await handleDeliveryProof(supabase, formData, id);
 
   revalidatePath("/remesas");
   revalidatePath(`/remesas/${id}`);
