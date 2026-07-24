@@ -58,6 +58,17 @@ export function CuentasView({
   const threshold = settings.settle_threshold ? Number(settings.settle_threshold) : 0;
   const overThreshold = !isRep && threshold > 0 && balance >= threshold;
 
+  // Cobrado de clientes (USD) hoy y en los últimos 7 días (solo operador).
+  const today = new Date().toISOString().slice(0, 10);
+  const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+  const paidRems = remittances.filter((r) => r.client_paid !== false);
+  const cobradoHoy = paidRems
+    .filter((r) => r.date === today)
+    .reduce((s, r) => s + Number(r.total_received), 0);
+  const cobradoSemana = paidRems
+    .filter((r) => r.date >= weekAgo)
+    .reduce((s, r) => s + Number(r.total_received), 0);
+
   const movements: Movement[] = [
     ...remittances.map((r) => ({
       id: `r-${r.id}`,
@@ -152,6 +163,28 @@ export function CuentasView({
           </p>
         </Card>
       </div>
+
+      {/* Cobrado reciente (solo operador) */}
+      {!isRep && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Cobrado hoy
+            </p>
+            <p className="tabular mt-1 text-xl font-bold text-income">
+              {usd(cobradoHoy)}
+            </p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Cobrado (7 días)
+            </p>
+            <p className="tabular mt-1 text-xl font-bold text-income">
+              {usd(cobradoSemana)}
+            </p>
+          </Card>
+        </div>
+      )}
 
       {/* Por cobrar de clientes (solo operador) */}
       {!isRep && clientDebts.length > 0 && (
