@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Check,
   Copy,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -111,17 +112,33 @@ export function AgendaView({
     [clients, clientStats]
   );
 
-  async function copyDebts() {
+  function debtsText() {
     const total = debtors.reduce((s, d) => s + d.owed, 0);
-    const text =
+    return (
       "Cobros pendientes:\n" +
       debtors.map((d) => `• ${d.client.name}: ${usd(d.owed)}`).join("\n") +
-      `\nTotal: ${usd(total)}`;
+      `\nTotal: ${usd(total)}`
+    );
+  }
+  async function copyDebts() {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(debtsText());
       notify("Lista copiada al portapapeles");
     } catch {
       notify("No se pudo copiar");
+    }
+  }
+  async function shareDebts() {
+    const text = debtsText();
+    try {
+      if (navigator.share) {
+        await navigator.share({ text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        notify("Lista copiada al portapapeles");
+      }
+    } catch {
+      /* cancelado por el usuario */
     }
   }
 
@@ -260,8 +277,11 @@ export function AgendaView({
   const fBeneficiaries = useMemo(() => {
     const arr = beneficiaries.filter(
       (b) =>
-        [b.name, b.phone, b.province].filter(Boolean).join(" ").toLowerCase().includes(term) &&
-        matches(b, benefStats, filter)
+        [b.name, b.phone, b.province, b.id_card]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(term) && matches(b, benefStats, filter)
     );
     arr.sort(sortFn(benefStats));
     return arr;
@@ -356,12 +376,24 @@ export function AgendaView({
               <p className="text-xs text-muted-foreground">
                 Toca WhatsApp para enviar el recordatorio.
               </p>
-              <button
-                onClick={copyDebts}
-                className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
-              >
-                <Copy className="h-3.5 w-3.5" /> Copiar
-              </button>
+              <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={copyDebts}
+                  aria-label="Copiar lista"
+                  title="Copiar"
+                  className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copiar
+                </button>
+                <button
+                  onClick={shareDebts}
+                  aria-label="Compartir lista"
+                  title="Compartir"
+                  className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+                >
+                  <Share2 className="h-3.5 w-3.5" /> Compartir
+                </button>
+              </div>
             </div>
             {debtors.map(({ client, owed }) => {
               const digits = client.phone?.replace(/\D/g, "");
