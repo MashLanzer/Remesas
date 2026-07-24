@@ -12,6 +12,9 @@ import {
   Activity,
   Truck,
   Coins,
+  TrendingUp,
+  TrendingDown,
+  Target,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
@@ -67,12 +70,14 @@ export function DashboardView({
   name,
   isOperador = true,
   pendingOrders = 0,
+  monthlyGoal = 0,
 }: {
   remittances: Remittance[];
   partnerBalance: number;
   name: string | null;
   isOperador?: boolean;
   pendingOrders?: number;
+  monthlyGoal?: number;
 }) {
   const isRep = !isOperador;
   const [period, setPeriod] = useState<PeriodKey>("todo");
@@ -112,6 +117,38 @@ export function DashboardView({
     0
   );
   const sent = filtered.reduce((s, r) => s + Number(r.amount_usd), 0);
+
+  // Comparativa vs período anterior (mismo criterio de "tu parte").
+  const prevProfit = useMemo(() => {
+    if (period === "todo") return null;
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+    if (period === "hoy") {
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    } else {
+      end = new Date(now.getFullYear(), now.getMonth(), 1);
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    }
+    return remittances
+      .filter((r) => {
+        const d = new Date(r.date + "T00:00:00");
+        return d >= start && d < end;
+      })
+      .reduce((s, r) => s + Number(r.total_profit), 0);
+  }, [remittances, period]);
+
+  const delta =
+    prevProfit != null && prevProfit > 0
+      ? ((profit - prevProfit) / prevProfit) * 100
+      : null;
+  const compareLabel = period === "hoy" ? "vs ayer" : "vs mes pasado";
+
+  const goalPct =
+    period === "mes" && monthlyGoal > 0
+      ? Math.min((profit / monthlyGoal) * 100, 100)
+      : null;
 
   // Pendientes: siempre global (sin filtrar por período).
   const pending = remittances.filter((r) => r.status === "pendiente");
@@ -200,7 +237,25 @@ export function DashboardView({
         <p className="text-sm font-medium text-white/70">
           Ganancia · {periods.find((p) => p.key === period)?.label.toLowerCase()}
         </p>
-        <p className="tabular mt-1 text-4xl font-extrabold">{usd(profit)}</p>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p className="tabular text-4xl font-extrabold">{usd(profit)}</p>
+          {delta != null && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold backdrop-blur",
+                delta >= 0 ? "bg-white/25" : "bg-black/20"
+              )}
+            >
+              {delta >= 0 ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              {delta >= 0 ? "+" : ""}
+              {delta.toFixed(0)}% {compareLabel}
+            </span>
+          )}
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
@@ -210,6 +265,33 @@ export function DashboardView({
             <Send className="h-3.5 w-3.5" /> Enviado {usd(sent)}
           </span>
         </div>
+
+        {/* Meta del mes: barra fina dentro de la tarjeta (solo en 'Este mes') */}
+        {goalPct != null && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-xs text-white/80">
+              <span className="inline-flex items-center gap-1">
+                <Target className="h-3.5 w-3.5" /> Meta del mes
+              </span>
+              <span className="tabular font-semibold text-white">
+                {usd(profit)} / {usd(monthlyGoal)}
+              </span>
+            </div>
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-white transition-all"
+                style={{ width: `${goalPct}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-white/70">
+              {goalPct >= 100
+                ? "¡Meta alcanzada! 🎉"
+                : `${Math.round(goalPct)}% · faltan ${usd(
+                    Math.max(monthlyGoal - profit, 0)
+                  )}`}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Acciones rápidas (cuadros) */}
