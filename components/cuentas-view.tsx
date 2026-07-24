@@ -5,6 +5,7 @@ import { usd } from "@/lib/utils";
 import { Card } from "@/components/ui";
 import { SettlementView } from "@/components/settlement-view";
 import { MovementsView, type Movement } from "@/components/movements-view";
+import { ShareStatement } from "@/components/share-statement";
 import type { BusinessSettings, Remittance, Settlement } from "@/lib/types";
 
 export function CuentasView({
@@ -93,6 +94,22 @@ export function CuentasView({
       delta: s.direction === "us_to_cuba" ? -Number(s.amount) : Number(s.amount),
     })),
   ].sort((a, b) => b.date.localeCompare(a.date));
+
+  const statementText = [
+    `Estado de cuenta ${isRep ? "con el operador" : toCuba}`,
+    ``,
+    `${isRep ? "Tu capital entregado" : "Total entregado (capital)"}: ${usd(totalDelivered)}`,
+    `${isRep ? "+ Tu ganancia" : "+ Ganancia en Cuba"}: ${usd(partnerProfit)}`,
+    `${isRep ? "− Ya recibido del operador" : `− Ya enviado ${toCuba}`}: ${usd(sentToCuba)}`,
+    ...(receivedFromCuba > 0
+      ? [
+          `${isRep ? "+ Enviado al operador" : "+ Recibido de Cuba"}: ${usd(
+            receivedFromCuba
+          )}`,
+        ]
+      : []),
+    `= ${isRep ? "Te deben" : "Saldo pendiente"}: ${usd(balance)}`,
+  ].join("\n");
 
   const balanceTitle = settled
     ? "Cuentas saldadas"
@@ -270,6 +287,8 @@ export function CuentasView({
           strong
         />
       </Card>
+
+      <ShareStatement text={statementText} />
 
       {canSettle ? (
         <SettlementView
