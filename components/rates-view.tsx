@@ -130,7 +130,7 @@ export function RatesView({
         </div>
       ))}
 
-      <RateImport />
+      <RateImport rates={rates} />
 
       <p className="pt-2 text-center text-xs text-muted-foreground">
         1 USD = tasa · unidades locales. Ajústala al mercado del día.
