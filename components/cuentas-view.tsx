@@ -14,6 +14,8 @@ export function CuentasView({
   settings,
   perspective = "operador",
   delivererId,
+  delivererName,
+  delivererPhone,
   canSettle = true,
   clientDebts = [],
 }: {
@@ -22,6 +24,8 @@ export function CuentasView({
   settings: BusinessSettings;
   perspective?: "operador" | "repartidor";
   delivererId?: string | null;
+  delivererName?: string | null;
+  delivererPhone?: string | null;
   canSettle?: boolean;
   clientDebts?: { name: string; phone: string | null; owed: number }[];
 }) {
@@ -137,8 +141,9 @@ export function CuentasView({
 
       {/* Saldo destacado */}
       <div
+        id="saldo-cuba"
         className={
-          "rounded-3xl p-5 text-white shadow-xl " +
+          "scroll-mt-20 rounded-3xl p-5 text-white shadow-xl " +
           (settled || !owed
             ? "hero-gradient shadow-primary/20"
             : "bg-gradient-to-br from-rose-500 to-rose-700 shadow-rose-500/20")
@@ -289,6 +294,26 @@ export function CuentasView({
       </Card>
 
       <ShareStatement text={statementText} />
+
+      {/* Avisar al repartidor del saldo por WhatsApp */}
+      {canSettle && owed && delivererPhone && (
+        <a
+          href={`https://wa.me/${delivererPhone.replace(
+            /\D/g,
+            ""
+          )}?text=${encodeURIComponent(
+            `Hola ${delivererName || ""}, el saldo pendiente contigo es ${usd(
+              Math.abs(balance)
+            )}. Coordinamos el pago.`
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-income/30 bg-income/10 py-2.5 text-sm font-semibold text-income transition active:scale-[0.98]"
+        >
+          <MessageCircle className="h-4 w-4" /> Avisar a{" "}
+          {delivererName || "repartidor"} por WhatsApp
+        </a>
+      )}
 
       {canSettle ? (
         <SettlementView

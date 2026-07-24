@@ -33,6 +33,7 @@ export default async function FinanzasPage({
   const rep = (isOperador && searchParams?.rep) || "";
 
   const repartidores = isOperador ? await getRepartidores() : [];
+  const selectedRep = rep ? repartidores.find((r) => r.id === rep) : null;
 
   // El operador puede ver el combinado o filtrar por repartidor.
   const cuentasRem = rep
@@ -80,6 +81,8 @@ export default async function FinanzasPage({
         settings={settings}
         perspective={isOperador ? "operador" : "repartidor"}
         delivererId={rep || null}
+        delivererName={selectedRep?.full_name ?? null}
+        delivererPhone={selectedRep?.phone ?? null}
         canSettle={isOperador ? !!rep : false}
         clientDebts={isOperador ? clientDebts : []}
       />
@@ -125,11 +128,16 @@ export default async function FinanzasPage({
             label: "Por cobrar",
             value: usd(clientsOwe),
             tone: clientsOwe > 0 ? "warning" : "foreground",
-            goCuentas: true,
+            target: "por-cobrar",
           },
         ]
       : []),
-    { label: balLabel, value: usd(Math.abs(cubaBalance)), tone: balTone },
+    {
+      label: balLabel,
+      value: usd(Math.abs(cubaBalance)),
+      tone: balTone,
+      target: "saldo-cuba",
+    },
   ];
 
   return (

@@ -7,7 +7,7 @@ type Kpi = {
   label: string;
   value: string;
   tone?: string;
-  goCuentas?: boolean;
+  target?: string; // id del bloque al que baja al tocar (en Cuentas)
 };
 
 export function FinanzasTabs({
@@ -23,11 +23,11 @@ export function FinanzasTabs({
 }) {
   const [tab, setTab] = useState<"cuentas" | "reportes">(initial);
 
-  function goCuentas() {
+  function goTo(target: string) {
     setTab("cuentas");
     setTimeout(() => {
       document
-        .getElementById("por-cobrar")
+        .getElementById(target)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 60);
   }
@@ -42,7 +42,7 @@ export function FinanzasTabs({
           )}
         >
           {kpis.map((k) => (
-            <Kpi key={k.label} kpi={k} onGoCuentas={goCuentas} />
+            <Kpi key={k.label} kpi={k} onGo={goTo} />
           ))}
         </div>
       )}
@@ -62,7 +62,13 @@ export function FinanzasTabs({
   );
 }
 
-function Kpi({ kpi, onGoCuentas }: { kpi: Kpi; onGoCuentas: () => void }) {
+function Kpi({
+  kpi,
+  onGo,
+}: {
+  kpi: Kpi;
+  onGo: (target: string) => void;
+}) {
   const color =
     kpi.tone === "income"
       ? "text-income"
@@ -83,10 +89,10 @@ function Kpi({ kpi, onGoCuentas }: { kpi: Kpi; onGoCuentas: () => void }) {
   );
   const base =
     "rounded-2xl border border-border bg-card p-3 text-center transition";
-  if (kpi.goCuentas) {
+  if (kpi.target) {
     return (
       <button
-        onClick={onGoCuentas}
+        onClick={() => onGo(kpi.target!)}
         className={cn(base, "active:scale-[0.98]")}
       >
         {inner}
