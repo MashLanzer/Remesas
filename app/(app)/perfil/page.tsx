@@ -1,7 +1,10 @@
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getRemittances } from "@/lib/data";
+import { getRemittances, getBusinessSettings } from "@/lib/data";
 import { updateProfile } from "@/app/actions";
 import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
+import { ShareCard } from "@/components/share-card";
+import { PaymentMethods } from "@/components/payment-methods";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,20 +15,37 @@ export default async function PerfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, remittances] = await Promise.all([
+  const [{ data: profile }, remittances, settings] = await Promise.all([
     user
       ? supabase.from("profiles").select("*").eq("id", user.id).single()
       : Promise.resolve({ data: null as Record<string, unknown> | null }),
     getRemittances(),
+    getBusinessSettings(),
   ]);
 
   const p = (profile ?? {}) as Record<string, string | number | null>;
   const displayName = (p.full_name as string) || user?.email || "?";
   const initial = displayName.charAt(0).toUpperCase();
+  const avatarUrl = (p.avatar_url as string) || null;
+  const businessName = settings.business_name || null;
 
   const myProfit = remittances.reduce((s, r) => s + Number(r.my_share), 0);
   const count = remittances.length;
   const since = (p.created_at as string) || null;
+
+  // Este mes y ticket promedio.
+  const now = new Date();
+  const monthProfit = remittances
+    .filter((r) => {
+      const d = new Date(r.date + "T00:00:00");
+      return (
+        d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+      );
+    })
+    .reduce((s, r) => s + Number(r.my_share), 0);
+  const avgTicket = count
+    ? remittances.reduce((s, r) => s + Number(r.amount_usd), 0) / count
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -34,9 +54,18 @@ export default async function PerfilPage() {
       {/* Cabecera */}
       <Card>
         <div className="flex items-center gap-3">
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-            {initial}
-          </span>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-14 w-14 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+              {initial}
+            </span>
+          )}
           <div className="min-w-0">
             <p className="truncate text-base font-semibold text-foreground">
               {(p.full_name as string) || "Sin nombre"}
@@ -49,9 +78,32 @@ export default async function PerfilPage() {
       {/* Mini-estadísticas */}
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Has ganado" value={usd(myProfit)} />
+        <Stat label="Este mes" value={usd(monthProfit)} />
         <Stat label="Remesas" value={String(count)} />
+        <Stat label="Promedio" value={usd(avgTicket)} />
         <Stat label="Desde" value={since ? formatDate(since) : "—"} />
       </div>
+
+      {/* Tarjeta y datos de cobro */}
+      <section className="space-y-2">
+        <SectionTitle>Tu tarjeta y cobro</SectionTitle>
+        <ShareCard
+          name={(p.full_name as string) ?? null}
+          businessName={businessName}
+          phone={(p.phone as string) ?? null}
+          zelle={(p.zelle as string) ?? null}
+          cashapp={(p.cashapp as string) ?? null}
+          paypal={(p.paypal as string) ?? null}
+        />
+        <PaymentMethods
+          name={(p.full_name as string) ?? null}
+          brand={businessName}
+          phone={(p.phone as string) ?? null}
+          zelle={(p.zelle as string) ?? null}
+          cashapp={(p.cashapp as string) ?? null}
+          paypal={(p.paypal as string) ?? null}
+        />
+      </section>
 
       {/* Datos */}
       <Card>
@@ -61,6 +113,18 @@ export default async function PerfilPage() {
               name="full_name"
               defaultValue={(p.full_name as string) ?? ""}
               placeholder="Tu nombre"
+            />
+          </Field>
+
+          <Field
+            label="Foto de perfil (opcional)"
+            hint={avatarUrl ? "Sube otra para reemplazarla." : "Se ve en tu perfil."}
+          >
+            <input
+              type="file"
+              name="avatar"
+              accept="image/*"
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
             />
           </Field>
 
@@ -117,12 +181,24 @@ export default async function PerfilPage() {
         </form>
       </Card>
 
-      <p className="px-1 text-xs text-muted-foreground">
-        Tu tarjeta compartible (con QR) está en el ícono{" "}
-        <span className="font-medium text-foreground">⬛ arriba</span>, en la barra
-        superior.
-      </p>
+      {/* Cerrar sesión */}
+      <form action="/auth/signout" method="post">
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 py-3 text-sm font-semibold text-destructive transition active:scale-[0.98]"
+        >
+          <LogOut className="h-4 w-4" /> Cerrar sesión
+        </button>
+      </form>
     </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </h2>
   );
 }
 
