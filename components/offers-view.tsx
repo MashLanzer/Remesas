@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Star } from "lucide-react";
 import { Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
+import { recordOfferView } from "@/app/actions";
+import { cn } from "@/lib/utils";
 import { OFFER_KINDS, type Offer } from "@/lib/types";
 
 function kindMeta(o: Offer) {
@@ -28,6 +31,12 @@ export function OffersView({ offers }: { offers: Offer[] }) {
 
   if (offers.length === 0) return null;
 
+  function open(o: Offer) {
+    setSelected(o);
+    // Registrar la vista (tolerante si el RPC aún no existe).
+    recordOfferView(o.id).catch(() => {});
+  }
+
   return (
     <div className="space-y-3">
       {offers.map((o) => {
@@ -36,10 +45,15 @@ export function OffersView({ offers }: { offers: Offer[] }) {
         return (
           <button
             key={o.id}
-            onClick={() => setSelected(o)}
+            onClick={() => open(o)}
             className="block w-full text-left"
           >
-            <Card className="overflow-hidden p-0 transition active:scale-[0.99]">
+            <Card
+              className={cn(
+                "overflow-hidden p-0 transition active:scale-[0.99]",
+                o.featured && "border-primary/40 ring-1 ring-primary/20"
+              )}
+            >
               {o.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -56,6 +70,9 @@ export function OffersView({ offers }: { offers: Offer[] }) {
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
+                    {o.featured && (
+                      <Star className="h-3.5 w-3.5 shrink-0 fill-primary text-primary" />
+                    )}
                     <p className="truncate text-sm font-bold text-foreground">
                       {o.title}
                     </p>

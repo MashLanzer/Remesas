@@ -36,7 +36,9 @@ export default async function ClienteHome() {
         : Promise.resolve({ data: null }),
     ]);
   const recentOrders = orders.slice(0, 3);
-  const featuredOffers = offers.slice(0, 6);
+  const featuredOffers = [...offers]
+    .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
+    .slice(0, 6);
   const featuredPackages = packages.slice(0, 6);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as

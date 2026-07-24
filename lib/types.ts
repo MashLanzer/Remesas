@@ -168,6 +168,8 @@ export interface Offer {
   emoji: string | null;
   image_url: string | null;
   active: boolean;
+  featured?: boolean;
+  view_count?: number;
   starts_at: string | null;
   ends_at: string | null;
   created_at: string;

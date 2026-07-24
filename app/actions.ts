@@ -233,6 +233,32 @@ export async function deleteOffer(id: string) {
   revalidatePath("/c");
 }
 
+// Marcar una promoción como principal (una sola destacada por negocio).
+export async function toggleOfferFeatured(id: string, featured: boolean) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  if (featured) {
+    await supabase
+      .from("offers")
+      .update({ featured: false })
+      .eq("operator_id", ctx.tenantId);
+  }
+  await supabase
+    .from("offers")
+    .update({ featured })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+  revalidatePath("/ofertas");
+  revalidatePath("/c");
+}
+
+// El cliente registra una vista de la promoción (tolerante — RPC 0025).
+export async function recordOfferView(offerId: string) {
+  const supabase = await createClient();
+  await supabase.rpc("bump_offer_view", { p_offer: offerId });
+}
+
 // ===== Paquetes de remesa (los publica el operador) =====
 
 export async function createPackage(formData: FormData) {
