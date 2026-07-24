@@ -147,7 +147,13 @@ export default async function FinanzasPage({
         initial={initial}
         kpis={kpis}
         cuentas={cuentas}
-        reportes={<ReportesView remittances={remittances} monthlyGoal={monthlyGoal} />}
+        reportes={
+          <ReportesView
+            remittances={remittances}
+            monthlyGoal={monthlyGoal}
+            brand={settings.business_name || "Giro"}
+          />
+        }
       />
     </div>
   );

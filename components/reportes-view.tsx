@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,9 +14,16 @@ import {
   Users,
   PieChart,
   ArrowLeftRight,
+  Image as ImageIcon,
+  Copy,
+  Check,
+  ArrowLeft,
+  Sparkles,
 } from "lucide-react";
 import { Card, Select } from "@/components/ui";
 import { Sheet, SheetTrigger } from "@/components/sheet";
+import { PaperPlane } from "@/components/paper-plane";
+import { shareNodeAsImage } from "@/lib/share-image";
 import { usd, localAmount, cn } from "@/lib/utils";
 import type { Remittance } from "@/lib/types";
 import { useDialog } from "@/components/confirm";
@@ -75,17 +82,23 @@ function daysSince(dateStr: string): number {
 export function ReportesView({
   remittances,
   monthlyGoal = 0,
+  brand = "Giro",
 }: {
   remittances: Remittance[];
   monthlyGoal?: number;
+  brand?: string;
 }) {
   const { notify } = useDialog();
   const [period, setPeriod] = useState<Period>("mes");
   const [curFilter, setCurFilter] = useState<string>("");
   const [methodFilter, setMethodFilter] = useState<string>("");
   const [sheet, setSheet] = useState<
-    null | "trend" | "clients" | "desglose" | "compare"
+    null | "trend" | "clients" | "desglose" | "compare" | "share"
   >(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [reportImg, setReportImg] = useState<string | null>(null);
+  const [sharingPhoto, setSharingPhoto] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Opciones de filtro derivadas de todos los datos
   const currencyOptions = useMemo(
@@ -214,6 +227,81 @@ export function ReportesView({
     return Object.entries(m).sort((x, y) => y[1] - x[1]);
   }, [cur]);
 
+  // Ganancia por origen: comisión vs cambio de moneda.
+  const exchangeProfit = cur.reduce(
+    (s, r) => s + Number(r.exchange_profit || 0),
+    0
+  );
+
+  // Clientes nuevos vs recurrentes en el período.
+  const clientFirst = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const r of remittances) {
+      const k = r.client?.name;
+      if (!k) continue;
+      if (!m[k] || r.date < m[k]) m[k] = r.date;
+    }
+    return m;
+  }, [remittances]);
+  const clientBreakdown = useMemo(() => {
+    const names = new Set<string>();
+    for (const r of cur) if (r.client?.name) names.add(r.client.name);
+    let nuevos = 0;
+    for (const k of Array.from(names)) {
+      if (clientFirst[k] && inPeriod(clientFirst[k], period, 0)) nuevos += 1;
+    }
+    return { nuevos, recurrentes: names.size - nuevos, total: names.size };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cur, clientFirst, period]);
+
+  // Ganancia por mes (para detectar récord).
+  const monthProfits = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const r of remittances)
+      m[monthKey(r.date)] =
+        (m[monthKey(r.date)] || 0) + Number(r.total_profit);
+    return m;
+  }, [remittances]);
+
+  // Titular inteligente: un resumen automático del período.
+  const headline = useMemo((): { text: string; tone: string } | null => {
+    if (!a.count) return null;
+    const d = showCompare ? pctChange(a.profit, p.profit) : null;
+    const now = new Date();
+    const monthsBack = period === "pasado" ? 1 : 0;
+    const base = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+    const curKey = `${base.getFullYear()}-${String(
+      base.getMonth() + 1
+    ).padStart(2, "0")}`;
+    const profits = Object.values(monthProfits);
+    const maxProfit = Math.max(...profits, 0);
+    const isRecord =
+      (period === "mes" || period === "pasado") &&
+      profits.length >= 2 &&
+      maxProfit > 0 &&
+      monthProfits[curKey] === maxProfit;
+    if (isRecord) return { text: "Tu mejor mes de ganancia 🎉", tone: "income" };
+    if (d != null && d >= 15)
+      return {
+        text: `+${d.toFixed(0)}% vs período anterior · buen ritmo 🚀`,
+        tone: "income",
+      };
+    if (d != null && d <= -15)
+      return {
+        text: `${d.toFixed(0)}% vs período anterior · a remontar`,
+        tone: "warning",
+      };
+    if (topClients[0])
+      return {
+        text: `Tu mejor cliente: ${topClients[0].name} (${usd(
+          topClients[0].profit
+        )})`,
+        tone: "info",
+      };
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [a.count, a.profit, p.profit, showCompare, period, monthProfits, topClients]);
+
   // #8 Proyección de cierre de mes (solo período "mes")
   const projection = useMemo(() => {
     if (period !== "mes") return null;
@@ -279,9 +367,28 @@ export function ReportesView({
     }
     try {
       await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
       notify("Resumen copiado al portapapeles");
     } catch {
       /* nada */
+    }
+  }
+
+  async function sharePhoto() {
+    const node = cardRef.current;
+    if (!node) return;
+    setSharingPhoto(true);
+    try {
+      const res = await shareNodeAsImage(node, {
+        title: "Reporte",
+        fileName: `reporte-${Date.now()}.png`,
+      });
+      if (res.status === "fallback" && res.dataUrl) setReportImg(res.dataUrl);
+    } catch {
+      /* nada */
+    } finally {
+      setSharingPhoto(false);
     }
   }
 
@@ -299,6 +406,28 @@ export function ReportesView({
     lines.push("");
     lines.push("Top clientes,Ganancia");
     topClients.forEach((c) => lines.push(`${csv(c.name)},${c.profit}`));
+    // Detalle de remesas del período (contabilidad fina).
+    lines.push("");
+    lines.push("Detalle de remesas");
+    lines.push(
+      "Fecha,Cliente,Beneficiario,Moneda,Monto USD,Comisión,Ganancia,Estado"
+    );
+    [...cur]
+      .sort((x, y) => y.date.localeCompare(x.date))
+      .forEach((r) =>
+        lines.push(
+          [
+            r.date,
+            csv(r.client?.name || ""),
+            csv(r.beneficiary?.name || ""),
+            r.delivery_currency,
+            Number(r.amount_usd),
+            Number(r.commission),
+            Number(r.total_profit),
+            r.status,
+          ].join(",")
+        )
+      );
     const blob = new Blob(["﻿" + lines.join("\n")], {
       type: "text/csv;charset=utf-8;",
     });
@@ -314,6 +443,21 @@ export function ReportesView({
 
   return (
     <div className="space-y-5">
+      {/* Titular inteligente */}
+      {headline && (
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold",
+            headline.tone === "income" && "bg-income/10 text-income",
+            headline.tone === "warning" && "bg-warning/10 text-warning",
+            headline.tone === "info" && "bg-info/10 text-info"
+          )}
+        >
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span className="min-w-0">{headline.text}</span>
+        </div>
+      )}
+
       {/* Período */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {periods.map((f) => (
@@ -529,6 +673,35 @@ export function ReportesView({
         title="Clientes"
       >
         <div className="space-y-5">
+      {/* Nuevos vs recurrentes */}
+      {clientBreakdown.total > 0 && (
+        <Card>
+          <p className="mb-3 text-sm font-bold text-foreground">
+            Clientes del período
+          </p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="tabular text-2xl font-bold text-foreground">
+                {clientBreakdown.total}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Activos</p>
+            </div>
+            <div>
+              <p className="tabular text-2xl font-bold text-income">
+                {clientBreakdown.nuevos}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Nuevos</p>
+            </div>
+            <div>
+              <p className="tabular text-2xl font-bold text-info">
+                {clientBreakdown.recurrentes}
+              </p>
+              <p className="text-[11px] text-muted-foreground">Recurrentes</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Top clientes */}
       {topClients.length > 0 && (
         <RankCard
@@ -593,6 +766,45 @@ export function ReportesView({
         title="Desglose"
       >
         <div className="space-y-5">
+      {/* Ganancia por origen: comisión vs cambio */}
+      {a.count > 0 && (a.commission > 0 || exchangeProfit > 0) && (
+        <Card>
+          <p className="mb-3 text-sm font-bold text-foreground">
+            De dónde viene la ganancia
+          </p>
+          {(() => {
+            const totalG = a.commission + exchangeProfit || 1;
+            const rows = [
+              { label: "Comisión", value: a.commission, cls: "bg-income" },
+              { label: "Cambio de moneda", value: exchangeProfit, cls: "bg-info" },
+            ];
+            return (
+              <div className="space-y-2.5">
+                {rows.map((r) => (
+                  <div key={r.label}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="text-foreground">{r.label}</span>
+                      <span className="tabular ml-2 font-semibold text-foreground">
+                        {usd(r.value)}{" "}
+                        <span className="text-xs text-muted-foreground">
+                          ({Math.round((r.value / totalG) * 100)}%)
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={"h-full rounded-full " + r.cls}
+                        style={{ width: `${(r.value / totalG) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
       {/* Por provincia */}
       {byProvince.length > 0 && (
         <RankCard
@@ -662,6 +874,128 @@ export function ReportesView({
 
       </Sheet>
 
+      {/* Hoja: Compartir reporte (foto + texto) */}
+      <Sheet
+        open={sheet === "share"}
+        onClose={() => {
+          setSheet(null);
+          setReportImg(null);
+        }}
+        title="Compartir reporte"
+      >
+        <div
+          ref={cardRef}
+          className={
+            "relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-2xl" +
+            (reportImg ? " hidden" : "")
+          }
+        >
+          <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/15 via-transparent to-white/10" />
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PaperPlane className="h-6 w-6 -translate-x-px text-white drop-shadow" />
+                <span className="text-xl font-extrabold tracking-tight">
+                  {brand}
+                </span>
+              </div>
+              <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
+                Reporte
+              </span>
+            </div>
+
+            <p className="mt-2 text-sm font-semibold text-white/90">
+              {periodLabel}
+            </p>
+            <p className="text-xs text-white/70">{a.count} remesas</p>
+
+            <div className="mt-4 space-y-2 border-t border-white/20 pt-4 text-sm">
+              <StatementLine label="Enviado" value={usd(a.sent)} />
+              <StatementLine label="Tu parte" value={usd(a.mine)} />
+              <StatementLine label="Comisión" value={usd(a.commission)} />
+              <StatementLine label="Ticket promedio" value={usd(avg)} />
+              {topClients[0] && (
+                <StatementLine
+                  label="Top cliente"
+                  value={topClients[0].name}
+                />
+              )}
+            </div>
+
+            <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-white/20 pt-4">
+              <span className="text-sm font-medium text-white/80">Ganancia</span>
+              <span className="tabular text-2xl font-extrabold leading-none">
+                {usd(a.profit)}
+              </span>
+            </div>
+
+            <p className="mt-5 text-center text-xs text-white/70">
+              Generado con {brand} ✈️
+            </p>
+          </div>
+        </div>
+
+        {reportImg && (
+          <div className="space-y-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={reportImg}
+              alt="Reporte"
+              className="w-full rounded-3xl shadow-xl"
+            />
+            <p className="text-center text-xs text-muted-foreground">
+              Mantén presionada la imagen para guardarla o enviarla por WhatsApp.
+            </p>
+          </div>
+        )}
+
+        <div className="mt-4 flex gap-2">
+          {reportImg ? (
+            <>
+              <button
+                onClick={() => setReportImg(null)}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+              >
+                <ArrowLeft className="h-4 w-4" /> Volver
+              </button>
+              <a
+                href={reportImg}
+                download="reporte.png"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
+              >
+                <Download className="h-4 w-4" /> Descargar
+              </a>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={shareSummary}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 text-income" /> Copiado
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" /> Texto
+                  </>
+                )}
+              </button>
+              <button
+                onClick={sharePhoto}
+                disabled={sharingPhoto}
+                className="flex flex-[1.4] items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-70"
+              >
+                <ImageIcon className="h-4 w-4" />
+                {sharingPhoto ? "Generando…" : "Compartir foto"}
+              </button>
+            </>
+          )}
+        </div>
+      </Sheet>
+
       {/* Acciones */}
       <div className="grid grid-cols-3 gap-2">
         <ActionButton onClick={exportCsv} icon={<Download className="h-4 w-4" />}>
@@ -673,7 +1007,13 @@ export function ReportesView({
         >
           PDF
         </ActionButton>
-        <ActionButton onClick={shareSummary} icon={<Share2 className="h-4 w-4" />}>
+        <ActionButton
+          onClick={() => {
+            setReportImg(null);
+            setSheet("share");
+          }}
+          icon={<Share2 className="h-4 w-4" />}
+        >
           Compartir
         </ActionButton>
       </div>
@@ -957,6 +1297,15 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="tabular font-medium text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function StatementLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-white/80">{label}</span>
+      <span className="tabular truncate font-semibold">{value}</span>
     </div>
   );
 }
