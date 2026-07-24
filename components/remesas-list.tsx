@@ -60,10 +60,12 @@ export function RemesasList({
   remittances,
   initialQuery = "",
   initialEstado = "todas",
+  isOperador = true,
 }: {
   remittances: Remittance[];
   initialQuery?: string;
   initialEstado?: string;
+  isOperador?: boolean;
 }) {
   const [estado, setEstado] = useState(initialEstado);
   const [q, setQ] = useState(initialQuery);
@@ -209,7 +211,7 @@ export function RemesasList({
         r.delivery_currency,
         r.local_amount,
         r.total_profit,
-        r.my_share,
+        isOperador ? r.my_share : r.partner_share,
         r.status,
         r.client_paid === false ? "No" : "Sí",
       ]
@@ -425,7 +427,7 @@ export function RemesasList({
               )}
               <div className="space-y-2">
                 {g.items.map((r) => (
-                  <RemesaCard key={r.id} r={r} />
+                  <RemesaCard key={r.id} r={r} isOperador={isOperador} />
                 ))}
               </div>
             </div>
@@ -436,7 +438,13 @@ export function RemesasList({
   );
 }
 
-function RemesaCard({ r }: { r: Remittance }) {
+function RemesaCard({
+  r,
+  isOperador = true,
+}: {
+  r: Remittance;
+  isOperador?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [undoDeliver, setUndoDeliver] = useState(false);
   const [cobrada, setCobrada] = useState(false);
@@ -470,7 +478,8 @@ function RemesaCard({ r }: { r: Remittance }) {
     start(() => updateRemittanceStatus(r.id, "entregado"));
   }
 
-  const showCobrar = cobrada || r.client_paid === false;
+  // Solo el operador marca el cobro al cliente (él recibe el dinero).
+  const showCobrar = isOperador && (cobrada || r.client_paid === false);
   const showDeliver = undoDeliver || r.status === "pendiente";
   const showLiquidar = liquidada || r.status === "entregado";
   const hasActions = showCobrar || showDeliver || showLiquidar;
@@ -527,7 +536,9 @@ function RemesaCard({ r }: { r: Remittance }) {
 
       <div className="mt-2 border-t border-border pt-2">
         <p className="text-xs text-muted-foreground">
-          Ganancia {usd(r.total_profit)} · Tu parte {usd(r.my_share)}
+          {isOperador
+            ? `Ganancia ${usd(r.total_profit)} · Tu parte ${usd(r.my_share)}`
+            : `Tu parte ${usd(r.partner_share)}`}
         </p>
         {hasActions && (
           <div className="mt-2 flex gap-2">

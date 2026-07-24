@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { getRemittances } from "@/lib/data";
+import { getRemittances, getSessionContext } from "@/lib/data";
 import { LinkButton, PageHeader } from "@/components/ui";
 import { RemesasList } from "@/components/remesas-list";
 
@@ -11,7 +11,10 @@ export default async function RemesasPage({
   searchParams: Promise<{ q?: string; estado?: string }>;
 }) {
   const { q, estado } = await searchParams;
-  const all = await getRemittances();
+  const [all, ctx] = await Promise.all([
+    getRemittances(),
+    getSessionContext(),
+  ]);
 
   return (
     <div>
@@ -28,6 +31,7 @@ export default async function RemesasPage({
         remittances={all}
         initialQuery={q ?? ""}
         initialEstado={estado ?? "todas"}
+        isOperador={ctx.isOperador}
       />
     </div>
   );

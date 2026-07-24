@@ -1,6 +1,10 @@
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getRemittances, getBusinessSettings } from "@/lib/data";
+import {
+  getRemittances,
+  getBusinessSettings,
+  getSessionContext,
+} from "@/lib/data";
 import { updateProfile } from "@/app/actions";
 import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
 import { ShareCard } from "@/components/share-card";
@@ -15,13 +19,17 @@ export default async function PerfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, remittances, settings] = await Promise.all([
+  const [{ data: profile }, remittances, settings, ctx] = await Promise.all([
     user
       ? supabase.from("profiles").select("*").eq("id", user.id).single()
       : Promise.resolve({ data: null as Record<string, unknown> | null }),
     getRemittances(),
     getBusinessSettings(),
+    getSessionContext(),
   ]);
+  const isOperador = ctx.isOperador;
+  const share = (r: { my_share: number; partner_share: number }) =>
+    Number(isOperador ? r.my_share : r.partner_share);
 
   const p = (profile ?? {}) as Record<string, string | number | null>;
   const displayName = (p.full_name as string) || user?.email || "?";
@@ -29,7 +37,7 @@ export default async function PerfilPage() {
   const avatarUrl = (p.avatar_url as string) || null;
   const businessName = settings.business_name || null;
 
-  const myProfit = remittances.reduce((s, r) => s + Number(r.my_share), 0);
+  const myProfit = remittances.reduce((s, r) => s + share(r), 0);
   const count = remittances.length;
   const since = (p.created_at as string) || null;
 
@@ -42,7 +50,7 @@ export default async function PerfilPage() {
         d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
       );
     })
-    .reduce((s, r) => s + Number(r.my_share), 0);
+    .reduce((s, r) => s + share(r), 0);
   const avgTicket = count
     ? remittances.reduce((s, r) => s + Number(r.amount_usd), 0) / count
     : 0;

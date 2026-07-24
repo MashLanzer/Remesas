@@ -116,7 +116,12 @@ export function DashboardView({
     });
   }, [remittances, period]);
 
-  const profit = filtered.reduce((s, r) => s + Number(r.total_profit), 0);
+  // Para el operador, el titular es la ganancia total del negocio; para el
+  // repartidor, su propia ganancia (partner_share) — no la del negocio.
+  const profit = filtered.reduce(
+    (s, r) => s + Number(isRep ? r.partner_share : r.total_profit),
+    0
+  );
   // "Tu parte": para el operador es my_share; para el repartidor, partner_share.
   const myProfit = filtered.reduce(
     (s, r) => s + Number(isRep ? r.partner_share : r.my_share),
@@ -142,8 +147,11 @@ export function DashboardView({
         const d = new Date(r.date + "T00:00:00");
         return d >= start && d < end;
       })
-      .reduce((s, r) => s + Number(r.total_profit), 0);
-  }, [remittances, period]);
+      .reduce(
+        (s, r) => s + Number(isRep ? r.partner_share : r.total_profit),
+        0
+      );
+  }, [remittances, period, isRep]);
 
   const delta =
     prevProfit != null && prevProfit > 0
@@ -165,8 +173,11 @@ export function DashboardView({
       .reduce((s, r) => s + Number(r.total_profit), 0);
   }, [remittances]);
 
+  // La meta del mes es del negocio (operador); no aplica al repartidor.
   const goalPct =
-    monthlyGoal > 0 ? Math.min((monthProfit / monthlyGoal) * 100, 100) : null;
+    !isRep && monthlyGoal > 0
+      ? Math.min((monthProfit / monthlyGoal) * 100, 100)
+      : null;
 
   // Pendientes: siempre global (sin filtrar por período).
   const pending = remittances.filter((r) => r.status === "pendiente");
@@ -257,7 +268,8 @@ export function DashboardView({
       {/* Tarjeta principal */}
       <div className="hero-gradient relative overflow-hidden rounded-3xl p-5 text-white shadow-xl shadow-primary/20">
         <p className="text-sm font-medium text-white/70">
-          Ganancia · {periods.find((p) => p.key === period)?.label.toLowerCase()}
+          {isRep ? "Tu ganancia" : "Ganancia"} ·{" "}
+          {periods.find((p) => p.key === period)?.label.toLowerCase()}
         </p>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p className="tabular text-4xl font-extrabold">{usd(profit)}</p>
@@ -280,9 +292,11 @@ export function DashboardView({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-            <Wallet className="h-3.5 w-3.5" /> Tu parte {usd(myProfit)}
-          </span>
+          {!isRep && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+              <Wallet className="h-3.5 w-3.5" /> Tu parte {usd(myProfit)}
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
             <Send className="h-3.5 w-3.5" /> Enviado {usd(sent)}
           </span>
