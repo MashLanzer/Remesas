@@ -1,5 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { getMyOrders, getExchangeRates, getMyPoints } from "@/lib/data";
+import {
+  getMyOrders,
+  getExchangeRates,
+  getMyPoints,
+  getMyBeneficiaries,
+} from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
 import {
   OrderStatusBadge,
@@ -29,11 +34,12 @@ export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
   const supabase = await createClient();
-  const [orders, rates, points, cfgRes] = await Promise.all([
+  const [orders, rates, points, cfgRes, beneficiaries] = await Promise.all([
     getMyOrders(),
     getExchangeRates(),
     getMyPoints(),
     supabase.rpc("my_client_config"),
+    getMyBeneficiaries(),
   ]);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
@@ -242,8 +248,19 @@ export default async function MisPedidosPage() {
         </section>
       )}
 
-      {/* Historial (con buscador/filtro) */}
-      {history.length > 0 && <ClientOrderHistory orders={history} />}
+      {/* Historial (con buscador/filtro y repetir) */}
+      {history.length > 0 && (
+        <ClientOrderHistory
+          orders={history}
+          sendProps={{
+            rates,
+            pointsBalance: points.balance,
+            redeemMin,
+            pointValue,
+            beneficiaries,
+          }}
+        />
+      )}
     </div>
   );
 }

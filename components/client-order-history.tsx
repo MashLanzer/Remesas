@@ -2,16 +2,46 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, RotateCcw } from "lucide-react";
 import { Card } from "@/components/ui";
+import { Sheet } from "@/components/sheet";
+import { OrderForm, type OrderInitial } from "@/components/order-form";
 import {
   OrderStatusBadge,
   orderDisplay,
 } from "@/components/order-status-badge";
 import { usd, cn } from "@/lib/utils";
-import type { Order } from "@/lib/types";
+import type { Order, ExchangeRate } from "@/lib/types";
 
-export function ClientOrderHistory({ orders }: { orders: Order[] }) {
+type SendProps = {
+  rates: ExchangeRate[];
+  pointsBalance: number;
+  redeemMin: number;
+  pointValue: number;
+  beneficiaries: { name: string; phone: string | null; province: string | null }[];
+};
+
+export function ClientOrderHistory({
+  orders,
+  sendProps,
+}: {
+  orders: Order[];
+  sendProps?: SendProps;
+}) {
+  const [repeatOpen, setRepeatOpen] = useState(false);
+  const [repeatInitial, setRepeatInitial] = useState<OrderInitial | undefined>();
+
+  function repeat(o: Order) {
+    setRepeatInitial({
+      amount: String(o.amount_usd),
+      currency: o.delivery_currency || undefined,
+      name: o.beneficiary_name || undefined,
+      phone: o.beneficiary_phone || undefined,
+      province: o.province || undefined,
+    });
+    setRepeatOpen(true);
+  }
+
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"todos" | "entregadas" | "rechazadas">(
     "todos"
@@ -133,12 +163,39 @@ export function ClientOrderHistory({ orders }: { orders: Order[] }) {
                         Motivo: {o.reject_reason}
                       </p>
                     )}
+                    {sendProps && (
+                      <button
+                        type="button"
+                        onClick={() => repeat(o)}
+                        className="flex items-center gap-1 border-t border-border pt-2 text-xs font-semibold text-primary transition active:scale-95"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Repetir envío
+                      </button>
+                    )}
                   </Card>
                 ))}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {sendProps && (
+        <Sheet
+          open={repeatOpen}
+          onClose={() => setRepeatOpen(false)}
+          title="Repetir envío"
+        >
+          <OrderForm
+            rates={sendProps.rates}
+            onDone={() => setRepeatOpen(false)}
+            pointsBalance={sendProps.pointsBalance}
+            redeemMin={sendProps.redeemMin}
+            pointValue={sendProps.pointValue}
+            beneficiaries={sendProps.beneficiaries}
+            initial={repeatInitial}
+          />
+        </Sheet>
       )}
     </section>
   );
