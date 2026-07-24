@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import {
   Check,
   Minus,
@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronRight,
   Sparkles,
+  Undo2,
 } from "lucide-react";
 import { Card } from "@/components/ui";
 import { upsertRate, toggleCurrencyActive } from "@/app/actions";
@@ -52,8 +53,55 @@ export function RatesView({
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  // Guardar todas de una — cada fila reporta si tiene cambios sin guardar.
+  const [saving, startSave] = useTransition();
+  const [dirty, setDirty] = useState<
+    Record<string, { rate: string; market: string }>
+  >({});
+  const onDirty = useCallback(
+    (currency: string, isDirty: boolean, rate: string, market: string) => {
+      setDirty((prev) => {
+        if (isDirty) {
+          const cur = prev[currency];
+          if (cur && cur.rate === rate && cur.market === market) return prev;
+          return { ...prev, [currency]: { rate, market } };
+        }
+        if (!(currency in prev)) return prev;
+        const next = { ...prev };
+        delete next[currency];
+        return next;
+      });
+    },
+    []
+  );
+  const dirtyList = Object.entries(dirty);
+
+  function saveAll() {
+    startSave(async () => {
+      for (const [currency, { rate, market }] of dirtyList) {
+        const fd = new FormData();
+        fd.set("currency", currency);
+        fd.set("rate", rate);
+        fd.set("market_rate", market);
+        await upsertRate(fd);
+      }
+    });
+  }
+
   return (
     <div className="space-y-2">
+      {dirtyList.length > 1 && (
+        <button
+          type="button"
+          onClick={saveAll}
+          disabled={saving}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-60"
+        >
+          <Check className="h-4 w-4" />
+          {saving ? "Guardando…" : `Guardar ${dirtyList.length} cambios`}
+        </button>
+      )}
+
       {staleCurrencies.length > 0 && (
         <button
           type="button"
@@ -77,6 +125,7 @@ export function RatesView({
             currency={c}
             rate={byCurrency[c]}
             history={histByCurrency[c] ?? []}
+            onDirty={onDirty}
           />
         </div>
       ))}
@@ -104,22 +153,35 @@ function RateRow({
   currency,
   rate,
   history,
+  onDirty,
 }: {
   currency: string;
   rate?: ExchangeRate;
   history: RateHistory[];
+  onDirty?: (
+    currency: string,
+    isDirty: boolean,
+    rate: string,
+    market: string
+  ) => void;
 }) {
   const [pending, start] = useTransition();
   const initial = rate ? String(rate.rate) : "";
+  const marketInitial = rate?.market_rate ? String(rate.market_rate) : "";
   const [value, setValue] = useState(initial);
-  const [marketVal, setMarketVal] = useState(
-    rate?.market_rate ? String(rate.market_rate) : ""
-  );
+  const [marketVal, setMarketVal] = useState(marketInitial);
   const [expanded, setExpanded] = useState(false);
+  // Para deshacer: guardamos la tasa que había justo antes de guardar.
+  const [undoTo, setUndoTo] = useState<string | null>(null);
 
   const active = rate?.active !== false;
-  const dirty = value !== initial;
+  const dirty = value !== initial || marketVal !== marketInitial;
   const stale = rate ? daysSince(rate.updated_at) >= STALE_DAYS : false;
+
+  // Reportar al padre si hay cambios sin guardar (para "Guardar todas").
+  useEffect(() => {
+    onDirty?.(currency, dirty, value, marketVal);
+  }, [currency, dirty, value, marketVal, onDirty]);
 
   const currentRate = rate ? Number(rate.rate) : null;
   const prev =
@@ -152,10 +214,25 @@ function RateRow({
     setValue(String(Number((mkNum * (1 - pct / 100)).toFixed(4))));
   }
 
+  function doUndo() {
+    if (undoTo == null) return;
+    const target = undoTo;
+    setValue(target);
+    setUndoTo(null);
+    const fd = new FormData();
+    fd.set("currency", currency);
+    fd.set("rate", target);
+    fd.set("market_rate", marketVal);
+    start(() => upsertRate(fd));
+  }
+
   return (
     <Card className={cn("p-3.5", !active && "opacity-55")}>
       <form
-        action={(fd) => start(() => upsertRate(fd))}
+        action={(fd) => {
+          if (value !== initial && initial !== "") setUndoTo(initial);
+          start(() => upsertRate(fd));
+        }}
         className="space-y-2.5"
       >
         <input type="hidden" name="currency" value={currency} />
@@ -243,6 +320,19 @@ function RateRow({
             <Check className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Deshacer el último cambio guardado */}
+        {undoTo != null && !dirty && undoTo !== value && (
+          <button
+            type="button"
+            onClick={doUndo}
+            disabled={pending}
+            className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground transition active:scale-95 disabled:opacity-50"
+          >
+            <Undo2 className="h-3 w-3" />
+            Volver a {localAmount(Number(undoTo))}
+          </button>
+        )}
 
         {/* Tasa de mercado + spread */}
         <div className="flex items-center gap-2 text-xs">
