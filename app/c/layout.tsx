@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSessionContext,
   getExchangeRates,
   getMyPoints,
   getMyBeneficiaries,
+  getMyOperatorContact,
 } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteNav } from "@/components/cliente-nav";
@@ -30,16 +31,26 @@ export default async function ClienteLayout({
   if (!ctx.isCliente) redirect("/");
 
   // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
-  const [rates, points, cfgRes, beneficiaries, profileRes] = await Promise.all([
-    getExchangeRates(),
-    getMyPoints(),
-    supabase.rpc("my_client_config"),
-    getMyBeneficiaries(),
-    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
-  ]);
+  const [rates, points, cfgRes, beneficiaries, profileRes, contact] =
+    await Promise.all([
+      getExchangeRates(),
+      getMyPoints(),
+      supabase.rpc("my_client_config"),
+      getMyBeneficiaries(),
+      supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+      getMyOperatorContact(),
+    ]);
   const fullName = (profileRes.data?.full_name as string | null) ?? null;
   const firstName = fullName?.trim().split(" ")[0] ?? null;
   const initial = (firstName || user.email || "?").charAt(0).toUpperCase();
+  const bizDigits = contact.phone?.replace(/\D/g, "") || "";
+  const bizWa = bizDigits
+    ? `https://wa.me/${bizDigits}?text=${encodeURIComponent(
+        `Hola${
+          contact.businessName ? ` ${contact.businessName}` : ""
+        }, tengo una consulta.`
+      )}`
+    : null;
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
     | null;
@@ -59,6 +70,18 @@ export default async function ClienteLayout({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
+            {bizWa && (
+              <a
+                href={bizWa}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-income transition hover:bg-income/10"
+                aria-label="Dudas por WhatsApp"
+                title="Escribir al negocio"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </a>
+            )}
             <Link
               href="/c/perfil"
               className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-muted"
