@@ -47,6 +47,13 @@ function csvCell(v: string | number | null | undefined): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+function ymdLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function RemesasList({
   remittances,
   initialQuery = "",
@@ -139,6 +146,28 @@ export function RemesasList({
     }
     return out;
   }, [list, sort]);
+
+  function presetToday() {
+    const t = ymdLocal(new Date());
+    setFrom(t);
+    setTo(t);
+  }
+  function preset7() {
+    const now = new Date();
+    const f = new Date(now);
+    f.setDate(f.getDate() - 6);
+    setFrom(ymdLocal(f));
+    setTo(ymdLocal(now));
+  }
+  function presetMonth() {
+    const now = new Date();
+    setFrom(ymdLocal(new Date(now.getFullYear(), now.getMonth(), 1)));
+    setTo(ymdLocal(now));
+  }
+  function clearDates() {
+    setFrom("");
+    setTo("");
+  }
 
   function exportCsv() {
     const headers = [
@@ -259,7 +288,31 @@ export function RemesasList({
       </div>
 
       {showDates && (
-        <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="mb-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Hoy", fn: presetToday },
+              { label: "7 días", fn: preset7 },
+              { label: "Este mes", fn: presetMonth },
+            ].map((p) => (
+              <button
+                key={p.label}
+                onClick={p.fn}
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+              >
+                {p.label}
+              </button>
+            ))}
+            {(from || to) && (
+              <button
+                onClick={clearDates}
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground transition active:scale-95"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-muted-foreground">
             Desde
             <input
@@ -278,6 +331,7 @@ export function RemesasList({
               className="mt-1 w-full rounded-xl border border-input bg-card px-3 py-2 text-sm text-foreground outline-none"
             />
           </label>
+          </div>
         </div>
       )}
 
