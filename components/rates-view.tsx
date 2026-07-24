@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
+  ChevronRight,
   Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/ui";
@@ -40,15 +41,44 @@ export function RatesView({
     (histByCurrency[h.currency] ??= []).push(h);
   }
 
+  const staleCurrencies = DELIVERY_CURRENCIES.filter((c) => {
+    const r = byCurrency[c];
+    return r && r.active !== false && daysSince(r.updated_at) >= STALE_DAYS;
+  });
+
+  function jumpToFirstStale() {
+    document
+      .getElementById(`rate-${staleCurrencies[0]}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   return (
     <div className="space-y-2">
+      {staleCurrencies.length > 0 && (
+        <button
+          type="button"
+          onClick={jumpToFirstStale}
+          className="flex w-full items-center gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-left transition active:scale-[0.99]"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
+          <span className="text-xs font-medium text-warning">
+            {staleCurrencies.length === 1
+              ? "1 tasa sin actualizar"
+              : `${staleCurrencies.length} tasas sin actualizar`}{" "}
+            hace +{STALE_DAYS} días · {staleCurrencies.join(", ")}
+          </span>
+          <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-warning" />
+        </button>
+      )}
+
       {DELIVERY_CURRENCIES.map((c) => (
-        <RateRow
-          key={c}
-          currency={c}
-          rate={byCurrency[c]}
-          history={histByCurrency[c] ?? []}
-        />
+        <div key={c} id={`rate-${c}`} className="scroll-mt-20">
+          <RateRow
+            currency={c}
+            rate={byCurrency[c]}
+            history={histByCurrency[c] ?? []}
+          />
+        </div>
       ))}
 
       <RateImport />
