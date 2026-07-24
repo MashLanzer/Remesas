@@ -41,6 +41,24 @@ export function ClientOrderHistory({ orders }: { orders: Order[] }) {
     });
   }, [orders, q, filter]);
 
+  // Agrupado por mes (los pedidos ya vienen del más reciente al más antiguo).
+  const groups = useMemo(() => {
+    const map = new Map<string, { label: string; items: Order[] }>();
+    for (const o of filtered) {
+      const d = new Date(o.created_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!map.has(key)) {
+        const l = d.toLocaleDateString("es-ES", {
+          month: "long",
+          year: "numeric",
+        });
+        map.set(key, { label: l.charAt(0).toUpperCase() + l.slice(1), items: [] });
+      }
+      map.get(key)!.items.push(o);
+    }
+    return Array.from(map.values());
+  }, [filtered]);
+
   return (
     <section>
       <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -81,36 +99,44 @@ export function ClientOrderHistory({ orders }: { orders: Order[] }) {
           Sin resultados.
         </p>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((o) => (
-            <Card key={o.id} className="space-y-2 p-3.5">
-              <Link
-                href={`/c/pedidos/${o.id}`}
-                className="flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {usd(Number(o.amount_usd))}
-                    <span className="ml-1 text-xs font-normal text-muted-foreground">
-                      · {o.beneficiary_name || "—"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(o.created_at).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                <OrderStatusBadge order={o} />
-              </Link>
-              {o.status === "rechazado" && o.reject_reason && (
-                <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
-                  Motivo: {o.reject_reason}
-                </p>
-              )}
-            </Card>
+        <div className="space-y-4">
+          {groups.map((g) => (
+            <div key={g.label}>
+              <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {g.label}
+              </p>
+              <div className="space-y-2">
+                {g.items.map((o) => (
+                  <Card key={o.id} className="space-y-2 p-3.5">
+                    <Link
+                      href={`/c/pedidos/${o.id}`}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {usd(Number(o.amount_usd))}
+                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            · {o.beneficiary_name || "—"}
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(o.created_at).toLocaleDateString("es-ES", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </p>
+                      </div>
+                      <OrderStatusBadge order={o} />
+                    </Link>
+                    {o.status === "rechazado" && o.reject_reason && (
+                      <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
+                        Motivo: {o.reject_reason}
+                      </p>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
