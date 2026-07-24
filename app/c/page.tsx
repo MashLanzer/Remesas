@@ -169,7 +169,7 @@ export default async function ClienteHome() {
             </p>
           )}
 
-          <div className="mt-4 space-y-2">
+          <div className="mt-4">
             <EnviarRemesaCta
               rates={rates}
               pointsBalance={points.balance}
@@ -177,10 +177,12 @@ export default async function ClienteHome() {
               pointValue={pointValue}
               beneficiaries={beneficiaries}
             />
-            <CalculadoraSheet rates={rates} />
           </div>
         </div>
       </div>
+
+      {/* Calculadora (fuera del hero, más discreta) */}
+      <CalculadoraSheet rates={rates} variant="plain" />
 
       {/* Aviso de novedad en un pedido */}
       {recentEvent && (
