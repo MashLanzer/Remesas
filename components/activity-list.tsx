@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import {
   Send,
   Trash2,
@@ -11,10 +14,22 @@ import {
   Store,
   RefreshCw,
   Activity,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
+import { cn } from "@/lib/utils";
 import type { ActivityEntry } from "@/lib/data";
+
+const CATEGORIES = [
+  { key: "remesa", label: "Remesas" },
+  { key: "pago", label: "Pagos" },
+  { key: "cliente", label: "Contactos" },
+  { key: "contacto", label: "Contactos", hidden: true },
+  { key: "repartidor", label: "Equipo" },
+  { key: "oferta", label: "Promos" },
+  { key: "pedido", label: "Pedidos" },
+];
 
 type Meta = { label: string; icon: LucideIcon; tone: string };
 
@@ -83,6 +98,29 @@ export function ActivityList({
   entries: ActivityEntry[];
   isOperador: boolean;
 }) {
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState("");
+
+  // Categorías presentes en el registro (por prefijo de la acción).
+  const presentCats = useMemo(() => {
+    const present = new Set(
+      entries.map((e) => (e.action.split(".")[0] || "").toLowerCase())
+    );
+    return CATEGORIES.filter((c) => !c.hidden && present.has(c.key));
+  }, [entries]);
+
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (cat && !e.action.startsWith(cat)) return false;
+      if (!t) return true;
+      const hay = `${meta(e).label} ${e.actor_name ?? ""} ${
+        e.entity_label ?? ""
+      }`.toLowerCase();
+      return hay.includes(t);
+    });
+  }, [entries, q, cat]);
+
   if (entries.length === 0) {
     return (
       <EmptyState
@@ -91,14 +129,44 @@ export function ActivityList({
       />
     );
   }
+
   return (
-    <div className="space-y-2">
-      {entries.map((e) => {
-        const m = meta(e);
-        const Icon = m.icon;
-        const who = isOperador ? e.actor_name || "Alguien" : "Tú";
-        return (
-          <Card key={e.id} className="flex items-start gap-3 p-3.5">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 rounded-xl border border-input bg-background px-3 py-2">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar en la actividad"
+          className="w-full bg-transparent text-sm text-foreground outline-none"
+        />
+      </div>
+      {presentCats.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <Chip active={!cat} onClick={() => setCat("")} label="Todo" />
+          {presentCats.map((c) => (
+            <Chip
+              key={c.key}
+              active={cat === c.key}
+              onClick={() => setCat(c.key)}
+              label={c.label}
+            />
+          ))}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          Sin resultados.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((e) => {
+            const m = meta(e);
+            const Icon = m.icon;
+            const who = isOperador ? e.actor_name || "Alguien" : "Tú";
+            return (
+              <Card key={e.id} className="flex items-start gap-3 p-3.5">
             <span
               className={
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-full " +
@@ -115,10 +183,36 @@ export function ActivityList({
                 ) : null}
               </p>
               <p className="text-xs text-muted-foreground">{when(e.created_at)}</p>
-            </div>
-          </Card>
-        );
-      })}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
+  );
+}
+
+function Chip({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "border border-border bg-card text-muted-foreground"
+      )}
+    >
+      {label}
+    </button>
   );
 }

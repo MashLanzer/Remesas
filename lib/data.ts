@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
 import {
@@ -360,9 +361,22 @@ export async function getAlertCount(): Promise<number> {
     ordersAlert = (count ?? 0) + (sc ?? 0);
   }
 
-  return (
-    (pending ?? 0) + porCobrar + saldoAlert + ratesAlert + teamAlert + ordersAlert
-  );
+  // Preferencias de avisos: el usuario puede silenciar categorías (cookie).
+  let muted: Set<string>;
+  try {
+    const v = cookies().get("giro_alert_mute")?.value || "";
+    muted = new Set(v.split(",").filter(Boolean));
+  } catch {
+    muted = new Set();
+  }
+  let total = 0;
+  if (!muted.has("pendientes")) total += pending ?? 0;
+  if (!muted.has("porCobrar")) total += porCobrar;
+  if (!muted.has("saldo")) total += saldoAlert;
+  if (!muted.has("tasas")) total += ratesAlert;
+  if (!muted.has("equipo")) total += teamAlert;
+  if (!muted.has("pedidos")) total += ordersAlert;
+  return total;
 }
 
 export async function getSettlements(): Promise<Settlement[]> {
