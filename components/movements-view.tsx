@@ -33,11 +33,17 @@ export function MovementsView({ movements }: { movements: Movement[] }) {
       : []),
   ];
 
-  // Serie del saldo en el tiempo (cronológica)
-  const series = useMemo(() => {
+  // Serie del saldo en el tiempo (cronológica) + saldo corriente por movimiento.
+  const { series, runningById } = useMemo(() => {
     const asc = [...movements].sort((a, b) => a.date.localeCompare(b.date));
+    const map: Record<string, number> = {};
     let run = 0;
-    return asc.map((m) => (run += m.delta));
+    const s = asc.map((m) => {
+      run += m.delta;
+      map[m.id] = run;
+      return run;
+    });
+    return { series: s, runningById: map };
   }, [movements]);
 
   const filtered = useMemo(
@@ -126,15 +132,20 @@ export function MovementsView({ movements }: { movements: Movement[] }) {
                 <p className="text-xs text-muted-foreground">{formatDate(m.date)}</p>
               </div>
             </div>
-            <span
-              className={
-                "tabular text-sm font-bold " +
-                (m.delta >= 0 ? "text-destructive" : "text-income")
-              }
-            >
-              {m.delta >= 0 ? "+" : "−"}
-              {usd(Math.abs(m.delta))}
-            </span>
+            <div className="text-right">
+              <span
+                className={
+                  "tabular text-sm font-bold " +
+                  (m.delta >= 0 ? "text-destructive" : "text-income")
+                }
+              >
+                {m.delta >= 0 ? "+" : "−"}
+                {usd(Math.abs(m.delta))}
+              </span>
+              <p className="tabular text-[10px] text-muted-foreground">
+                saldo {usd(runningById[m.id] ?? 0)}
+              </p>
+            </div>
           </Card>
         ))}
       </div>
