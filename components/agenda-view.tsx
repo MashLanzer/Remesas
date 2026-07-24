@@ -50,8 +50,47 @@ export function AgendaView({
   const [showForm, setShowForm] = useState(false);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"nombre" | "actividad">("nombre");
+  type Filter = "todos" | "deuda" | "activos" | "favoritos" | "sin_remesas";
+  const [filter, setFilter] = useState<Filter>("todos");
 
   const term = q.trim().toLowerCase();
+
+  function passes(
+    item: { id: string; pinned?: boolean },
+    stats: Record<string, ContactStat>
+  ) {
+    const s = stats[item.id];
+    switch (filter) {
+      case "deuda":
+        return (s?.owed ?? 0) > 0;
+      case "activos":
+        return (s?.count ?? 0) > 0;
+      case "favoritos":
+        return !!item.pinned;
+      case "sin_remesas":
+        return !s?.count;
+      default:
+        return true;
+    }
+  }
+
+  function goTab(next: "clientes" | "beneficiarios") {
+    setTab(next);
+    setShowForm(false);
+    // "Con deuda" solo aplica a clientes.
+    if (next === "beneficiarios" && filter === "deuda") setFilter("todos");
+  }
+
+  // Chips de filtro (el de deuda solo en clientes).
+  const chips: { key: Filter; label: string }[] = [
+    { key: "todos", label: "Todos" },
+    ...(tab === "clientes"
+      ? ([{ key: "deuda", label: "Con deuda" }] as { key: Filter; label: string }[])
+      : []),
+    { key: "activos", label: "Activos" },
+    { key: "favoritos", label: "Favoritos" },
+    { key: "sin_remesas", label: "Sin remesas" },
+  ];
 
   const totalOwed = useMemo(
     () => Object.values(clientStats).reduce((s, st) => s + (st.owed ?? 0), 0),
@@ -72,48 +111,87 @@ export function AgendaView({
   }
 
   const fClients = useMemo(() => {
-    const arr = clients.filter((c) =>
-      [c.name, c.phone, c.country].filter(Boolean).join(" ").toLowerCase().includes(term)
+    const arr = clients.filter(
+      (c) =>
+        [c.name, c.phone, c.country].filter(Boolean).join(" ").toLowerCase().includes(term) &&
+        passes(c, clientStats)
     );
     arr.sort(sortFn(clientStats));
     return arr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clients, term, sort, clientStats]);
+  }, [clients, term, sort, filter, clientStats]);
 
   const fBeneficiaries = useMemo(() => {
-    const arr = beneficiaries.filter((b) =>
-      [b.name, b.phone, b.province].filter(Boolean).join(" ").toLowerCase().includes(term)
+    const arr = beneficiaries.filter(
+      (b) =>
+        [b.name, b.phone, b.province].filter(Boolean).join(" ").toLowerCase().includes(term) &&
+        passes(b, benefStats)
     );
     arr.sort(sortFn(benefStats));
     return arr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [beneficiaries, term, sort, benefStats]);
+  }, [beneficiaries, term, sort, filter, benefStats]);
 
   return (
     <div>
       {/* Resumen */}
       <div className="mb-4 grid grid-cols-3 gap-2">
-        <StatMini icon={Users} label="Clientes" value={String(clients.length)} />
+        <StatMini
+          icon={Users}
+          label="Clientes"
+          value={String(clients.length)}
+          active={tab === "clientes"}
+          onClick={() => goTab("clientes")}
+        />
         <StatMini
           icon={MapPin}
           label="Beneficiarios"
           value={String(beneficiaries.length)}
+          active={tab === "beneficiarios"}
+          onClick={() => goTab("beneficiarios")}
         />
         <StatMini
           icon={Wallet}
           label="Por cobrar"
           value={usd(totalOwed)}
           warn={totalOwed > 0}
+          active={filter === "deuda"}
+          onClick={() => {
+            setTab("clientes");
+            setShowForm(false);
+            setFilter((f) => (f === "deuda" ? "todos" : "deuda"));
+          }}
         />
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <TabButton active={tab === "clientes"} onClick={() => { setTab("clientes"); setShowForm(false); }}>
+      <div className="mb-3 flex gap-2">
+        <TabButton active={tab === "clientes"} onClick={() => goTab("clientes")}>
           Clientes ({clients.length})
         </TabButton>
-        <TabButton active={tab === "beneficiarios"} onClick={() => { setTab("beneficiarios"); setShowForm(false); }}>
+        <TabButton
+          active={tab === "beneficiarios"}
+          onClick={() => goTab("beneficiarios")}
+        >
           Beneficiarios ({beneficiaries.length})
         </TabButton>
+      </div>
+
+      {/* Chips de filtro */}
+      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1">
+        {chips.map((ch) => (
+          <button
+            key={ch.key}
+            onClick={() => setFilter(ch.key)}
+            className={cn(
+              "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition active:scale-95",
+              filter === ch.key
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-muted-foreground"
+            )}
+          >
+            {ch.label}
+          </button>
+        ))}
       </div>
 
       <div className="mb-3 flex items-center gap-2">
@@ -161,8 +239,12 @@ export function AgendaView({
       {tab === "clientes" ? (
         fClients.length === 0 ? (
           <EmptyState
-            title={term ? "Sin resultados" : "Sin clientes"}
-            description={term ? "Prueba con otro nombre." : "Añade a las personas que te pagan."}
+            title={term || filter !== "todos" ? "Sin resultados" : "Sin clientes"}
+            description={
+              term || filter !== "todos"
+                ? "Prueba con otro filtro o búsqueda."
+                : "Añade a las personas que te pagan."
+            }
           />
         ) : (
           <div className="space-y-2">
@@ -180,8 +262,12 @@ export function AgendaView({
         )
       ) : fBeneficiaries.length === 0 ? (
         <EmptyState
-          title={term ? "Sin resultados" : "Sin beneficiarios"}
-          description={term ? "Prueba con otro nombre." : "Añade a quienes reciben en Cuba."}
+          title={term || filter !== "todos" ? "Sin resultados" : "Sin beneficiarios"}
+          description={
+            term || filter !== "todos"
+              ? "Prueba con otro filtro o búsqueda."
+              : "Añade a quienes reciben en Cuba."
+          }
         />
       ) : (
         <div className="space-y-2">
@@ -206,14 +292,25 @@ function StatMini({
   label,
   value,
   warn = false,
+  active = false,
+  onClick,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
   warn?: boolean;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <Card className="p-3 text-center">
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-2xl border bg-card p-3 text-center transition active:scale-[0.98]",
+        active ? "border-primary/50 ring-1 ring-primary/30" : "border-border"
+      )}
+    >
       <Icon
         className={cn("mx-auto h-4 w-4", warn ? "text-warning" : "text-primary")}
       />
@@ -226,7 +323,7 @@ function StatMini({
         {value}
       </p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
-    </Card>
+    </button>
   );
 }
 
