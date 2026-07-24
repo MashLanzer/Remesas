@@ -106,7 +106,12 @@ export function ClienteOnboarding() {
         `}</style>
       </div>
 
-      <div className="safe-bottom px-8 pb-16 pt-2">
+      <div
+        className="px-8 pt-2"
+        style={{
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5rem)",
+        }}
+      >
         <div className="mb-5 flex justify-center gap-1.5">
           {SLIDES.map((_, idx) => (
             <span
