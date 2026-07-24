@@ -42,6 +42,25 @@ export default async function FinanzasPage({
     ? settlements.filter((s) => s.deliverer_id === rep)
     : settlements;
 
+  // Lo que te deben los clientes (agrupado), para mostrarlo en Cuentas.
+  const debtMap: Record<
+    string,
+    { name: string; phone: string | null; owed: number }
+  > = {};
+  for (const r of remittances) {
+    if (r.client_paid !== false) continue;
+    const key = r.client_id || r.client?.name || "?";
+    const d = (debtMap[key] ??= {
+      name: r.client?.name || "Cliente",
+      phone: r.client?.phone ?? null,
+      owed: 0,
+    });
+    d.owed += Number(r.total_received);
+  }
+  const clientDebts = Object.values(debtMap)
+    .filter((d) => d.owed > 0)
+    .sort((a, b) => b.owed - a.owed);
+
   const cuentas = (
     <div>
       {isOperador && repartidores.length > 0 && (
@@ -62,6 +81,7 @@ export default async function FinanzasPage({
         perspective={isOperador ? "operador" : "repartidor"}
         delivererId={rep || null}
         canSettle={isOperador ? !!rep : false}
+        clientDebts={isOperador ? clientDebts : []}
       />
     </div>
   );

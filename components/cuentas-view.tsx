@@ -1,4 +1,5 @@
-import { AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, MessageCircle, Users, ChevronRight } from "lucide-react";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd } from "@/lib/utils";
 import { Card } from "@/components/ui";
@@ -13,6 +14,7 @@ export function CuentasView({
   perspective = "operador",
   delivererId,
   canSettle = true,
+  clientDebts = [],
 }: {
   remittances: Remittance[];
   settlements: Settlement[];
@@ -20,6 +22,7 @@ export function CuentasView({
   perspective?: "operador" | "repartidor";
   delivererId?: string | null;
   canSettle?: boolean;
+  clientDebts?: { name: string; phone: string | null; owed: number }[];
 }) {
   const isRep = perspective === "repartidor";
   const partnerName = settings.partner_name?.trim() || null;
@@ -149,6 +152,61 @@ export function CuentasView({
           </p>
         </Card>
       </div>
+
+      {/* Por cobrar de clientes (solo operador) */}
+      {!isRep && clientDebts.length > 0 && (
+        <Card className="space-y-3 border-warning/30 bg-warning/5">
+          <div className="flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-warning">
+              <Users className="h-4 w-4" /> Por cobrar de clientes
+            </p>
+            <p className="tabular text-lg font-bold text-warning">
+              {usd(clientDebts.reduce((s, d) => s + d.owed, 0))}
+            </p>
+          </div>
+          <div className="space-y-2">
+            {clientDebts.slice(0, 5).map((d, i) => {
+              const digits = d.phone?.replace(/\D/g, "");
+              return (
+                <div
+                  key={`${d.name}-${i}`}
+                  className="flex items-center justify-between gap-2 text-sm"
+                >
+                  <span className="min-w-0 truncate text-foreground">
+                    {d.name}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="tabular font-semibold text-warning">
+                      {usd(d.owed)}
+                    </span>
+                    {digits && (
+                      <a
+                        href={`https://wa.me/${digits}?text=${encodeURIComponent(
+                          `Hola ${d.name}, te recuerdo que tienes un saldo pendiente de ${usd(
+                            d.owed
+                          )} por tus remesas. ¡Gracias!`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Recordar por WhatsApp"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning text-white transition active:scale-90"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <Link
+            href="/agenda"
+            className="flex items-center gap-0.5 text-xs font-semibold text-primary"
+          >
+            Ver todos en Agenda <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        </Card>
+      )}
 
       {/* Desglose */}
       <Card className="space-y-2.5">
