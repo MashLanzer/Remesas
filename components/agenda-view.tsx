@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Pin,
   Users,
+  User,
   MapPin,
   Wallet,
   type LucideIcon,
@@ -96,6 +97,20 @@ export function AgendaView({
     () => Object.values(clientStats).reduce((s, st) => s + (st.owed ?? 0), 0),
     [clientStats]
   );
+
+  // Vínculos: cuántos beneficiarios tiene cada cliente y de qué cliente es cada
+  // beneficiario.
+  const benefCountByClient = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const b of beneficiaries)
+      if (b.client_id) m[b.client_id] = (m[b.client_id] ?? 0) + 1;
+    return m;
+  }, [beneficiaries]);
+  const clientNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of clients) m[c.id] = c.name;
+    return m;
+  }, [clients]);
 
   function sortFn<T extends { id: string; name: string; pinned?: boolean }>(
     stats: Record<string, ContactStat>
@@ -256,6 +271,16 @@ export function AgendaView({
                 sub={[c.phone, c.country].filter(Boolean).join(" · ")}
                 pinned={c.pinned}
                 stat={clientStats[c.id]}
+                link={
+                  benefCountByClient[c.id]
+                    ? {
+                        icon: Users,
+                        text: `${benefCountByClient[c.id]} beneficiario${
+                          benefCountByClient[c.id] > 1 ? "s" : ""
+                        }`,
+                      }
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -279,6 +304,11 @@ export function AgendaView({
               sub={[b.phone, b.province].filter(Boolean).join(" · ")}
               pinned={b.pinned}
               stat={benefStats[b.id]}
+              link={
+                b.client_id && clientNameById[b.client_id]
+                  ? { icon: User, text: `de ${clientNameById[b.client_id]}` }
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -357,14 +387,17 @@ function ContactCard({
   sub,
   pinned,
   stat,
+  link,
 }: {
   href: string;
   name: string;
   sub: string;
   pinned?: boolean;
   stat?: ContactStat;
+  link?: { icon: LucideIcon; text: string };
 }) {
   const initial = name.charAt(0).toUpperCase();
+  const LinkIcon = link?.icon;
   return (
     <Link href={href} className="block">
       <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
@@ -382,6 +415,11 @@ function ContactCard({
               : sub || "Sin remesas aún"}
             {stat?.last ? ` · ${formatDate(stat.last)}` : ""}
           </p>
+          {LinkIcon && link && (
+            <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-medium text-primary/80">
+              <LinkIcon className="h-3 w-3 shrink-0" /> {link.text}
+            </p>
+          )}
         </div>
         {stat?.owed && stat.owed > 0 ? (
           <Badge tone="amber">Debe {usd(stat.owed)}</Badge>
