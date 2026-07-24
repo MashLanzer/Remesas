@@ -520,7 +520,7 @@ export async function cancelOrder(id: string) {
 }
 
 // El personal rechaza un pedido.
-export async function rejectOrder(id: string) {
+export async function rejectOrder(id: string, reason?: string) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!isStaff(ctx)) return;
@@ -529,6 +529,11 @@ export async function rejectOrder(id: string) {
     .update({ status: "rechazado", accepted_by: ctx.userId })
     .eq("id", id)
     .eq("status", "pendiente");
+  // Motivo opcional para el cliente (tolerante si la columna no existe — 0024).
+  const clean = reason?.trim();
+  if (clean) {
+    await supabase.from("orders").update({ reject_reason: clean }).eq("id", id);
+  }
   await logActivity("pedido.rechazar", { entityType: "pedido", entityId: id });
   revalidatePath("/pedidos");
   revalidatePath("/c");

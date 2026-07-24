@@ -201,26 +201,30 @@ export default async function MisPedidosPage() {
           </h2>
           <div className="space-y-2">
             {history.map((o) => (
-              <Card
-                key={o.id}
-                className="flex items-center justify-between gap-3 p-3.5"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {usd(Number(o.amount_usd))}
-                    <span className="ml-1 text-xs font-normal text-muted-foreground">
-                      · {o.beneficiary_name || "—"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(o.created_at).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
+              <Card key={o.id} className="space-y-2 p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {usd(Number(o.amount_usd))}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        · {o.beneficiary_name || "—"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(o.created_at).toLocaleDateString("es-ES", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <OrderStatusBadge order={o} />
                 </div>
-                <OrderStatusBadge order={o} />
+                {o.status === "rechazado" && o.reject_reason && (
+                  <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
+                    Motivo: {o.reject_reason}
+                  </p>
+                )}
               </Card>
             ))}
           </div>

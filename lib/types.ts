@@ -155,6 +155,7 @@ export interface Order {
   redeem?: boolean | null;
   points_used?: number | null;
   discount_usd?: number | null;
+  reject_reason?: string | null;
   created_at: string;
 }
 
