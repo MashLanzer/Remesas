@@ -18,7 +18,10 @@ export default async function AgendaPage() {
       const s = (clientStats[r.client_id] ??= { count: 0, total: 0, owed: 0 });
       s.count += 1;
       s.total += Number(r.amount_usd);
-      if (!s.last || r.date > s.last) s.last = r.date;
+      if (!s.last || r.date > s.last) {
+        s.last = r.date;
+        s.lastId = r.id;
+      }
       if (r.client_paid === false)
         s.owed = (s.owed ?? 0) + Number(r.total_received);
     }
@@ -26,7 +29,10 @@ export default async function AgendaPage() {
       const s = (benefStats[r.beneficiary_id] ??= { count: 0, total: 0 });
       s.count += 1;
       s.total += Number(r.amount_usd);
-      if (!s.last || r.date > s.last) s.last = r.date;
+      if (!s.last || r.date > s.last) {
+        s.last = r.date;
+        s.lastId = r.id;
+      }
     }
   }
 

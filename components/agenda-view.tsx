@@ -12,12 +12,12 @@ import {
   MapPin,
   Wallet,
   AlertTriangle,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
 import {
   Card,
   Button,
-  Badge,
   Field,
   Input,
   Select,
@@ -39,6 +39,7 @@ export type ContactStat = {
   count: number;
   total: number;
   last?: string;
+  lastId?: string; // id de la última remesa (para "repetir")
   owed?: number;
 };
 
@@ -423,6 +424,11 @@ export function AgendaView({
                 sub={[c.phone, c.country].filter(Boolean).join(" · ")}
                 pinned={c.pinned}
                 stat={clientStats[c.id]}
+                repeatHref={
+                  clientStats[c.id]?.lastId
+                    ? `/remesas/nueva?dup=${clientStats[c.id]?.lastId}`
+                    : undefined
+                }
                 link={
                   benefCountByClient[c.id]
                     ? {
@@ -458,6 +464,11 @@ export function AgendaView({
               sub={[b.phone, b.province].filter(Boolean).join(" · ")}
               pinned={b.pinned}
               stat={benefStats[b.id]}
+              repeatHref={
+                benefStats[b.id]?.lastId
+                  ? `/remesas/nueva?dup=${benefStats[b.id]?.lastId}`
+                  : undefined
+              }
               link={
                 b.client_id && clientNameById[b.client_id]
                   ? { icon: User, text: `de ${clientNameById[b.client_id]}` }
@@ -582,6 +593,7 @@ function ContactCard({
   pinned,
   stat,
   link,
+  repeatHref,
 }: {
   href: string;
   name: string;
@@ -589,12 +601,13 @@ function ContactCard({
   pinned?: boolean;
   stat?: ContactStat;
   link?: { icon: LucideIcon; text: string };
+  repeatHref?: string;
 }) {
   const initial = name.charAt(0).toUpperCase();
   const LinkIcon = link?.icon;
   return (
-    <Link href={href} className="block">
-      <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
+    <Card className="flex items-center gap-2 p-3.5">
+      <Link href={href} className="flex min-w-0 flex-1 items-center gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary">
           {initial}
         </span>
@@ -609,19 +622,33 @@ function ContactCard({
               : sub || "Sin remesas aún"}
             {stat?.last ? ` · ${formatDate(stat.last)}` : ""}
           </p>
-          {LinkIcon && link && (
-            <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-medium text-primary/80">
-              <LinkIcon className="h-3 w-3 shrink-0" /> {link.text}
+          {stat?.owed && stat.owed > 0 ? (
+            <p className="text-[11px] font-semibold text-warning">
+              Debe {usd(stat.owed)}
             </p>
+          ) : (
+            LinkIcon &&
+            link && (
+              <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-medium text-primary/80">
+                <LinkIcon className="h-3 w-3 shrink-0" /> {link.text}
+              </p>
+            )
           )}
         </div>
-        {stat?.owed && stat.owed > 0 ? (
-          <Badge tone="amber">Debe {usd(stat.owed)}</Badge>
-        ) : (
-          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-        )}
-      </Card>
-    </Link>
+      </Link>
+      {repeatHref ? (
+        <Link
+          href={repeatHref}
+          aria-label="Repetir remesa"
+          title="Repetir última remesa"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-primary transition active:scale-90"
+        >
+          <Repeat className="h-4 w-4" />
+        </Link>
+      ) : (
+        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+      )}
+    </Card>
   );
 }
 
