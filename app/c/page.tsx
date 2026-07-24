@@ -120,6 +120,12 @@ export default async function ClienteHome() {
   const heroRates = rates
     .filter((r) => r.active !== false && Number(r.rate) > 0)
     .slice(0, 3);
+  const freshest = heroRates.length
+    ? heroRates.reduce(
+        (m, r) => (r.updated_at > m ? r.updated_at : m),
+        heroRates[0].updated_at
+      )
+    : null;
 
   // Tendencia por moneda: compara las dos últimas entradas del historial.
   const rateTrend: Record<string, "up" | "down" | null> = {};
@@ -180,8 +186,13 @@ export default async function ClienteHome() {
             <br />a Cuba
           </h1>
           {heroRates.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {heroRates.map((r) => {
+            <div className="mt-2">
+              <p className="text-xs text-white/70">
+                Tasa de hoy
+                {freshest ? ` · actualizada ${agoShort(freshest)}` : ""}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {heroRates.map((r) => {
                 const t = rateTrend[r.currency];
                 return (
                   <span
@@ -194,6 +205,7 @@ export default async function ClienteHome() {
                   </span>
                 );
               })}
+              </div>
             </div>
           ) : (
             <p className="mt-1 text-sm text-white/85">
@@ -425,6 +437,16 @@ export default async function ClienteHome() {
 
     </div>
   );
+}
+
+function agoShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return "hace un momento";
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  return `hace ${d} día${d > 1 ? "s" : ""}`;
 }
 
 function HowStep({
