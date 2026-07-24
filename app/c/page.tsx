@@ -15,6 +15,7 @@ import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
 import { OrderStatusBadge } from "@/components/order-status-badge";
+import { PaperPlane } from "@/components/paper-plane";
 import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +99,14 @@ export default async function ClienteHome() {
           className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10 blur-2xl"
           aria-hidden
         />
+        <div
+          className="pointer-events-none absolute -bottom-10 -left-6 h-32 w-32 rounded-full bg-black/10 blur-2xl"
+          aria-hidden
+        />
+        <PaperPlane
+          className="pointer-events-none absolute -right-4 bottom-2 h-28 w-28 rotate-12 text-white/10"
+          aria-hidden
+        />
         <div className="relative">
           <div className="flex items-start justify-between gap-3">
             <p className="text-sm font-medium text-white/85">
@@ -118,8 +127,9 @@ export default async function ClienteHome() {
             </Link>
           </div>
 
-          <h1 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight">
-            Envía dinero a Cuba
+          <h1 className="mt-3 text-3xl font-extrabold leading-[1.1] tracking-tight">
+            Envía dinero
+            <br />a Cuba
           </h1>
           {heroRates.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">

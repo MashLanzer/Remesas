@@ -84,11 +84,11 @@ export function OrderTimeline({
             <div className="flex flex-col items-center">
               <span
                 className={
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full " +
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all duration-300 " +
                   (s.done
-                    ? "bg-income/15 text-income"
+                    ? "bg-income/15 text-income ring-2 ring-income/20"
                     : active
-                    ? "bg-primary/15 text-primary"
+                    ? "animate-pulse bg-primary/15 text-primary ring-2 ring-primary/30"
                     : "bg-muted text-muted-foreground")
                 }
               >
@@ -97,8 +97,10 @@ export function OrderTimeline({
               {!last && (
                 <span
                   className={
-                    "my-0.5 w-0.5 flex-1 " +
-                    (s.done ? "bg-income/40" : "bg-border")
+                    "my-0.5 w-0.5 flex-1 rounded-full transition-all " +
+                    (s.done
+                      ? "bg-gradient-to-b from-income/60 to-income/25"
+                      : "bg-border")
                   }
                   style={{ minHeight: 18 }}
                 />

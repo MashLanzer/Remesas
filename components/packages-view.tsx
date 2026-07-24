@@ -35,7 +35,13 @@ export function PackagesView({
       {packages.map((p) => {
         const receives = packageReceives(p.amount_usd, p.delivery_currency, rates);
         return (
-          <Card key={p.id} className="flex gap-3">
+          <Card
+            key={p.id}
+            className={
+              "flex gap-3 " +
+              (p.highlight ? "border-primary/30 ring-1 ring-primary/15" : "")
+            }
+          >
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
               {p.emoji || "🎁"}
             </span>
@@ -43,7 +49,7 @@ export function PackagesView({
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold text-foreground">{p.title}</p>
                 {p.highlight && (
-                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  <span className="shrink-0 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                     {p.highlight}
                   </span>
                 )}

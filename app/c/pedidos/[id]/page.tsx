@@ -7,14 +7,19 @@ import {
   getExchangeRates,
   getMyPoints,
   getMyBeneficiaries,
+  getMyOperatorContact,
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
-import { OrderStatusBadge } from "@/components/order-status-badge";
+import {
+  OrderStatusBadge,
+  orderDisplay,
+} from "@/components/order-status-badge";
 import { OrderTimeline } from "@/components/order-timeline";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
+import { ShareReceipt } from "@/components/share-receipt";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
-import { usd, localAmount } from "@/lib/utils";
+import { usd, localAmount, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -25,14 +30,19 @@ export default async function MiPedidoDetallePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [order, rates, points, cfgRes, beneficiaries] = await Promise.all([
-    getMyOrder(id),
-    getExchangeRates(),
-    getMyPoints(),
-    supabase.rpc("my_client_config"),
-    getMyBeneficiaries(),
-  ]);
+  const [order, rates, points, cfgRes, beneficiaries, contact] =
+    await Promise.all([
+      getMyOrder(id),
+      getExchangeRates(),
+      getMyPoints(),
+      supabase.rpc("my_client_config"),
+      getMyBeneficiaries(),
+      getMyOperatorContact(),
+    ]);
   if (!order) notFound();
+
+  const display = orderDisplay(order);
+  const isDelivered = display === "entregado" || display === "recibido";
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -105,6 +115,21 @@ export default async function MiPedidoDetallePage({
             Motivo: {order.reject_reason}
           </p>
         </Card>
+      )}
+
+      {/* Comprobante de entrega (foto) */}
+      {isDelivered && Number(rate) > 0 && (
+        <ShareReceipt
+          data={{
+            brand: contact.businessName || "Giro",
+            date: formatDate(order.delivered_at || order.created_at),
+            beneficiaryName: order.beneficiary_name,
+            province: order.province,
+            amountUsd: usd(Number(order.amount_usd)),
+            delivered: `${localAmount(receives)} ${order.delivery_currency}`,
+            status: "entregado",
+          }}
+        />
       )}
 
       {/* Acciones */}

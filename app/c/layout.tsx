@@ -11,6 +11,7 @@ import {
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteNav } from "@/components/cliente-nav";
 import { ClienteProfileMenu } from "@/components/cliente-profile-menu";
+import { ClienteOnboarding } from "@/components/cliente-onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export default async function ClienteLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      <ClienteOnboarding />
       <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">

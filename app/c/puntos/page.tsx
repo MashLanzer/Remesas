@@ -64,13 +64,31 @@ export default async function PuntosPage() {
           Cada punto vale ≈ {usd(pointValue)}. Desde {redeemMin} puntos puedes
           canjearlos por un descuento en la comisión de tu próxima remesa.
         </p>
+        {/* Progreso hacia el mínimo de canje */}
+        <div>
+          <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{Math.min(balance, redeemMin)} / {redeemMin} pts</span>
+            <span>{canRedeem ? "¡Listo!" : `faltan ${missing}`}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className={
+                "h-full rounded-full transition-all " +
+                (canRedeem ? "bg-income" : "bg-primary")
+              }
+              style={{
+                width: `${Math.min((balance / redeemMin) * 100, 100)}%`,
+              }}
+            />
+          </div>
+        </div>
         {canRedeem ? (
           <p className="rounded-lg bg-income/10 px-2.5 py-1.5 text-xs font-semibold text-income">
             ¡Puedes canjear! Marca “Usar mis puntos” al enviar tu próxima remesa.
           </p>
         ) : (
           <p className="rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
-            Te faltan {missing} puntos para empezar a canjear.
+            Sigue enviando para llegar a {redeemMin} puntos y canjear.
           </p>
         )}
       </Card>
