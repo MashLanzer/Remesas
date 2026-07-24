@@ -109,7 +109,7 @@ export function ClienteOnboarding() {
       <div
         className="px-8 pt-2"
         style={{
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 7rem)",
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 5.5rem)",
         }}
       >
         <div className="mb-5 flex justify-center gap-1.5">
