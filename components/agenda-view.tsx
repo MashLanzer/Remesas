@@ -262,8 +262,10 @@ export function AgendaView({
             }
           />
         ) : (
-          <div className="space-y-2">
-            {fClients.map((c) => (
+          <ContactGroups
+            items={fClients}
+            showFavs={filter !== "favoritos"}
+            renderCard={(c) => (
               <ContactCard
                 key={c.id}
                 href={`/agenda/cliente/${c.id}`}
@@ -282,8 +284,8 @@ export function AgendaView({
                     : undefined
                 }
               />
-            ))}
-          </div>
+            )}
+          />
         )
       ) : fBeneficiaries.length === 0 ? (
         <EmptyState
@@ -295,8 +297,10 @@ export function AgendaView({
           }
         />
       ) : (
-        <div className="space-y-2">
-          {fBeneficiaries.map((b) => (
+        <ContactGroups
+          items={fBeneficiaries}
+          showFavs={filter !== "favoritos"}
+          renderCard={(b) => (
             <ContactCard
               key={b.id}
               href={`/agenda/beneficiario/${b.id}`}
@@ -310,10 +314,50 @@ export function AgendaView({
                   : undefined
               }
             />
-          ))}
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+function ContactGroups<T extends { id: string; pinned?: boolean }>({
+  items,
+  showFavs,
+  renderCard,
+}: {
+  items: T[];
+  showFavs: boolean;
+  renderCard: (item: T) => React.ReactNode;
+}) {
+  const favs = showFavs ? items.filter((i) => i.pinned) : [];
+  if (favs.length === 0) {
+    return <div className="space-y-2">{items.map(renderCard)}</div>;
+  }
+  const rest = items.filter((i) => !i.pinned);
+  return (
+    <div className="space-y-4">
+      <div>
+        <GroupHeader>
+          <Pin className="h-3 w-3 fill-primary text-primary" /> Favoritos
+        </GroupHeader>
+        <div className="space-y-2">{favs.map(renderCard)}</div>
+      </div>
+      {rest.length > 0 && (
+        <div>
+          <GroupHeader>Todos</GroupHeader>
+          <div className="space-y-2">{rest.map(renderCard)}</div>
         </div>
       )}
     </div>
+  );
+}
+
+function GroupHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </h3>
   );
 }
 
