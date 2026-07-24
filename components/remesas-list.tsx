@@ -13,6 +13,7 @@ import {
   Undo2,
   CircleDollarSign,
   CheckCheck,
+  MessageCircle,
 } from "lucide-react";
 import { Card, Badge, EmptyState, Select } from "@/components/ui";
 import { usd, formatDate, localAmount } from "@/lib/utils";
@@ -453,9 +454,17 @@ function RemesaCard({ r }: { r: Remittance }) {
   const showLiquidar = liquidada || r.status === "entregado";
   const hasActions = showCobrar || showDeliver || showLiquidar;
 
+  const waDigits =
+    (r.client?.phone || r.beneficiary?.phone)?.replace(/\D/g, "") || "";
+  const waText = encodeURIComponent(
+    `Hola, te escribo sobre la remesa de ${usd(Number(r.amount_usd))}${
+      r.beneficiary?.name ? ` para ${r.beneficiary.name}` : ""
+    }.`
+  );
+
   return (
     <Card className="p-3.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <Link
           href={`/remesas/${r.id}`}
           className="flex min-w-0 flex-1 items-center gap-3"
@@ -482,6 +491,17 @@ function RemesaCard({ r }: { r: Remittance }) {
             <Badge tone={statusTone[r.status]}>{r.status}</Badge>
           </div>
         </div>
+        {waDigits && (
+          <a
+            href={`https://wa.me/${waDigits}?text=${waText}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="WhatsApp"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-income transition active:scale-90"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </a>
+        )}
       </div>
 
       <div className="mt-2 border-t border-border pt-2">
