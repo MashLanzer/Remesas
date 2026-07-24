@@ -7,7 +7,6 @@ import {
   getExchangeRates,
   getMyPoints,
   getMyBeneficiaries,
-  getMyOperatorContact,
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -15,7 +14,6 @@ import { OrderTimeline } from "@/components/order-timeline";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
-import { ContactBusiness } from "@/components/contact-business";
 import { usd, localAmount } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -27,15 +25,13 @@ export default async function MiPedidoDetallePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [order, rates, points, cfgRes, beneficiaries, contact] =
-    await Promise.all([
-      getMyOrder(id),
-      getExchangeRates(),
-      getMyPoints(),
-      supabase.rpc("my_client_config"),
-      getMyBeneficiaries(),
-      getMyOperatorContact(),
-    ]);
+  const [order, rates, points, cfgRes, beneficiaries] = await Promise.all([
+    getMyOrder(id),
+    getExchangeRates(),
+    getMyPoints(),
+    supabase.rpc("my_client_config"),
+    getMyBeneficiaries(),
+  ]);
   if (!order) notFound();
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
@@ -132,17 +128,6 @@ export default async function MiPedidoDetallePage({
             phone: order.beneficiary_phone || undefined,
             province: order.province || undefined,
           }}
-        />
-        <ContactBusiness
-          phone={contact.phone}
-          businessName={contact.businessName}
-          tone="soft"
-          label="Escribir al negocio"
-          message={`Hola${
-            contact.businessName ? ` ${contact.businessName}` : ""
-          }, sobre mi pedido de ${usd(Number(order.amount_usd))} para ${
-            order.beneficiary_name || "mi familiar"
-          }.`}
         />
       </div>
     </div>

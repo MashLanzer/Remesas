@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { LogOut, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSessionContext,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteNav } from "@/components/cliente-nav";
+import { ClienteProfileMenu } from "@/components/cliente-profile-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -82,31 +82,11 @@ export default async function ClienteLayout({
                 <MessageCircle className="h-5 w-5" />
               </a>
             )}
-            <Link
-              href="/c/perfil"
-              className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-muted"
-              aria-label="Mi perfil"
-              title="Mi perfil"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                {initial}
-              </span>
-              {firstName && (
-                <span className="max-w-[7rem] truncate text-sm font-semibold text-foreground">
-                  {firstName}
-                </span>
-              )}
-            </Link>
-            <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-                aria-label="Cerrar sesión"
-                title="Cerrar sesión"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            </form>
+            <ClienteProfileMenu
+              firstName={firstName}
+              initial={initial}
+              email={user.email}
+            />
           </div>
         </div>
       </header>

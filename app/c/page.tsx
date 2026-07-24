@@ -8,14 +8,12 @@ import {
   getMyOrders,
   getMyPoints,
   getMyBeneficiaries,
-  getMyOperatorContact,
 } from "@/lib/data";
 import { Card } from "@/components/ui";
 import { localAmount, packageReceives, usd } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
-import { ContactBusiness } from "@/components/contact-business";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { Send, Check, PartyPopper } from "lucide-react";
 
@@ -36,7 +34,6 @@ export default async function ClienteHome() {
     cfgRes,
     profileRes,
     beneficiaries,
-    contact,
   ] = await Promise.all([
     getActiveOffers(),
     getActivePackages(),
@@ -48,7 +45,6 @@ export default async function ClienteHome() {
       ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
     getMyBeneficiaries(),
-    getMyOperatorContact(),
   ]);
   const recentOrders = orders.slice(0, 3);
   const featuredOffers = [...offers]
@@ -233,12 +229,7 @@ export default async function ClienteHome() {
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
             <Star className="h-4 w-4 text-primary" /> Anuncios
           </h2>
-          <OffersView
-            offers={featuredOffers}
-            contactPhone={contact.phone}
-            businessName={contact.businessName}
-            sendProps={sendProps}
-          />
+          <OffersView offers={featuredOffers} sendProps={sendProps} />
         </section>
       )}
 
@@ -314,15 +305,6 @@ export default async function ClienteHome() {
         </section>
       )}
 
-      {/* Contacto con el negocio */}
-      {contact.phone && (
-        <ContactBusiness
-          phone={contact.phone}
-          businessName={contact.businessName}
-          tone="soft"
-          label="¿Dudas? Escríbenos por WhatsApp"
-        />
-      )}
     </div>
   );
 }

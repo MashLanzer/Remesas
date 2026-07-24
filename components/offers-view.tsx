@@ -6,7 +6,6 @@ import { Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { recordOfferView } from "@/app/actions";
 import { cn } from "@/lib/utils";
-import { ContactBusiness } from "@/components/contact-business";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { OFFER_KINDS, type Offer, type ExchangeRate } from "@/lib/types";
 
@@ -38,13 +37,9 @@ function validity(o: Offer): string | null {
 
 export function OffersView({
   offers,
-  contactPhone,
-  businessName,
   sendProps,
 }: {
   offers: Offer[];
-  contactPhone?: string | null;
-  businessName?: string | null;
   sendProps?: SendProps;
 }) {
   const [selected, setSelected] = useState<Offer | null>(null);
@@ -156,17 +151,6 @@ export function OffersView({
                 variant="primary"
                 label="Enviar con esta promo"
                 initial={{ note: `Promo: ${selected.title}` }}
-              />
-            )}
-            {contactPhone && (
-              <ContactBusiness
-                phone={contactPhone}
-                businessName={businessName}
-                tone="soft"
-                label="Preguntar por esta promo"
-                message={`Hola${
-                  businessName ? ` ${businessName}` : ""
-                }, me interesa la promoción "${selected.title}".`}
               />
             )}
           </div>
