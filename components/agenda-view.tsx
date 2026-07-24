@@ -13,6 +13,7 @@ import {
   Wallet,
   AlertTriangle,
   Repeat,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -67,8 +68,19 @@ export function AgendaView({
     | "sin_remesas";
   const [filter, setFilter] = useState<Filter>("todos");
   const [showDups, setShowDups] = useState(false);
+  const [showDebts, setShowDebts] = useState(false);
   const [busyMerge, startMerge] = useTransition();
   const { confirm } = useDialog();
+
+  // Clientes que deben, de mayor a menor deuda.
+  const debtors = useMemo(
+    () =>
+      clients
+        .filter((c) => (clientStats[c.id]?.owed ?? 0) > 0)
+        .map((c) => ({ client: c, owed: clientStats[c.id]?.owed ?? 0 }))
+        .sort((a, b) => b.owed - a.owed),
+    [clients, clientStats]
+  );
 
   const term = q.trim().toLowerCase();
 
@@ -272,6 +284,70 @@ export function AgendaView({
           </button>
         ))}
       </div>
+
+      {/* Recordar cobros a todos los deudores */}
+      {tab === "clientes" && debtors.length > 0 && (
+        <button
+          onClick={() => setShowDebts(true)}
+          className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-warning/30 bg-warning/10 py-2.5 text-sm font-semibold text-warning transition active:scale-[0.99]"
+        >
+          <MessageCircle className="h-4 w-4" /> Recordar cobros ({debtors.length})
+        </button>
+      )}
+
+      <Sheet
+        open={showDebts}
+        onClose={() => setShowDebts(false)}
+        title="Recordar cobros"
+      >
+        {debtors.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nadie te debe. 🎉
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Toca WhatsApp para enviar un recordatorio con el saldo ya escrito.
+            </p>
+            {debtors.map(({ client, owed }) => {
+              const digits = client.phone?.replace(/\D/g, "");
+              return (
+                <Card
+                  key={client.id}
+                  className="flex items-center justify-between gap-3 p-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {client.name}
+                    </p>
+                    <p className="text-xs font-semibold text-warning">
+                      Debe {usd(owed)}
+                    </p>
+                  </div>
+                  {digits ? (
+                    <a
+                      href={`https://wa.me/${digits}?text=${encodeURIComponent(
+                        `Hola ${client.name}, te recuerdo que tienes un saldo pendiente de ${usd(
+                          owed
+                        )} por tus remesas. ¡Gracias!`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex shrink-0 items-center gap-1.5 rounded-lg bg-warning px-3 py-2 text-xs font-semibold text-white transition active:scale-95"
+                    >
+                      <MessageCircle className="h-4 w-4" /> WhatsApp
+                    </a>
+                  ) : (
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      Sin teléfono
+                    </span>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </Sheet>
 
       <div className="mb-3 flex items-center gap-2">
         <div className="relative flex-1">
