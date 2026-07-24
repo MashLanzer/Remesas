@@ -5,6 +5,7 @@ import {
   getActiveOffers,
   getActivePackages,
   getExchangeRates,
+  getRateHistory,
   getMyOrders,
   getMyPoints,
   getMyBeneficiaries,
@@ -35,6 +36,7 @@ export default async function ClienteHome() {
     cfgRes,
     profileRes,
     beneficiaries,
+    rateHistory,
   ] = await Promise.all([
     getActiveOffers(),
     getActivePackages(),
@@ -46,6 +48,7 @@ export default async function ClienteHome() {
       ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
       : Promise.resolve({ data: null }),
     getMyBeneficiaries(),
+    getRateHistory(),
   ]);
   const recentOrders = orders.slice(0, 3);
   const featuredOffers = [...offers]
@@ -71,6 +74,19 @@ export default async function ClienteHome() {
   const heroRates = rates
     .filter((r) => r.active !== false && Number(r.rate) > 0)
     .slice(0, 3);
+
+  // Tendencia por moneda: compara las dos últimas entradas del historial.
+  const rateTrend: Record<string, "up" | "down" | null> = {};
+  for (const c of Array.from(new Set(rateHistory.map((h) => h.currency)))) {
+    const hs = rateHistory
+      .filter((h) => h.currency === c)
+      .sort((a, b) => a.changed_at.localeCompare(b.changed_at));
+    if (hs.length >= 2) {
+      const prev = Number(hs[hs.length - 2].rate);
+      const cur = Number(hs[hs.length - 1].rate);
+      rateTrend[c] = cur > prev ? "up" : cur < prev ? "down" : null;
+    }
+  }
 
   const sendProps = {
     rates,
@@ -133,14 +149,19 @@ export default async function ClienteHome() {
           </h1>
           {heroRates.length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {heroRates.map((r) => (
-                <span
-                  key={r.currency}
-                  className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur"
-                >
-                  1 USD = {localAmount(Number(r.rate))} {r.currency}
-                </span>
-              ))}
+              {heroRates.map((r) => {
+                const t = rateTrend[r.currency];
+                return (
+                  <span
+                    key={r.currency}
+                    className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur"
+                  >
+                    1 USD = {localAmount(Number(r.rate))} {r.currency}
+                    {t === "up" && <span className="text-emerald-200">▲</span>}
+                    {t === "down" && <span className="text-rose-200">▼</span>}
+                  </span>
+                );
+              })}
             </div>
           ) : (
             <p className="mt-1 text-sm text-white/85">
@@ -179,6 +200,7 @@ export default async function ClienteHome() {
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <span className="h-4 w-1 rounded-full bg-primary" />
               <Gift className="h-4 w-4 text-primary" /> Paquetes de remesa
             </h2>
             <Link
@@ -237,6 +259,7 @@ export default async function ClienteHome() {
       {featuredOffers.length > 0 && (
         <section>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
+            <span className="h-4 w-1 rounded-full bg-primary" />
             <Star className="h-4 w-4 text-primary" /> Anuncios
           </h2>
           <OffersView offers={featuredOffers} sendProps={sendProps} />
@@ -248,6 +271,7 @@ export default async function ClienteHome() {
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <span className="h-4 w-1 rounded-full bg-primary" />
               <Package className="h-4 w-4 text-primary" /> Mis pedidos
             </h2>
             <Link
@@ -291,7 +315,10 @@ export default async function ClienteHome() {
       {/* Primeros pasos (cliente nuevo, sin pedidos) */}
       {recentOrders.length === 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-bold text-foreground">Cómo funciona</h2>
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-foreground">
+            <span className="h-4 w-1 rounded-full bg-primary" />
+            Cómo funciona
+          </h2>
           <div className="space-y-3">
             <HowStep
               n={1}

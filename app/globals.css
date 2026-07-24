@@ -9,13 +9,13 @@
     --foreground: 160 14% 10%;
     --card: 0 0% 100%;
     --card-foreground: 160 14% 10%;
-    --primary: 150 72% 41%;
+    --primary: var(--brand-hue, 150) 72% 41%;
     --primary-foreground: 0 0% 100%;
     --muted: 150 16% 95%;
     --muted-foreground: 155 8% 44%;
     --border: 150 14% 90%;
     --input: 150 14% 90%;
-    --ring: 150 72% 41%;
+    --ring: var(--brand-hue, 150) 72% 41%;
 
     --income: 150 70% 40%;
     --info: 210 90% 52%;
@@ -33,7 +33,7 @@
     --foreground: 150 12% 96%;
     --card: 158 18% 10%;
     --card-foreground: 150 12% 96%;
-    --primary: 150 80% 54%;
+    --primary: var(--brand-hue, 150) 80% 54%;
     --primary-foreground: 158 45% 7%;
     --muted: 158 14% 15%;
     --muted-foreground: 150 8% 64%;

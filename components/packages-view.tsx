@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Gift, Send } from "lucide-react";
 import { Card, Button, Field, Input, Textarea, EmptyState } from "@/components/ui";
+import { IlluStore } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
 import { createOrder } from "@/app/actions";
 import { usd, localAmount, packageReceives } from "@/lib/utils";
@@ -20,6 +21,7 @@ export function PackagesView({
   if (packages.length === 0) {
     return (
       <EmptyState
+        illustration={<IlluStore />}
         title="Sin paquetes por ahora"
         description="Cuando el negocio publique paquetes, aparecerán aquí. Mientras tanto, usa el botón central para enviar una remesa a tu medida."
       />

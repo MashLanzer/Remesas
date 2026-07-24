@@ -305,6 +305,7 @@ export interface BusinessSettings {
   partner_name: string | null;
   settle_threshold?: number | null;
   monthly_goal?: number | null;
+  brand_hue?: number | null;
   points_per_usd?: number | null;
   point_value_usd?: number | null;
   redeem_min_points?: number | null;

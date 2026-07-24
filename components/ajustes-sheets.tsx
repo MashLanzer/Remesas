@@ -122,6 +122,44 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
               placeholder="Opcional"
             />
           </Field>
+
+          <Field
+            label="Color de la app del cliente"
+            hint="El acento que verán tus clientes."
+          >
+            <div className="flex flex-wrap gap-2">
+              {[
+                { h: 150, name: "Verde" },
+                { h: 210, name: "Azul" },
+                { h: 265, name: "Morado" },
+                { h: 330, name: "Rosa" },
+                { h: 0, name: "Rojo" },
+                { h: 25, name: "Naranja" },
+                { h: 180, name: "Turquesa" },
+              ].map((c) => {
+                const current = settings.brand_hue ?? 150;
+                return (
+                  <label
+                    key={c.h}
+                    className="cursor-pointer"
+                    title={c.name}
+                  >
+                    <input
+                      type="radio"
+                      name="brand_hue"
+                      value={c.h}
+                      defaultChecked={current === c.h}
+                      className="peer sr-only"
+                    />
+                    <span
+                      style={{ background: `hsl(${c.h} 72% 45%)` }}
+                      className="block h-8 w-8 rounded-full ring-2 ring-transparent transition peer-checked:ring-foreground peer-checked:ring-offset-2 peer-checked:ring-offset-background"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+          </Field>
           <Field label="Contacto en Cuba">
             <Input
               name="partner_name"

@@ -17,6 +17,16 @@ export function ClienteProfileMenu({
   const [confirm, setConfirm] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Color propio derivado del nombre (con alfa, se adapta a claro/oscuro).
+  const seed = (firstName || email || "?")
+    .split("")
+    .reduce((a, c) => a + c.charCodeAt(0), 0);
+  const hue = seed % 360;
+  const avatarStyle = {
+    background: `hsl(${hue} 60% 50% / 0.16)`,
+    color: `hsl(${hue} 55% 45%)`,
+  };
+
   function close() {
     setOpen(false);
     setConfirm(false);
@@ -48,7 +58,10 @@ export function ClienteProfileMenu({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+        <span
+          style={avatarStyle}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+        >
           {initial}
         </span>
         {firstName && (

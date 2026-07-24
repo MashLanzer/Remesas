@@ -19,6 +19,7 @@ import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { ShareReceipt } from "@/components/share-receipt";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
+import { ConfettiBurst } from "@/components/confetti-burst";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export default async function MiPedidoDetallePage({
 
   return (
     <div className="space-y-5">
+      {isDelivered && <ConfettiBurst id={order.id} />}
       <Link
         href="/c/pedidos"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground"

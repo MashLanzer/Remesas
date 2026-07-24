@@ -1848,6 +1848,16 @@ export async function updateBusinessSettings(formData: FormData) {
       .update({ monthly_goal: trimmed === "" ? null : num(goal) })
       .eq(keyField, keyVal);
   }
+  // Color de marca para la app del cliente (aparte, tolerante — 0029).
+  const hue = formData.get("brand_hue");
+  if (hue !== null) {
+    const trimmed = String(hue).trim();
+    await supabase
+      .from("business_settings")
+      .update({ brand_hue: trimmed === "" ? null : num(hue) })
+      .eq(keyField, keyVal);
+    revalidatePath("/c", "layout");
+  }
   // Puntos por USD para el cliente (aparte, tolerante — 0018).
   const ppu = formData.get("points_per_usd");
   if (ppu !== null) {

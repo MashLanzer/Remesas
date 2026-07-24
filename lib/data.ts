@@ -538,15 +538,21 @@ export async function getMyBeneficiaries(): Promise<
 export async function getMyOperatorContact(): Promise<{
   businessName: string | null;
   phone: string | null;
+  brandHue: number | null;
 }> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_operator_contact");
   const row = (Array.isArray(data) ? data[0] : data) as
-    | { business_name?: string | null; phone?: string | null }
+    | {
+        business_name?: string | null;
+        phone?: string | null;
+        brand_hue?: number | null;
+      }
     | null;
   return {
     businessName: row?.business_name ?? null,
     phone: row?.phone ?? null,
+    brandHue: row?.brand_hue ?? null,
   };
 }
 

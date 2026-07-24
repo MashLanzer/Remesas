@@ -182,13 +182,16 @@ export function EmptyState({
   title,
   description,
   action,
+  illustration,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  illustration?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-12 text-center">
+      {illustration && <div className="mb-4">{illustration}</div>}
       <p className="text-base font-semibold text-foreground">{title}</p>
       {description && (
         <p className="mt-1 max-w-xs text-sm text-muted-foreground">

@@ -52,9 +52,50 @@ export function OffersView({
     recordOfferView(o.id).catch(() => {});
   }
 
+  // La destacada se muestra como banner grande; el resto como lista.
+  const banner = offers[0]?.featured ? offers[0] : null;
+  const list = banner ? offers.slice(1) : offers;
+
   return (
     <div className="space-y-3">
-      {offers.map((o) => {
+      {banner && (
+        <button
+          onClick={() => open(banner)}
+          className="block w-full text-left"
+        >
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 text-white shadow-lg transition active:scale-[0.99]">
+            {banner.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={banner.image_url}
+                alt=""
+                className="h-40 w-full object-cover"
+              />
+            ) : null}
+            <div className="relative p-5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide backdrop-blur">
+                <Star className="h-3 w-3 fill-white" /> Destacada
+              </span>
+              <p className="mt-3 flex items-center gap-2 text-2xl font-extrabold leading-tight">
+                {!banner.image_url && <span>{kindMeta(banner).emoji}</span>}
+                {banner.title}
+              </p>
+              {banner.description && (
+                <p className="mt-1 line-clamp-2 text-sm text-white/85">
+                  {banner.description}
+                </p>
+              )}
+              {validity(banner) && (
+                <p className="mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
+                  {validity(banner)}
+                </p>
+              )}
+            </div>
+          </div>
+        </button>
+      )}
+
+      {list.map((o) => {
         const m = kindMeta(o);
         const v = validity(o);
         return (

@@ -9,13 +9,13 @@ import { OrderTimeline } from "@/components/order-timeline";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
+import { IlluOrders } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
 import Link from "next/link";
 import {
   Truck,
   CheckCircle2,
   Send,
-  Package,
   Check,
   PartyPopper,
   Star,
@@ -46,9 +46,7 @@ export default async function MisPedidosPage() {
       <div>
         <PageHeader title="Mis pedidos" />
         <div className="flex flex-col items-center pt-4 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
-            <Package className="h-8 w-8" />
-          </span>
+          <IlluOrders />
           <h2 className="mt-4 text-lg font-bold text-foreground">
             Aún no has enviado
           </h2>

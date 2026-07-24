@@ -2,6 +2,7 @@ import { Star, Gift, Send, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getMyPoints } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { IlluPoints } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -96,6 +97,7 @@ export default async function PuntosPage() {
       <h2 className="mb-2 text-sm font-bold text-foreground">Historial</h2>
       {entries.length === 0 ? (
         <EmptyState
+          illustration={<IlluPoints />}
           title="Sin movimientos"
           description="Cuando se entregue tu primera remesa, ganarás puntos aquí."
         />

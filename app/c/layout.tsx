@@ -12,6 +12,7 @@ import { PaperPlane } from "@/components/paper-plane";
 import { ClienteNav } from "@/components/cliente-nav";
 import { ClienteProfileMenu } from "@/components/cliente-profile-menu";
 import { ClienteOnboarding } from "@/components/cliente-onboarding";
+import { PageTransition } from "@/components/page-transition";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,14 @@ export default async function ClienteLayout({
   const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen bg-background"
+      style={
+        contact.brandHue != null
+          ? ({ "--brand-hue": String(contact.brandHue) } as React.CSSProperties)
+          : undefined
+      }
+    >
       <ClienteOnboarding />
       <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
@@ -92,8 +100,8 @@ export default async function ClienteLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-md animate-fade-up px-4 pb-28 pt-4">
-        {children}
+      <main className="mx-auto max-w-md px-4 pb-28 pt-4">
+        <PageTransition>{children}</PageTransition>
       </main>
       <ClienteNav
         rates={rates}
