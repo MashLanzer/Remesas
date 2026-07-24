@@ -5,6 +5,8 @@ import {
   getRepartidores,
   getSessionContext,
 } from "@/lib/data";
+import { calcPartnerBalance } from "@/lib/calc";
+import { usd } from "@/lib/utils";
 import { Card, PageHeader } from "@/components/ui";
 import { CuentasView } from "@/components/cuentas-view";
 import { ReportesView } from "@/components/reportes-view";
@@ -64,14 +66,94 @@ export default async function FinanzasPage({
     </div>
   );
 
+  // Resumen financiero (sobre las pestañas): pulso del negocio de un vistazo.
+  const settledRems = remittances.filter((r) => r.status !== "pendiente");
+  const myProfit = settledRems.reduce(
+    (s, r) => s + Number(isOperador ? r.my_share : r.partner_share),
+    0
+  );
+  const clientsOwe = isOperador
+    ? remittances
+        .filter((r) => r.client_paid === false)
+        .reduce((s, r) => s + Number(r.total_received), 0)
+    : 0;
+  const cubaBalance = calcPartnerBalance(remittances, settlements);
+  const balLabel = isOperador
+    ? cubaBalance > 0.01
+      ? "Por enviar"
+      : cubaBalance < -0.01
+      ? "A tu favor"
+      : "Saldo Cuba"
+    : cubaBalance > 0.01
+    ? "Te deben"
+    : cubaBalance < -0.01
+    ? "Debes"
+    : "Saldo";
+  const balTone = isOperador
+    ? cubaBalance > 0.01
+      ? "destructive"
+      : "foreground"
+    : cubaBalance > 0.01
+    ? "income"
+    : "foreground";
+
   return (
     <div>
       <PageHeader title="Finanzas" subtitle="Cuentas con Cuba y reportes" />
+
+      {/* Resumen financiero */}
+      <div
+        className={
+          "mb-4 grid gap-2 " + (isOperador ? "grid-cols-3" : "grid-cols-2")
+        }
+      >
+        <FinKpi label="Tu ganancia" value={usd(myProfit)} tone="income" />
+        {isOperador && (
+          <FinKpi
+            label="Por cobrar"
+            value={usd(clientsOwe)}
+            tone={clientsOwe > 0 ? "warning" : "foreground"}
+          />
+        )}
+        <FinKpi
+          label={balLabel}
+          value={usd(Math.abs(cubaBalance))}
+          tone={balTone as "foreground" | "income" | "warning" | "destructive"}
+        />
+      </div>
+
       <FinanzasTabs
         initial={initial}
         cuentas={cuentas}
         reportes={<ReportesView remittances={remittances} monthlyGoal={monthlyGoal} />}
       />
     </div>
+  );
+}
+
+function FinKpi({
+  label,
+  value,
+  tone = "foreground",
+}: {
+  label: string;
+  value: string;
+  tone?: "foreground" | "income" | "warning" | "destructive";
+}) {
+  const color =
+    tone === "income"
+      ? "text-income"
+      : tone === "warning"
+      ? "text-warning"
+      : tone === "destructive"
+      ? "text-destructive"
+      : "text-foreground";
+  return (
+    <Card className="p-3 text-center">
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+      <p className={"tabular mt-1 truncate text-base font-bold " + color}>
+        {value}
+      </p>
+    </Card>
   );
 }
