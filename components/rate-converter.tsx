@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, ChevronDown } from "lucide-react";
 import { Card, Select } from "@/components/ui";
-import { localAmount, usd } from "@/lib/utils";
+import { localAmount, usd, cn } from "@/lib/utils";
 import { DELIVERY_CURRENCIES, type ExchangeRate } from "@/lib/types";
 
 const PRESETS = [50, 100, 200, 500];
@@ -12,6 +12,12 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
     for (const r of rates) m[r.currency] = Number(r.rate);
+    return m;
+  }, [rates]);
+
+  const marketByCurrency = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const r of rates) if (r.market_rate) m[r.currency] = Number(r.market_rate);
     return m;
   }, [rates]);
 
@@ -26,10 +32,18 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
   const [currency, setCurrency] = useState<string>(available[0] ?? "CUP");
   // false: USD → moneda local · true: moneda local → USD
   const [inverse, setInverse] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const rate = ratesByCurrency[currency] ?? 0;
   const value = parseFloat(amount) || 0;
   const result = inverse ? (rate ? value / rate : 0) : value * rate;
+
+  // Ganancia del operador para este monto: tu tasa vs mercado (USD → local).
+  const market = marketByCurrency[currency] ?? 0;
+  const gain =
+    !inverse && market > rate && rate > 0 && value > 0
+      ? (value * (market - rate)) / market
+      : null;
 
   const fromLabel = inverse ? currency : "USD";
   const toLabel = inverse ? "USD" : currency;
@@ -43,6 +57,11 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
         <p className="tabular mt-1 text-2xl font-extrabold">
           {inverse ? usd(result) : `${localAmount(result)} ${currency}`}
         </p>
+        {gain != null && (
+          <p className="mt-1 text-xs font-semibold text-white/90">
+            Tu ganancia ≈ {usd(gain)}
+          </p>
+        )}
       </div>
 
       <div className="space-y-3 p-4">
@@ -95,6 +114,37 @@ export function RateConverter({ rates }: { rates: ExchangeRate[] }) {
             </button>
           ))}
         </div>
+
+        {/* Comparar el mismo monto en todas las monedas activas */}
+        {!inverse && available.length > 1 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="flex w-full items-center justify-center gap-1 text-xs font-medium text-muted-foreground transition active:scale-95"
+            >
+              Ver {usd(value)} en todas las monedas
+              <ChevronDown
+                className={cn("h-3.5 w-3.5 transition", showAll && "rotate-180")}
+              />
+            </button>
+            {showAll && (
+              <div className="mt-2 space-y-1.5 border-t border-border pt-2.5">
+                {available.map((c) => (
+                  <div
+                    key={c}
+                    className="flex items-baseline justify-between text-sm"
+                  >
+                    <span className="text-muted-foreground">{c}</span>
+                    <span className="tabular font-semibold text-foreground">
+                      {localAmount(value * (ratesByCurrency[c] ?? 0))} {c}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );
