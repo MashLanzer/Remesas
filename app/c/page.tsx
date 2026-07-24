@@ -11,7 +11,7 @@ import {
   getMyOperatorContact,
 } from "@/lib/data";
 import { Card } from "@/components/ui";
-import { localAmount, packageReceives } from "@/lib/utils";
+import { localAmount, packageReceives, usd } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
@@ -70,12 +70,29 @@ export default async function ClienteHome() {
   const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
   const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
-  // Tasa destacada para el hero: CUP si existe; si no, la primera activa que no
-  // sea USD.
-  const primaryRate =
-    rates.find((r) => r.currency === "CUP" && r.active !== false) ??
-    rates.find((r) => r.active !== false && r.currency !== "USD") ??
-    null;
+  // Tasas activas para el hero (hasta 3).
+  const heroRates = rates
+    .filter((r) => r.active !== false && Number(r.rate) > 0)
+    .slice(0, 3);
+
+  const sendProps = {
+    rates,
+    pointsBalance: points.balance,
+    redeemMin,
+    pointValue,
+    beneficiaries,
+  };
+
+  // Aviso: pedido aceptado o entregado en las últimas 48 h.
+  const now = Date.now();
+  const recentEvent = orders.find((o) => {
+    const ts = o.delivered_at || o.accepted_at;
+    return ts && now - new Date(ts).getTime() < 48 * 3600000;
+  });
+  const recentDelivered =
+    recentEvent && recentEvent.delivered_at
+      ? now - new Date(recentEvent.delivered_at).getTime() < 48 * 3600000
+      : false;
 
   return (
     <div className="space-y-6">
@@ -108,13 +125,17 @@ export default async function ClienteHome() {
           <h1 className="mt-3 text-2xl font-extrabold leading-tight tracking-tight">
             Envía dinero a Cuba
           </h1>
-          {primaryRate ? (
-            <p className="mt-1 text-sm text-white/85">
-              Tasa de hoy · 1 USD ={" "}
-              <span className="font-bold text-white">
-                {localAmount(Number(primaryRate.rate))} {primaryRate.currency}
-              </span>
-            </p>
+          {heroRates.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {heroRates.map((r) => (
+                <span
+                  key={r.currency}
+                  className="rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur"
+                >
+                  1 USD = {localAmount(Number(r.rate))} {r.currency}
+                </span>
+              ))}
+            </div>
           ) : (
             <p className="mt-1 text-sm text-white/85">
               Rápido, seguro y con seguimiento en vivo.
@@ -133,6 +154,19 @@ export default async function ClienteHome() {
           </div>
         </div>
       </div>
+
+      {/* Aviso de novedad en un pedido */}
+      {recentEvent && (
+        <Link href={`/c/pedidos/${recentEvent.id}`} className="block">
+          <div className="flex items-center gap-2 rounded-2xl border border-income/30 bg-income/10 px-4 py-3 text-sm font-semibold text-income transition active:scale-[0.99]">
+            {recentDelivered ? "🎉" : "✅"}{" "}
+            {recentDelivered
+              ? `Tu envío para ${recentEvent.beneficiary_name || "tu familia"} fue entregado`
+              : `Tu pedido para ${recentEvent.beneficiary_name || "tu familia"} fue aceptado`}
+            <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
+          </div>
+        </Link>
+      )}
 
       {/* Paquetes de remesa destacados (scroll horizontal) */}
       {featuredPackages.length > 0 && (
@@ -203,6 +237,7 @@ export default async function ClienteHome() {
             offers={featuredOffers}
             contactPhone={contact.phone}
             businessName={contact.businessName}
+            sendProps={sendProps}
           />
         </section>
       )}
@@ -222,21 +257,32 @@ export default async function ClienteHome() {
             </Link>
           </div>
           <div className="space-y-2">
-            {recentOrders.map((o) => (
-              <Link key={o.id} href="/c/pedidos" className="block">
-                <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {o.beneficiary_name || "Beneficiario"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      ${Number(o.amount_usd)} · {o.delivery_currency || ""}
-                    </p>
-                  </div>
-                  <OrderStatusBadge order={o} />
-                </Card>
-              </Link>
-            ))}
+            {recentOrders.map((o) => {
+              const oRate = Number(
+                rates.find((r) => r.currency === o.delivery_currency)?.rate ?? 0
+              );
+              const oReceives = Number(o.amount_usd) * oRate;
+              return (
+                <Link key={o.id} href={`/c/pedidos/${o.id}`} className="block">
+                  <Card className="flex items-center justify-between gap-3 p-3.5 transition active:scale-[0.99]">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {o.beneficiary_name || "Beneficiario"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {usd(Number(o.amount_usd))}
+                        {oRate > 0
+                          ? ` · recibe ≈ ${localAmount(oReceives)} ${o.delivery_currency}`
+                          : o.delivery_currency
+                          ? ` · ${o.delivery_currency}`
+                          : ""}
+                      </p>
+                    </div>
+                    <OrderStatusBadge order={o} />
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

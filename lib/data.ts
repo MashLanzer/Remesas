@@ -496,6 +496,20 @@ export async function getMyOrders(): Promise<Order[]> {
   return (data as Order[]) ?? [];
 }
 
+// Un pedido concreto del cliente actual (para el detalle).
+export async function getMyOrder(id: string): Promise<Order | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return null;
+  const { data } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .eq("client_id", ctx.userId)
+    .maybeSingle();
+  return (data as Order | null) ?? null;
+}
+
 // Beneficiarios que el cliente ya usó (derivados de sus pedidos), para reusar.
 export async function getMyBeneficiaries(): Promise<
   { name: string; phone: string | null; province: string | null }[]

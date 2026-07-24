@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSessionContext,
@@ -30,12 +30,16 @@ export default async function ClienteLayout({
   if (!ctx.isCliente) redirect("/");
 
   // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
-  const [rates, points, cfgRes, beneficiaries] = await Promise.all([
+  const [rates, points, cfgRes, beneficiaries, profileRes] = await Promise.all([
     getExchangeRates(),
     getMyPoints(),
     supabase.rpc("my_client_config"),
     getMyBeneficiaries(),
+    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
   ]);
+  const fullName = (profileRes.data?.full_name as string | null) ?? null;
+  const firstName = fullName?.trim().split(" ")[0] ?? null;
+  const initial = (firstName || user.email || "?").charAt(0).toUpperCase();
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
     | null;
@@ -54,14 +58,21 @@ export default async function ClienteLayout({
               Giro
             </span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <Link
               href="/c/perfil"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
+              className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-muted"
               aria-label="Mi perfil"
               title="Mi perfil"
             >
-              <User className="h-5 w-5" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                {initial}
+              </span>
+              {firstName && (
+                <span className="max-w-[7rem] truncate text-sm font-semibold text-foreground">
+                  {firstName}
+                </span>
+              )}
             </Link>
             <form action="/auth/signout" method="post">
               <button

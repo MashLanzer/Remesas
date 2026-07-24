@@ -7,7 +7,16 @@ import { Sheet } from "@/components/sheet";
 import { recordOfferView } from "@/app/actions";
 import { cn } from "@/lib/utils";
 import { ContactBusiness } from "@/components/contact-business";
-import { OFFER_KINDS, type Offer } from "@/lib/types";
+import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
+import { OFFER_KINDS, type Offer, type ExchangeRate } from "@/lib/types";
+
+type SendProps = {
+  rates: ExchangeRate[];
+  pointsBalance: number;
+  redeemMin: number;
+  pointValue: number;
+  beneficiaries: { name: string; phone: string | null; province: string | null }[];
+};
 
 function kindMeta(o: Offer) {
   const k = OFFER_KINDS.find((x) => x.key === o.kind);
@@ -31,10 +40,12 @@ export function OffersView({
   offers,
   contactPhone,
   businessName,
+  sendProps,
 }: {
   offers: Offer[];
   contactPhone?: string | null;
   businessName?: string | null;
+  sendProps?: SendProps;
 }) {
   const [selected, setSelected] = useState<Offer | null>(null);
 
@@ -135,11 +146,24 @@ export function OffersView({
                 {validity(selected)}
               </p>
             )}
+            {sendProps && (
+              <EnviarRemesaCta
+                rates={sendProps.rates}
+                pointsBalance={sendProps.pointsBalance}
+                redeemMin={sendProps.redeemMin}
+                pointValue={sendProps.pointValue}
+                beneficiaries={sendProps.beneficiaries}
+                variant="primary"
+                label="Enviar con esta promo"
+                initial={{ note: `Promo: ${selected.title}` }}
+              />
+            )}
             {contactPhone && (
               <ContactBusiness
                 phone={contactPhone}
                 businessName={businessName}
-                label="Quiero esta promo"
+                tone="soft"
+                label="Preguntar por esta promo"
                 message={`Hola${
                   businessName ? ` ${businessName}` : ""
                 }, me interesa la promoción "${selected.title}".`}

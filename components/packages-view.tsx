@@ -21,7 +21,7 @@ export function PackagesView({
     return (
       <EmptyState
         title="Sin paquetes por ahora"
-        description="Cuando el negocio publique paquetes de remesa, aparecerán aquí listos para pedir."
+        description="Cuando el negocio publique paquetes, aparecerán aquí. Mientras tanto, usa el botón central para enviar una remesa a tu medida."
       />
     );
   }

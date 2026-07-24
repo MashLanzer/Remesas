@@ -16,6 +16,7 @@ import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { usd } from "@/lib/utils";
+import Link from "next/link";
 import {
   Truck,
   CheckCircle2,
@@ -24,6 +25,7 @@ import {
   Check,
   PartyPopper,
   Star,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 
@@ -193,6 +195,12 @@ export default async function MisPedidosPage() {
                     <ShareTrackButton token={o.track_token} />
                   )}
                   {o.status === "pendiente" && <CancelOrderButton id={o.id} />}
+                  <Link
+                    href={`/c/pedidos/${o.id}`}
+                    className="ml-auto flex items-center gap-0.5 text-xs font-semibold text-primary"
+                  >
+                    Ver detalle <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
               </Card>
             ))}
@@ -209,7 +217,10 @@ export default async function MisPedidosPage() {
           <div className="space-y-2">
             {history.map((o) => (
               <Card key={o.id} className="space-y-2 p-3.5">
-                <div className="flex items-center justify-between gap-3">
+                <Link
+                  href={`/c/pedidos/${o.id}`}
+                  className="flex items-center justify-between gap-3"
+                >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {usd(Number(o.amount_usd))}
@@ -226,7 +237,7 @@ export default async function MisPedidosPage() {
                     </p>
                   </div>
                   <OrderStatusBadge order={o} />
-                </div>
+                </Link>
                 {o.status === "rechazado" && o.reject_reason && (
                   <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
                     Motivo: {o.reject_reason}

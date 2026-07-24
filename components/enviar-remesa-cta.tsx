@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet } from "@/components/sheet";
-import { OrderForm } from "@/components/order-form";
+import { OrderForm, type OrderInitial } from "@/components/order-form";
 import type { ExchangeRate } from "@/lib/types";
 
 export function EnviarRemesaCta({
@@ -15,6 +15,7 @@ export function EnviarRemesaCta({
   variant = "hero",
   label = "Enviar una remesa",
   beneficiaries = [],
+  initial,
 }: {
   rates: ExchangeRate[];
   pointsBalance?: number;
@@ -23,6 +24,7 @@ export function EnviarRemesaCta({
   variant?: "hero" | "primary";
   label?: string;
   beneficiaries?: { name: string; phone: string | null; province: string | null }[];
+  initial?: OrderInitial;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -52,6 +54,7 @@ export function EnviarRemesaCta({
           redeemMin={redeemMin}
           pointValue={pointValue}
           beneficiaries={beneficiaries}
+          initial={initial}
         />
       </Sheet>
     </>
