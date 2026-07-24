@@ -157,9 +157,24 @@ export default async function MisPedidosPage() {
 
       {/* Resumen */}
       <div className="grid grid-cols-3 gap-2">
-        <Stat icon={Truck} label="En proceso" value={String(active.length)} />
-        <Stat icon={CheckCircle2} label="Entregadas" value={String(entregadas)} />
-        <Stat icon={Send} label="Enviado" value={usd(totalEnviado)} />
+        <Stat
+          icon={Truck}
+          label="En proceso"
+          value={String(active.length)}
+          tone="info"
+        />
+        <Stat
+          icon={CheckCircle2}
+          label="Entregadas"
+          value={String(entregadas)}
+          tone="income"
+        />
+        <Stat
+          icon={Send}
+          label="Enviado"
+          value={usd(totalEnviado)}
+          tone="primary"
+        />
       </div>
 
       {/* Otros activos */}
@@ -274,15 +289,29 @@ function Stat({
   icon: Icon,
   label,
   value,
+  tone = "primary",
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
+  tone?: "primary" | "income" | "info";
 }) {
+  const toneCls =
+    tone === "income"
+      ? "bg-income/10 text-income"
+      : tone === "info"
+        ? "bg-info/10 text-info"
+        : "bg-primary/10 text-primary";
   return (
-    <Card className="p-3 text-center">
-      <Icon className="mx-auto h-4 w-4 text-primary" />
-      <p className="tabular mt-1 truncate text-base font-bold text-foreground">
+    <Card className="flex flex-col items-center gap-1 p-3 text-center">
+      <span
+        className={
+          "flex h-9 w-9 items-center justify-center rounded-full " + toneCls
+        }
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <p className="tabular truncate text-base font-bold text-foreground">
         {value}
       </p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
