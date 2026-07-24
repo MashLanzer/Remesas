@@ -22,6 +22,7 @@ import { usd, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { ContactActions } from "@/components/contact-actions";
 import { ContactTopActions } from "@/components/contact-top-actions";
+import { QuickNote } from "@/components/quick-note";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -226,15 +227,8 @@ export default async function ContactoPage({
         )}
       </Card>
 
-      {/* Notas */}
-      {contact.notes && (
-        <Card>
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Notas
-          </p>
-          <p className="text-sm text-foreground">{contact.notes}</p>
-        </Card>
-      )}
+      {/* Nota rápida */}
+      <QuickNote kind={kind} id={id} notes={contact.notes} />
 
       {/* Beneficiarios asociados (clientes) */}
       {isClient && associatedBenefs.length > 0 && (

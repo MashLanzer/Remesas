@@ -1426,6 +1426,23 @@ export async function mergeContacts(
   revalidatePath("/agenda");
 }
 
+// Nota rápida: actualiza SOLO el campo de notas del contacto (sin tocar el
+// resto de datos).
+export async function updateContactNotes(
+  kind: "cliente" | "beneficiario",
+  id: string,
+  notes: string
+) {
+  const supabase = await createClient();
+  const table = kind === "cliente" ? "clients" : "beneficiaries";
+  await supabase
+    .from(table)
+    .update({ notes: notes.trim() || null })
+    .eq("id", id);
+  revalidatePath(`/agenda/${kind}/${id}`);
+  revalidatePath("/agenda");
+}
+
 // ============ TASAS ============
 
 export async function upsertRate(formData: FormData) {
