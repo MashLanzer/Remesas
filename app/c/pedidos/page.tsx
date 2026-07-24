@@ -10,6 +10,7 @@ import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { ActiveOrderCard } from "@/components/active-order-card";
+import { ClientOrderHistory } from "@/components/client-order-history";
 import { IlluOrders } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
 import Link from "next/link";
@@ -241,46 +242,8 @@ export default async function MisPedidosPage() {
         </section>
       )}
 
-      {/* Historial */}
-      {history.length > 0 && (
-        <section>
-          <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Historial
-          </h2>
-          <div className="space-y-2">
-            {history.map((o) => (
-              <Card key={o.id} className="space-y-2 p-3.5">
-                <Link
-                  href={`/c/pedidos/${o.id}`}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">
-                      {usd(Number(o.amount_usd))}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        · {o.beneficiary_name || "—"}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(o.created_at).toLocaleDateString("es-ES", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <OrderStatusBadge order={o} />
-                </Link>
-                {o.status === "rechazado" && o.reject_reason && (
-                  <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
-                    Motivo: {o.reject_reason}
-                  </p>
-                )}
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Historial (con buscador/filtro) */}
+      {history.length > 0 && <ClientOrderHistory orders={history} />}
     </div>
   );
 }
