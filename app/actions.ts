@@ -806,6 +806,7 @@ export async function acceptOrder(id: string) {
   revalidatePath("/remesas");
   revalidatePath("/c");
   revalidatePath("/");
+  return remId;
 }
 
 // El operador acepta a un repartidor pendiente de su equipo.

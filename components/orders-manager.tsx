@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Check,
   X,
@@ -10,6 +12,8 @@ import {
   MessageCircle,
   Clock,
   Search,
+  ArrowDownUp,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
@@ -20,6 +24,13 @@ import type { Order } from "@/lib/types";
 import { useDialog } from "@/components/confirm";
 
 const STALE_HOURS = 12;
+
+const QUICK_REASONS = [
+  "Provincia no cubierta",
+  "Falta información",
+  "Monto fuera de rango",
+  "No disponible ahora",
+];
 
 function agoLabel(iso: string, now: number): string {
   const diff = now - new Date(iso).getTime();
@@ -32,6 +43,7 @@ function agoLabel(iso: string, now: number): string {
 }
 
 export function OrdersManager({ orders }: { orders: Order[] }) {
+  const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
   const { confirm } = useDialog();
@@ -48,8 +60,44 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const pendientes = orders.filter((o) => o.status === "pendiente");
+  // Orden de los pendientes.
+  const [sortBy, setSortBy] = useState<"antiguo" | "reciente" | "monto">(
+    "antiguo"
+  );
+
+  const pendientesRaw = orders.filter((o) => o.status === "pendiente");
   const resto = orders.filter((o) => o.status !== "pendiente");
+
+  const pendientes = useMemo(() => {
+    const list = [...pendientesRaw];
+    if (sortBy === "monto")
+      list.sort((a, b) => Number(b.amount_usd) - Number(a.amount_usd));
+    else
+      list.sort((a, b) =>
+        sortBy === "antiguo"
+          ? a.created_at.localeCompare(b.created_at)
+          : b.created_at.localeCompare(a.created_at)
+      );
+    return list;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendientesRaw, sortBy]);
+
+  // Posibles duplicados: mismo cliente + monto + beneficiario entre pendientes.
+  const dupIds = useMemo(() => {
+    const seen = new Map<string, string>();
+    const dups = new Set<string>();
+    for (const o of pendientesRaw) {
+      const key = `${o.client_id || o.client_name}|${o.amount_usd}|${
+        o.beneficiary_name || ""
+      }`;
+      const first = seen.get(key);
+      if (first) {
+        dups.add(o.id);
+        dups.add(first);
+      } else seen.set(key, o.id);
+    }
+    return dups;
+  }, [pendientesRaw]);
 
   const restoStatuses = useMemo(
     () => Array.from(new Set(resto.map((o) => o.status))),
@@ -87,6 +135,16 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
     });
   }
 
+  // Aceptar y abrir la remesa creada para revisar/ajustar.
+  function doAccept(o: Order) {
+    setBusy(o.id);
+    start(async () => {
+      const rid = await acceptOrder(o.id);
+      setBusy(null);
+      if (typeof rid === "string") router.push(`/remesas/${rid}`);
+    });
+  }
+
   function waHref(o: Order): string | null {
     const digits = o.client_phone?.replace(/\D/g, "");
     if (!digits) return null;
@@ -99,9 +157,33 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
   return (
     <div className="space-y-5">
       <section>
-        <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Pendientes ({pendientes.length})
-        </h2>
+        <div className="mb-2 flex items-center justify-between gap-2 px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Pendientes ({pendientes.length})
+          </h2>
+          {pendientes.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                setSortBy((s) =>
+                  s === "antiguo"
+                    ? "reciente"
+                    : s === "reciente"
+                    ? "monto"
+                    : "antiguo"
+                )
+              }
+              className="flex items-center gap-1 text-[11px] font-semibold text-primary transition active:scale-95"
+            >
+              <ArrowDownUp className="h-3 w-3" />
+              {sortBy === "antiguo"
+                ? "Más antiguos"
+                : sortBy === "reciente"
+                ? "Más recientes"
+                : "Mayor monto"}
+            </button>
+          )}
+        </div>
         {pendientes.length === 0 ? (
           <EmptyState
             title="Sin pedidos nuevos"
@@ -142,6 +224,13 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                     </div>
                     <OrderStatusBadge order={o} />
                   </div>
+
+                  {dupIds.has(o.id) && (
+                    <p className="flex items-center gap-1.5 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      Posible duplicado (mismo cliente, monto y beneficiario)
+                    </p>
+                  )}
 
                   <div className="space-y-1 rounded-xl bg-muted/50 p-3 text-sm">
                     <p className="flex items-center gap-2 text-foreground">
@@ -192,7 +281,7 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                       <X className="h-4 w-4" /> Rechazar
                     </button>
                     <button
-                      onClick={() => act(o.id, acceptOrder)}
+                      onClick={() => doAccept(o)}
                       disabled={busy === o.id}
                       className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
                     >
@@ -270,23 +359,33 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                     </p>
                   )}
                   {o.status === "aceptado" && (
-                    <button
-                      onClick={async () => {
-                        if (
-                          await confirm({
-                            title: "Cancelar pedido",
-                            message:
-                              "Se borrará la remesa vinculada y el cliente dejará de ver el envío.",
-                            confirmLabel: "Sí, cancelar",
-                          })
-                        )
-                          act(o.id, cancelAcceptedOrder);
-                      }}
-                      disabled={busy === o.id}
-                      className="w-full rounded-xl border border-border py-2 text-xs font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
-                    >
-                      Cancelar pedido
-                    </button>
+                    <div className="flex gap-2">
+                      {o.remittance_id && (
+                        <Link
+                          href={`/remesas/${o.remittance_id}`}
+                          className="flex flex-1 items-center justify-center rounded-xl border border-border py-2 text-xs font-semibold text-foreground transition active:scale-[0.98]"
+                        >
+                          Ver remesa
+                        </Link>
+                      )}
+                      <button
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: "Cancelar pedido",
+                              message:
+                                "Se borrará la remesa vinculada y el cliente dejará de ver el envío.",
+                              confirmLabel: "Sí, cancelar",
+                            })
+                          )
+                            act(o.id, cancelAcceptedOrder);
+                        }}
+                        disabled={busy === o.id}
+                        className="flex-1 rounded-xl border border-border py-2 text-xs font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
+                      >
+                        Cancelar pedido
+                      </button>
+                    </div>
                   )}
                 </Card>
               ))}
@@ -307,6 +406,23 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
         <p className="mb-3 text-sm text-muted-foreground">
           Puedes añadir un motivo (opcional). El cliente lo verá en su pedido.
         </p>
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {QUICK_REASONS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setReason(r)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition active:scale-95",
+                reason === r
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground"
+              )}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}

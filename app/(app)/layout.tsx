@@ -6,6 +6,7 @@ import {
   getSessionContext,
   getExchangeRates,
   getRateHistory,
+  getOrders,
 } from "@/lib/data";
 import { BottomNav } from "@/components/nav";
 import { TopBar } from "@/components/top-bar";
@@ -35,12 +36,13 @@ export default async function AppLayout({
     redirect("/pendiente");
   }
 
-  const [alertCount, settings, rates, rateHistory, profileRes] =
+  const [alertCount, settings, rates, rateHistory, pendingOrders, profileRes] =
     await Promise.all([
       getAlertCount(),
       getBusinessSettings(),
       getExchangeRates(),
       getRateHistory(),
+      getOrders({ pendingOnly: true }),
       supabase.from("profiles").select("*").eq("id", user.id).single(),
     ]);
   const p = (profileRes.data ?? {}) as Record<string, string | null>;
@@ -59,6 +61,7 @@ export default async function AppLayout({
       <TopBar
         email={user.email}
         alertCount={alertCount}
+        pendingOrders={pendingOrders.length}
         card={card}
         rates={rates}
         rateHistory={rateHistory}
