@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -11,6 +11,7 @@ import {
   User,
   MapPin,
   Wallet,
+  AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -24,10 +25,15 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
-import { createClientRecord, createBeneficiary } from "@/app/actions";
+import {
+  createClientRecord,
+  createBeneficiary,
+  mergeContacts,
+} from "@/app/actions";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { DELIVERY_CURRENCIES, type Beneficiary, type Client } from "@/lib/types";
+import { useDialog } from "@/components/confirm";
 
 export type ContactStat = {
   count: number;
@@ -53,8 +59,39 @@ export function AgendaView({
   const [sort, setSort] = useState<"nombre" | "actividad">("nombre");
   type Filter = "todos" | "deuda" | "activos" | "favoritos" | "sin_remesas";
   const [filter, setFilter] = useState<Filter>("todos");
+  const [showDups, setShowDups] = useState(false);
+  const [busyMerge, startMerge] = useTransition();
+  const { confirm } = useDialog();
 
   const term = q.trim().toLowerCase();
+
+  // Posibles duplicados: contactos de la pestaña actual con el mismo teléfono.
+  // El que se mantiene es el que tiene más remesas.
+  const dupGroups = useMemo(() => {
+    const list = (tab === "clientes" ? clients : beneficiaries) as {
+      id: string;
+      name: string;
+      phone: string | null;
+    }[];
+    const stats = tab === "clientes" ? clientStats : benefStats;
+    const byPhone: Record<
+      string,
+      { id: string; name: string; phone: string | null }[]
+    > = {};
+    for (const c of list) {
+      const key = (c.phone ?? "").replace(/\D/g, "");
+      if (key.length < 5) continue; // ignora vacíos / muy cortos
+      (byPhone[key] ??= []).push(c);
+    }
+    return Object.values(byPhone)
+      .filter((g) => g.length > 1)
+      .map((g) => {
+        const sorted = [...g].sort(
+          (a, b) => (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0)
+        );
+        return { keep: sorted[0], drops: sorted.slice(1) };
+      });
+  }, [tab, clients, beneficiaries, clientStats, benefStats]);
 
   function passes(
     item: { id: string; pinned?: boolean },
@@ -248,6 +285,93 @@ export function AgendaView({
           <ClientForm onDone={() => setShowForm(false)} />
         ) : (
           <BeneficiaryForm clients={clients} onDone={() => setShowForm(false)} />
+        )}
+      </Sheet>
+
+      {/* Aviso de posibles duplicados */}
+      {dupGroups.length > 0 && (
+        <button
+          onClick={() => setShowDups(true)}
+          className="mb-3 flex w-full items-center gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-3 text-left transition active:scale-[0.99]"
+        >
+          <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-warning">
+              {dupGroups.length} posible{dupGroups.length > 1 ? "s" : ""} duplicado
+              {dupGroups.length > 1 ? "s" : ""}
+            </p>
+            <p className="text-xs text-warning/80">
+              Mismo teléfono. Toca para revisar y fusionar.
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-warning" />
+        </button>
+      )}
+
+      <Sheet
+        open={showDups}
+        onClose={() => setShowDups(false)}
+        title="Posibles duplicados"
+      >
+        {dupGroups.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No quedan duplicados. 🎉
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Se mantiene el contacto con más remesas; los demás se unen a él sin
+              perder historial.
+            </p>
+            {dupGroups.map((g) => {
+              const stats = tab === "clientes" ? clientStats : benefStats;
+              const keepCount = stats[g.keep.id]?.count ?? 0;
+              return (
+                <Card key={g.keep.id} className="space-y-2">
+                  <p className="text-sm text-foreground">
+                    Se mantiene: <span className="font-bold">{g.keep.name}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {keepCount} remesa{keepCount !== 1 ? "s" : ""}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Se unen: {g.drops.map((d) => d.name).join(", ")}
+                  </p>
+                  {g.keep.phone && (
+                    <p className="text-[11px] text-muted-foreground">
+                      📞 {g.keep.phone}
+                    </p>
+                  )}
+                  <button
+                    disabled={busyMerge}
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Fusionar contactos",
+                          message: `Se unirán ${g.drops.length} contacto${
+                            g.drops.length > 1 ? "s" : ""
+                          } en "${g.keep.name}". Sus remesas se conservan. No se puede deshacer.`,
+                          confirmLabel: "Fusionar",
+                        })
+                      ) {
+                        startMerge(() =>
+                          mergeContacts(
+                            tab === "clientes" ? "cliente" : "beneficiario",
+                            g.keep.id,
+                            g.drops.map((d) => d.id)
+                          )
+                        );
+                      }
+                    }}
+                    className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    Fusionar en {g.keep.name}
+                  </button>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </Sheet>
 

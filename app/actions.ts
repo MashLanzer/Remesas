@@ -1378,6 +1378,54 @@ export async function deleteBeneficiary(id: string) {
   revalidatePath("/agenda");
 }
 
+// Fusiona contactos duplicados en uno (el que se mantiene). Reasigna sus
+// remesas (y, para clientes, sus beneficiarios) al que se queda y borra los
+// demás. Sin pérdida de historial. Solo el operador.
+export async function mergeContacts(
+  kind: "cliente" | "beneficiario",
+  keepId: string,
+  dropIds: string[]
+) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  const tid = ctx.tenantId;
+  const drops = dropIds.filter((id) => id && id !== keepId);
+  if (!keepId || drops.length === 0) return;
+
+  if (kind === "cliente") {
+    await supabase
+      .from("remittances")
+      .update({ client_id: keepId })
+      .in("client_id", drops)
+      .eq("operator_id", tid);
+    await supabase
+      .from("beneficiaries")
+      .update({ client_id: keepId })
+      .in("client_id", drops)
+      .eq("operator_id", tid);
+    await supabase.from("clients").delete().in("id", drops).eq("operator_id", tid);
+  } else {
+    await supabase
+      .from("remittances")
+      .update({ beneficiary_id: keepId })
+      .in("beneficiary_id", drops)
+      .eq("operator_id", tid);
+    await supabase
+      .from("beneficiaries")
+      .delete()
+      .in("id", drops)
+      .eq("operator_id", tid);
+  }
+
+  await logActivity("contacto.fusionar", {
+    entityType: kind,
+    entityId: keepId,
+    details: { fusionados: drops.length },
+  });
+  revalidatePath("/agenda");
+}
+
 // ============ TASAS ============
 
 export async function upsertRate(formData: FormData) {
