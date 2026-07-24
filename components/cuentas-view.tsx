@@ -115,6 +115,34 @@ export function CuentasView({
     `= ${isRep ? "Te deben" : "Saldo pendiente"}: ${usd(balance)}`,
   ].join("\n");
 
+  const shareRows = [
+    {
+      label: isRep ? "Capital entregado" : "Total entregado (capital)",
+      value: usd(totalDelivered),
+    },
+    {
+      label: isRep ? "+ Tu ganancia" : "+ Ganancia en Cuba",
+      value: usd(partnerProfit),
+    },
+    {
+      label: isRep ? "− Recibido del operador" : `− Ya enviado ${toCuba}`,
+      value: usd(sentToCuba),
+    },
+    ...(receivedFromCuba > 0
+      ? [
+          {
+            label: isRep ? "+ Enviado al operador" : "+ Recibido de Cuba",
+            value: usd(receivedFromCuba),
+          },
+        ]
+      : []),
+  ];
+  const shareDate = new Date().toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   const balanceTitle = settled
     ? "Cuentas saldadas"
     : owed
@@ -293,7 +321,15 @@ export function CuentasView({
         />
       </Card>
 
-      <ShareStatement text={statementText} />
+      <ShareStatement
+        text={statementText}
+        brand={settings.business_name || "Giro"}
+        title={`Estado de cuenta ${isRep ? "con el operador" : toCuba}`}
+        date={shareDate}
+        rows={shareRows}
+        balanceLabel={isRep ? "Te deben" : "Saldo pendiente"}
+        balance={usd(balance)}
+      />
 
       {/* Avisar al repartidor del saldo por WhatsApp */}
       {canSettle && owed && delivererPhone && (
