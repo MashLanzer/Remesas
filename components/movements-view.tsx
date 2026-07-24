@@ -19,8 +19,19 @@ function csvCell(v: string | number): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+type FKind = "todos" | "remesa" | "pago" | "recibo";
+
 export function MovementsView({ movements }: { movements: Movement[] }) {
-  const [filter, setFilter] = useState<"todos" | "remesa" | "pago">("todos");
+  const [filter, setFilter] = useState<FKind>("todos");
+  const hasRecibos = movements.some((m) => m.kind === "recibo");
+  const chips: { k: FKind; l: string }[] = [
+    { k: "todos", l: "Todos" },
+    { k: "remesa", l: "Remesas" },
+    { k: "pago", l: "Pagos" },
+    ...(hasRecibos
+      ? ([{ k: "recibo", l: "Recibos" }] as { k: FKind; l: string }[])
+      : []),
+  ];
 
   // Serie del saldo en el tiempo (cronológica)
   const series = useMemo(() => {
@@ -31,13 +42,7 @@ export function MovementsView({ movements }: { movements: Movement[] }) {
 
   const filtered = useMemo(
     () =>
-      movements.filter((m) =>
-        filter === "todos"
-          ? true
-          : filter === "remesa"
-          ? m.kind === "remesa"
-          : m.kind !== "remesa"
-      ),
+      movements.filter((m) => (filter === "todos" ? true : m.kind === filter)),
     [movements, filter]
   );
 
@@ -78,13 +83,7 @@ export function MovementsView({ movements }: { movements: Movement[] }) {
 
       {/* Filtro */}
       <div className="mb-3 flex gap-2">
-        {(
-          [
-            { k: "todos", l: "Todos" },
-            { k: "remesa", l: "Remesas" },
-            { k: "pago", l: "Pagos" },
-          ] as const
-        ).map((f) => (
+        {chips.map((f) => (
           <button
             key={f.k}
             onClick={() => setFilter(f.k)}
