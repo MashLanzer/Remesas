@@ -57,7 +57,13 @@ export function AgendaView({
   const [showForm, setShowForm] = useState(false);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"nombre" | "actividad">("nombre");
-  type Filter = "todos" | "deuda" | "activos" | "favoritos" | "sin_remesas";
+  type Filter =
+    | "todos"
+    | "deuda"
+    | "activos"
+    | "favoritos"
+    | "inactivos"
+    | "sin_remesas";
   const [filter, setFilter] = useState<Filter>("todos");
   const [showDups, setShowDups] = useState(false);
   const [busyMerge, startMerge] = useTransition();
@@ -93,12 +99,14 @@ export function AgendaView({
       });
   }, [tab, clients, beneficiaries, clientStats, benefStats]);
 
-  function passes(
+  const now = Date.now();
+  function matches(
     item: { id: string; pinned?: boolean },
-    stats: Record<string, ContactStat>
+    stats: Record<string, ContactStat>,
+    f: Filter
   ) {
     const s = stats[item.id];
-    switch (filter) {
+    switch (f) {
       case "deuda":
         return (s?.owed ?? 0) > 0;
       case "activos":
@@ -107,6 +115,13 @@ export function AgendaView({
         return !!item.pinned;
       case "sin_remesas":
         return !s?.count;
+      case "inactivos": {
+        if (!s?.last || !s.count) return false;
+        const d = Math.floor(
+          (now - new Date(s.last + "T00:00:00").getTime()) / 86400000
+        );
+        return d > 30;
+      }
       default:
         return true;
     }
@@ -119,16 +134,26 @@ export function AgendaView({
     if (next === "beneficiarios" && filter === "deuda") setFilter("todos");
   }
 
-  // Chips de filtro (el de deuda solo en clientes).
-  const chips: { key: Filter; label: string }[] = [
+  // Chips de filtro (el de deuda solo en clientes), con contador.
+  const chipDefs: { key: Filter; label: string }[] = [
     { key: "todos", label: "Todos" },
     ...(tab === "clientes"
       ? ([{ key: "deuda", label: "Con deuda" }] as { key: Filter; label: string }[])
       : []),
     { key: "activos", label: "Activos" },
     { key: "favoritos", label: "Favoritos" },
+    { key: "inactivos", label: "Inactivos" },
     { key: "sin_remesas", label: "Sin remesas" },
   ];
+  const currentList = tab === "clientes" ? clients : beneficiaries;
+  const currentStats = tab === "clientes" ? clientStats : benefStats;
+  const chips = chipDefs.map((ch) => ({
+    ...ch,
+    count:
+      ch.key === "todos"
+        ? currentList.length
+        : currentList.filter((i) => matches(i, currentStats, ch.key)).length,
+  }));
 
   const totalOwed = useMemo(
     () => Object.values(clientStats).reduce((s, st) => s + (st.owed ?? 0), 0),
@@ -166,7 +191,7 @@ export function AgendaView({
     const arr = clients.filter(
       (c) =>
         [c.name, c.phone, c.country].filter(Boolean).join(" ").toLowerCase().includes(term) &&
-        passes(c, clientStats)
+        matches(c, clientStats, filter)
     );
     arr.sort(sortFn(clientStats));
     return arr;
@@ -177,7 +202,7 @@ export function AgendaView({
     const arr = beneficiaries.filter(
       (b) =>
         [b.name, b.phone, b.province].filter(Boolean).join(" ").toLowerCase().includes(term) &&
-        passes(b, benefStats)
+        matches(b, benefStats, filter)
     );
     arr.sort(sortFn(benefStats));
     return arr;
@@ -242,6 +267,7 @@ export function AgendaView({
             )}
           >
             {ch.label}
+            {ch.count > 0 ? ` (${ch.count})` : ""}
           </button>
         ))}
       </div>
