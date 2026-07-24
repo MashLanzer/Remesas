@@ -63,14 +63,11 @@ export function RemesasList({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
-  const list = useMemo(() => {
+  // Base: búsqueda + rango de fechas (sin el filtro de estado), para poder
+  // contar cuántas hay de cada estado.
+  const baseList = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const out = remittances.filter((r) => {
-      if (estado === "por_cobrar") {
-        if (r.client_paid !== false) return false;
-      } else if (estado !== "todas") {
-        if (r.status !== estado) return false;
-      }
+    return remittances.filter((r) => {
       if (from && r.date < from) return false;
       if (to && r.date > to) return false;
       if (term) {
@@ -87,6 +84,25 @@ export function RemesasList({
       }
       return true;
     });
+  }, [remittances, q, from, to]);
+
+  const counts = useMemo<Record<string, number>>(
+    () => ({
+      todas: baseList.length,
+      pendiente: baseList.filter((r) => r.status === "pendiente").length,
+      entregado: baseList.filter((r) => r.status === "entregado").length,
+      liquidado: baseList.filter((r) => r.status === "liquidado").length,
+      por_cobrar: baseList.filter((r) => r.client_paid === false).length,
+    }),
+    [baseList]
+  );
+
+  const list = useMemo(() => {
+    const out = baseList.filter((r) => {
+      if (estado === "por_cobrar") return r.client_paid === false;
+      if (estado !== "todas") return r.status === estado;
+      return true;
+    });
     out.sort((a, b) => {
       if (sort === "monto") return Number(b.amount_usd) - Number(a.amount_usd);
       if (sort === "ganancia")
@@ -97,7 +113,7 @@ export function RemesasList({
       );
     });
     return out;
-  }, [remittances, estado, q, from, to, sort]);
+  }, [baseList, estado, sort]);
 
   const totalSent = list.reduce((s, r) => s + Number(r.amount_usd), 0);
   const totalProfit = list.reduce((s, r) => s + Number(r.total_profit), 0);
@@ -200,6 +216,7 @@ export function RemesasList({
             )}
           >
             {f.label}
+            {counts[f.key] ? ` (${counts[f.key]})` : ""}
           </button>
         ))}
       </div>
