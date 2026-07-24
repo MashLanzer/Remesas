@@ -15,10 +15,14 @@ import { localAmount, packageReceives, usd } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
-import { OrderStatusBadge } from "@/components/order-status-badge";
+import {
+  OrderStatusBadge,
+  orderDisplay,
+} from "@/components/order-status-badge";
 import { PaperPlane } from "@/components/paper-plane";
 import { ClienteGreeting } from "@/components/cliente-greeting";
 import { QuickSendRow } from "@/components/quick-send-row";
+import { ActiveOrderCard } from "@/components/active-order-card";
 import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +56,27 @@ export default async function ClienteHome() {
     getMyBeneficiaries(),
     getRateHistory(),
   ]);
-  const recentOrders = orders.slice(0, 3);
+  // Envío en curso destacado (el más reciente pendiente / en reparto).
+  const activeList = orders.filter((o) => {
+    const d = orderDisplay(o);
+    return d === "pendiente" || d === "en_reparto";
+  });
+  const featuredActive = activeList[0] ?? null;
+  const featuredStage: 1 | 2 = featuredActive
+    ? orderDisplay(featuredActive) === "en_reparto"
+      ? 2
+      : 1
+    : 1;
+  const featuredRate = featuredActive
+    ? Number(
+        rates.find((r) => r.currency === featuredActive.delivery_currency)
+          ?.rate ?? 0
+      )
+    : 0;
+
+  const recentOrders = orders
+    .filter((o) => o.id !== featuredActive?.id)
+    .slice(0, 3);
   const featuredOffers = [...offers]
     .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
     .slice(0, 6);
@@ -98,16 +122,11 @@ export default async function ClienteHome() {
     beneficiaries,
   };
 
-  // Aviso: pedido aceptado o entregado en las últimas 48 h.
+  // Aviso de celebración: pedido entregado en las últimas 48 h.
   const now = Date.now();
-  const recentEvent = orders.find((o) => {
-    const ts = o.delivered_at || o.accepted_at;
-    return ts && now - new Date(ts).getTime() < 48 * 3600000;
-  });
-  const recentDelivered =
-    recentEvent && recentEvent.delivered_at
-      ? now - new Date(recentEvent.delivered_at).getTime() < 48 * 3600000
-      : false;
+  const deliveredEvent = orders.find(
+    (o) => o.delivered_at && now - new Date(o.delivered_at).getTime() < 48 * 3600000
+  );
 
   return (
     <div className="space-y-6">
@@ -180,14 +199,21 @@ export default async function ClienteHome() {
       {/* Enviar rápido a tus beneficiarios */}
       <QuickSendRow {...sendProps} />
 
-      {/* Aviso de novedad en un pedido */}
-      {recentEvent && (
-        <Link href={`/c/pedidos/${recentEvent.id}`} className="block">
+      {/* Envío en curso destacado */}
+      {featuredActive && (
+        <ActiveOrderCard
+          order={featuredActive}
+          rate={featuredRate}
+          stage={featuredStage}
+        />
+      )}
+
+      {/* Aviso de celebración: pedido entregado */}
+      {deliveredEvent && (
+        <Link href={`/c/pedidos/${deliveredEvent.id}`} className="block">
           <div className="flex items-center gap-2 rounded-2xl border border-income/30 bg-income/10 px-4 py-3 text-sm font-semibold text-income transition active:scale-[0.99]">
-            {recentDelivered ? "🎉" : "✅"}{" "}
-            {recentDelivered
-              ? `Tu envío para ${recentEvent.beneficiary_name || "tu familia"} fue entregado`
-              : `Tu pedido para ${recentEvent.beneficiary_name || "tu familia"} fue aceptado`}
+            🎉 Tu envío para {deliveredEvent.beneficiary_name || "tu familia"} fue
+            entregado
             <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
           </div>
         </Link>
