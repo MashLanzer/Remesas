@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Star, Gift, ChevronRight } from "lucide-react";
+import { Package, Star, Gift, ChevronRight, Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveOffers,
@@ -77,6 +77,17 @@ export default async function ClienteHome() {
   const recentOrders = orders
     .filter((o) => o.id !== featuredActive?.id)
     .slice(0, 3);
+
+  // Tu impacto: total entregado a la familia.
+  const deliveredOrders = orders.filter((o) => {
+    const d = orderDisplay(o);
+    return d === "entregado" || d === "recibido";
+  });
+  const totalToFamily = deliveredOrders.reduce(
+    (s, o) => s + Number(o.amount_usd),
+    0
+  );
+  const deliveredCount = deliveredOrders.length;
   const featuredOffers = [...offers]
     .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
     .slice(0, 6);
@@ -217,6 +228,22 @@ export default async function ClienteHome() {
             <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
           </div>
         </Link>
+      )}
+
+      {/* Tu impacto */}
+      {deliveredCount > 0 && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">
+            <Heart className="h-3.5 w-3.5 fill-primary" /> Tu impacto
+          </p>
+          <p className="mt-1 text-lg font-extrabold text-foreground">
+            Ya enviaste {usd(totalToFamily)} a los tuyos
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {deliveredCount} envío{deliveredCount > 1 ? "s" : ""} entregado
+            {deliveredCount > 1 ? "s" : ""} · gracias por cuidar a tu familia ❤️
+          </p>
+        </div>
       )}
 
       {/* Paquetes de remesa destacados (scroll horizontal) */}
