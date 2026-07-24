@@ -155,6 +155,7 @@ export function CuentasView({
 
       {/* Por cobrar de clientes (solo operador) */}
       {!isRep && clientDebts.length > 0 && (
+        <div id="por-cobrar" className="scroll-mt-20">
         <Card className="space-y-3 border-warning/30 bg-warning/5">
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-warning">
@@ -206,6 +207,7 @@ export function CuentasView({
             Ver todos en Agenda <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </Card>
+        </div>
       )}
 
       {/* Desglose */}

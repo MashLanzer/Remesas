@@ -117,63 +117,30 @@ export default async function FinanzasPage({
     ? "income"
     : "foreground";
 
+  const kpis = [
+    { label: "Tu ganancia", value: usd(myProfit), tone: "income" },
+    ...(isOperador
+      ? [
+          {
+            label: "Por cobrar",
+            value: usd(clientsOwe),
+            tone: clientsOwe > 0 ? "warning" : "foreground",
+            goCuentas: true,
+          },
+        ]
+      : []),
+    { label: balLabel, value: usd(Math.abs(cubaBalance)), tone: balTone },
+  ];
+
   return (
     <div>
       <PageHeader title="Finanzas" subtitle="Cuentas con Cuba y reportes" />
-
-      {/* Resumen financiero */}
-      <div
-        className={
-          "mb-4 grid gap-2 " + (isOperador ? "grid-cols-3" : "grid-cols-2")
-        }
-      >
-        <FinKpi label="Tu ganancia" value={usd(myProfit)} tone="income" />
-        {isOperador && (
-          <FinKpi
-            label="Por cobrar"
-            value={usd(clientsOwe)}
-            tone={clientsOwe > 0 ? "warning" : "foreground"}
-          />
-        )}
-        <FinKpi
-          label={balLabel}
-          value={usd(Math.abs(cubaBalance))}
-          tone={balTone as "foreground" | "income" | "warning" | "destructive"}
-        />
-      </div>
-
       <FinanzasTabs
         initial={initial}
+        kpis={kpis}
         cuentas={cuentas}
         reportes={<ReportesView remittances={remittances} monthlyGoal={monthlyGoal} />}
       />
     </div>
-  );
-}
-
-function FinKpi({
-  label,
-  value,
-  tone = "foreground",
-}: {
-  label: string;
-  value: string;
-  tone?: "foreground" | "income" | "warning" | "destructive";
-}) {
-  const color =
-    tone === "income"
-      ? "text-income"
-      : tone === "warning"
-      ? "text-warning"
-      : tone === "destructive"
-      ? "text-destructive"
-      : "text-foreground";
-  return (
-    <Card className="p-3 text-center">
-      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-      <p className={"tabular mt-1 truncate text-base font-bold " + color}>
-        {value}
-      </p>
-    </Card>
   );
 }
