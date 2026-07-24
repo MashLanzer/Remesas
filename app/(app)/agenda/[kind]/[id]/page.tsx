@@ -150,9 +150,25 @@ export default async function ContactoPage({
 
       {/* Por cobrar (clientes) */}
       {isClient && owed > 0 && (
-        <Card className="flex items-center justify-between border-warning/30 bg-warning/10">
-          <p className="text-sm font-semibold text-warning">Te debe</p>
-          <p className="tabular text-lg font-bold text-warning">{usd(owed)}</p>
+        <Card className="space-y-3 border-warning/30 bg-warning/10">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-warning">Te debe</p>
+            <p className="tabular text-lg font-bold text-warning">{usd(owed)}</p>
+          </div>
+          {phoneDigits && (
+            <a
+              href={`https://wa.me/${phoneDigits}?text=${encodeURIComponent(
+                `Hola ${name}, te recuerdo que tienes un saldo pendiente de ${usd(
+                  owed
+                )} por tus remesas. ¡Gracias!`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-warning py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
+            >
+              <MessageCircle className="h-4 w-4" /> Recordar por WhatsApp
+            </a>
+          )}
         </Card>
       )}
 
