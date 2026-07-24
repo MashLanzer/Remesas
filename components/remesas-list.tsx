@@ -12,6 +12,7 @@ import {
   Calendar,
   Undo2,
   CircleDollarSign,
+  CheckCheck,
 } from "lucide-react";
 import { Card, Badge, EmptyState, Select } from "@/components/ui";
 import { usd, formatDate, localAmount } from "@/lib/utils";
@@ -417,6 +418,7 @@ function RemesaCard({ r }: { r: Remittance }) {
   const [pending, start] = useTransition();
   const [undoDeliver, setUndoDeliver] = useState(false);
   const [cobrada, setCobrada] = useState(false);
+  const [liquidada, setLiquidada] = useState(false);
 
   function deliver() {
     setUndoDeliver(true);
@@ -436,10 +438,20 @@ function RemesaCard({ r }: { r: Remittance }) {
     setCobrada(false);
     start(() => setClientPaid(r.id, false));
   }
+  function liquidar() {
+    setLiquidada(true);
+    start(() => updateRemittanceStatus(r.id, "liquidado"));
+    setTimeout(() => setLiquidada(false), 6000);
+  }
+  function undoLiquidar() {
+    setLiquidada(false);
+    start(() => updateRemittanceStatus(r.id, "entregado"));
+  }
 
   const showCobrar = cobrada || r.client_paid === false;
   const showDeliver = undoDeliver || r.status === "pendiente";
-  const hasActions = showCobrar || showDeliver;
+  const showLiquidar = liquidada || r.status === "entregado";
+  const hasActions = showCobrar || showDeliver || showLiquidar;
 
   return (
     <Card className="p-3.5">
@@ -498,6 +510,16 @@ function RemesaCard({ r }: { r: Remittance }) {
                   <Check className="h-3.5 w-3.5" /> Entregar
                 </QuickBtn>
               ))}
+            {showLiquidar &&
+              (liquidada ? (
+                <QuickBtn onClick={undoLiquidar} disabled={pending} tone="muted">
+                  <Undo2 className="h-3.5 w-3.5" /> Deshacer
+                </QuickBtn>
+              ) : (
+                <QuickBtn onClick={liquidar} disabled={pending} tone="info">
+                  <CheckCheck className="h-3.5 w-3.5" /> Liquidar
+                </QuickBtn>
+              ))}
           </div>
         )}
       </div>
@@ -513,7 +535,7 @@ function QuickBtn({
 }: {
   onClick: () => void;
   disabled?: boolean;
-  tone: "income" | "warning" | "muted";
+  tone: "income" | "warning" | "info" | "muted";
   children: React.ReactNode;
 }) {
   const toneCls =
@@ -521,6 +543,8 @@ function QuickBtn({
       ? "bg-income/10 text-income"
       : tone === "warning"
       ? "bg-warning/10 text-warning"
+      : tone === "info"
+      ? "bg-info/10 text-info"
       : "bg-muted text-muted-foreground";
   return (
     <button
