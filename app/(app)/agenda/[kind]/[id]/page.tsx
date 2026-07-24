@@ -8,6 +8,7 @@ import {
   Send,
   User,
   ChevronRight,
+  Repeat,
 } from "lucide-react";
 import {
   getBeneficiaries,
@@ -129,6 +130,16 @@ export default async function ContactoPage({
           <QuickAction disabled icon={<Phone className="h-5 w-5" />} label="Llamar" />
         )}
       </div>
+
+      {/* Repetir última remesa (clientes recurrentes): copia todos los datos. */}
+      {remesas.length > 0 && (
+        <Link href={`/remesas/nueva?dup=${remesas[0].id}`} className="block">
+          <div className="flex items-center justify-center gap-2 rounded-2xl bg-primary/10 py-3 text-sm font-semibold text-primary transition active:scale-[0.98]">
+            <Repeat className="h-4 w-4" /> Repetir última remesa ·{" "}
+            {usd(remesas[0].amount_usd)}
+          </div>
+        </Link>
+      )}
 
       {/* Estadísticas */}
       <div className="grid grid-cols-3 gap-3">
