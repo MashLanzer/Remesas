@@ -15,6 +15,7 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
+  RefreshCw,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate, localAmount, cn } from "@/lib/utils";
@@ -150,10 +151,22 @@ export function DashboardView({
       : null;
   const compareLabel = period === "hoy" ? "vs ayer" : "vs mes pasado";
 
+  // Ganancia del mes en curso — la meta siempre mide el mes, en cualquier vista.
+  const monthProfit = useMemo(() => {
+    const now = new Date();
+    return remittances
+      .filter((r) => {
+        const d = new Date(r.date + "T00:00:00");
+        return (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth()
+        );
+      })
+      .reduce((s, r) => s + Number(r.total_profit), 0);
+  }, [remittances]);
+
   const goalPct =
-    period === "mes" && monthlyGoal > 0
-      ? Math.min((profit / monthlyGoal) * 100, 100)
-      : null;
+    monthlyGoal > 0 ? Math.min((monthProfit / monthlyGoal) * 100, 100) : null;
 
   // Pendientes: siempre global (sin filtrar por período).
   const pending = remittances.filter((r) => r.status === "pendiente");
@@ -283,7 +296,7 @@ export function DashboardView({
                 <Target className="h-3.5 w-3.5" /> Meta del mes
               </span>
               <span className="tabular font-semibold text-white">
-                {usd(profit)} / {usd(monthlyGoal)}
+                {usd(monthProfit)} / {usd(monthlyGoal)}
               </span>
             </div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20">
@@ -294,9 +307,9 @@ export function DashboardView({
             </div>
             <p className="mt-1 text-[11px] text-white/70">
               {goalPct >= 100
-                ? "¡Meta alcanzada! 🎉"
-                : `${Math.round(goalPct)}% · faltan ${usd(
-                    Math.max(monthlyGoal - profit, 0)
+                ? "¡Meta del mes alcanzada! 🎉"
+                : `${Math.round(goalPct)}% de la meta · faltan ${usd(
+                    Math.max(monthlyGoal - monthProfit, 0)
                   )}`}
             </p>
           </div>
@@ -331,24 +344,23 @@ export function DashboardView({
 
       {/* Tasas del día: tira compacta tocable hacia Tasas */}
       {activeRates.length > 0 && (
-        <Link
-          href="/tasas"
-          className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 py-0.5"
-        >
-          <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-            1 USD =
-          </span>
-          {activeRates.map((r) => (
-            <span
-              key={r.currency}
-              className="shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1.5 text-xs transition active:scale-95"
-            >
-              <span className="tabular font-bold text-foreground">
-                {localAmount(Number(r.rate))}
-              </span>{" "}
-              <span className="text-muted-foreground">{r.currency}</span>
+        <Link href="/tasas" className="block">
+          <Card className="flex items-center gap-2 overflow-x-auto p-3 transition active:scale-[0.99]">
+            <span className="flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
+              <RefreshCw className="h-3 w-3" /> 1 USD
             </span>
-          ))}
+            {activeRates.map((r) => (
+              <span
+                key={r.currency}
+                className="shrink-0 whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1 text-xs"
+              >
+                <span className="tabular font-bold text-primary">
+                  {localAmount(Number(r.rate))}
+                </span>{" "}
+                <span className="font-medium text-primary/60">{r.currency}</span>
+              </span>
+            ))}
+          </Card>
         </Link>
       )}
 
