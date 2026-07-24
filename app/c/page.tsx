@@ -17,6 +17,7 @@ import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { PaperPlane } from "@/components/paper-plane";
+import { ClienteGreeting } from "@/components/cliente-greeting";
 import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -125,16 +126,7 @@ export default async function ClienteHome() {
         />
         <div className="relative">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm font-medium text-white/85">
-              {firstName ? (
-                <>
-                  Hola,{" "}
-                  <span className="font-bold text-white">{firstName}</span> 👋
-                </>
-              ) : (
-                "Bienvenido 👋"
-              )}
-            </p>
+            <ClienteGreeting firstName={firstName} />
             <Link
               href="/c/puntos"
               className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm font-bold text-white backdrop-blur transition active:scale-95"
