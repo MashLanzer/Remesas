@@ -15,6 +15,7 @@ import {
   Repeat,
   MessageCircle,
   Check,
+  Copy,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -71,7 +72,7 @@ export function AgendaView({
   const [showDups, setShowDups] = useState(false);
   const [showDebts, setShowDebts] = useState(false);
   const [busyMerge, startMerge] = useTransition();
-  const { confirm } = useDialog();
+  const { confirm, notify } = useDialog();
 
   // Control de "ya le escribí" (persistido en el dispositivo).
   const [reminded, setReminded] = useState<Set<string>>(new Set());
@@ -109,6 +110,20 @@ export function AgendaView({
         .sort((a, b) => b.owed - a.owed),
     [clients, clientStats]
   );
+
+  async function copyDebts() {
+    const total = debtors.reduce((s, d) => s + d.owed, 0);
+    const text =
+      "Cobros pendientes:\n" +
+      debtors.map((d) => `• ${d.client.name}: ${usd(d.owed)}`).join("\n") +
+      `\nTotal: ${usd(total)}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      notify("Lista copiada al portapapeles");
+    } catch {
+      notify("No se pudo copiar");
+    }
+  }
 
   const term = q.trim().toLowerCase();
 
@@ -337,9 +352,17 @@ export function AgendaView({
           </p>
         ) : (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              Toca WhatsApp para enviar un recordatorio con el saldo ya escrito.
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                Toca WhatsApp para enviar el recordatorio.
+              </p>
+              <button
+                onClick={copyDebts}
+                className="flex shrink-0 items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition active:scale-95"
+              >
+                <Copy className="h-3.5 w-3.5" /> Copiar
+              </button>
+            </div>
             {debtors.map(({ client, owed }) => {
               const digits = client.phone?.replace(/\D/g, "");
               const done = reminded.has(client.id);
