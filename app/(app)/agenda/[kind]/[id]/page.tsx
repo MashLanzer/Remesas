@@ -9,6 +9,7 @@ import {
   User,
   ChevronRight,
   Repeat,
+  Clock,
 } from "lucide-react";
 import {
   getBeneficiaries,
@@ -57,6 +58,24 @@ export default async function ContactoPage({
   );
   const count = remesas.length;
   const totalSent = remesas.reduce((s, r) => s + Number(r.amount_usd), 0);
+
+  // Ritmo de envío: última remesa y frecuencia promedio.
+  const dates = remesas.map((r) => r.date).filter(Boolean).sort(); // asc
+  const newest = dates[dates.length - 1];
+  const oldest = dates[0];
+  const dayMs = 86400000;
+  const daysSince = newest
+    ? Math.floor((Date.now() - new Date(newest + "T00:00:00").getTime()) / dayMs)
+    : null;
+  const avgGap =
+    dates.length >= 2
+      ? Math.round(
+          (new Date(newest + "T00:00:00").getTime() -
+            new Date(oldest + "T00:00:00").getTime()) /
+            dayMs /
+            (dates.length - 1)
+        )
+      : null;
   const totalProfit = remesas.reduce((s, r) => s + Number(r.total_profit), 0);
   const owed = remesas
     .filter((r) => r.client_paid === false)
@@ -147,6 +166,18 @@ export default async function ContactoPage({
         <Stat label="Enviado" value={usd(totalSent)} />
         <Stat label="Ganancia" value={usd(totalProfit)} tone />
       </div>
+
+      {/* Ritmo de envío */}
+      {count > 0 && daysSince !== null && (
+        <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          Última remesa:{" "}
+          {daysSince === 0
+            ? "hoy"
+            : `hace ${daysSince} día${daysSince > 1 ? "s" : ""}`}
+          {avgGap ? ` · envía cada ~${avgGap} día${avgGap > 1 ? "s" : ""}` : ""}
+        </p>
+      )}
 
       {/* Por cobrar (clientes) */}
       {isClient && owed > 0 && (
