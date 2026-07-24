@@ -9,6 +9,7 @@ import { OrderTimeline } from "@/components/order-timeline";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
+import { ActiveOrderCard } from "@/components/active-order-card";
 import { IlluOrders } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
 import Link from "next/link";
@@ -124,9 +125,35 @@ export default async function MisPedidosPage() {
     })
     .reduce((s, o) => s + Number(o.amount_usd), 0);
 
+  // Envío en curso destacado (el más reciente) al tope.
+  const featuredActive = active[0] ?? null;
+  const featuredStage: 1 | 2 = featuredActive
+    ? orderDisplay(featuredActive) === "en_reparto"
+      ? 2
+      : 1
+    : 1;
+  const featuredRate = featuredActive
+    ? Number(
+        rates.find((r) => r.currency === featuredActive.delivery_currency)
+          ?.rate ?? 0
+      )
+    : 0;
+  const otherActive = featuredActive
+    ? active.filter((o) => o.id !== featuredActive.id)
+    : active;
+
   return (
     <div className="space-y-5">
       <PageHeader title="Mis pedidos" subtitle="Sigue el estado de tus envíos" />
+
+      {/* Envío en curso destacado */}
+      {featuredActive && (
+        <ActiveOrderCard
+          order={featuredActive}
+          rate={featuredRate}
+          stage={featuredStage}
+        />
+      )}
 
       {/* Resumen */}
       <div className="grid grid-cols-3 gap-2">
@@ -135,14 +162,14 @@ export default async function MisPedidosPage() {
         <Stat icon={Send} label="Enviado" value={usd(totalEnviado)} />
       </div>
 
-      {/* Activos */}
-      {active.length > 0 && (
+      {/* Otros activos */}
+      {otherActive.length > 0 && (
         <section>
           <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Activos
+            Otros activos
           </h2>
           <div className="space-y-3">
-            {active.map((o) => (
+            {otherActive.map((o) => (
               <Card key={o.id} className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
