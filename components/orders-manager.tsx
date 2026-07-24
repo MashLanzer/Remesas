@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -16,6 +16,9 @@ import {
   AlertTriangle,
   Users,
   RotateCcw,
+  Share2,
+  Bell,
+  CheckSquare,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
@@ -31,6 +34,7 @@ import type { Order } from "@/lib/types";
 import { useDialog } from "@/components/confirm";
 
 const STALE_HOURS = 12;
+const POLL_MS = 45000;
 
 const QUICK_REASONS = [
   "Provincia no cubierta",
@@ -51,6 +55,17 @@ function agoLabel(iso: string, now: number): string {
   return `hace ${d} día${d > 1 ? "s" : ""}`;
 }
 
+function durationLabel(fromIso: string, toIso: string): string | null {
+  const diff = new Date(toIso).getTime() - new Date(fromIso).getTime();
+  if (diff < 0) return null;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)} min`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `${h} h`;
+  const d = Math.floor(h / 24);
+  return `${d} día${d > 1 ? "s" : ""}`;
+}
+
 export function OrdersManager({
   orders,
   repartidores = [],
@@ -59,9 +74,16 @@ export function OrdersManager({
   repartidores?: Rep[];
 }) {
   const router = useRouter();
+  const { confirm, notify } = useDialog();
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
-  const { confirm } = useDialog();
+
+  const repMap = useMemo(
+    () => new Map(repartidores.map((r) => [r.id, r.name])),
+    [repartidores]
+  );
+  const acceptorName = (id: string | null) =>
+    id ? repMap.get(id) ?? "Operador" : "—";
 
   // "Ahora" se fija tras montar para evitar desajustes de hidratación.
   const [now, setNow] = useState<number | null>(null);
@@ -79,15 +101,31 @@ export function OrdersManager({
   // Búsqueda / filtro en procesados.
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [byFilter, setByFilter] = useState("");
 
-  // Orden y agrupación de los pendientes.
+  // Orden, agrupación y selección de los pendientes.
   const [sortBy, setSortBy] = useState<"antiguo" | "reciente" | "monto">(
     "antiguo"
   );
   const [grouped, setGrouped] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const pendientesRaw = orders.filter((o) => o.status === "pendiente");
   const resto = orders.filter((o) => o.status !== "pendiente");
+
+  // Aviso de pedido nuevo: refresco periódico + banner cuando sube el conteo.
+  const prevCount = useRef<number | null>(null);
+  const [newAlert, setNewAlert] = useState(false);
+  useEffect(() => {
+    const c = pendientesRaw.length;
+    if (prevCount.current != null && c > prevCount.current) setNewAlert(true);
+    prevCount.current = c;
+  }, [pendientesRaw.length]);
+  useEffect(() => {
+    const iv = setInterval(() => router.refresh(), POLL_MS);
+    return () => clearInterval(iv);
+  }, [router]);
 
   const pendientes = useMemo(() => {
     const list = [...pendientesRaw];
@@ -120,7 +158,6 @@ export function OrdersManager({
     return dups;
   }, [pendientesRaw]);
 
-  // Agrupación por cliente (para verlos juntos).
   const groups = useMemo(() => {
     if (!grouped) return null;
     const m = new Map<string, Order[]>();
@@ -133,7 +170,6 @@ export function OrdersManager({
     return Array.from(m.entries()).sort((a, b) => b[1].length - a[1].length);
   }, [grouped, pendientes]);
 
-  // Resumen de la cabecera.
   const pendTotal = pendientesRaw.reduce((s, o) => s + Number(o.amount_usd), 0);
   const oldest = pendientesRaw.reduce<string | null>(
     (min, o) => (min == null || o.created_at < min ? o.created_at : min),
@@ -144,16 +180,24 @@ export function OrdersManager({
     () => Array.from(new Set(resto.map((o) => o.status))),
     [resto]
   );
+  const acceptors = useMemo(
+    () =>
+      Array.from(
+        new Set(resto.map((o) => o.accepted_by).filter(Boolean) as string[])
+      ),
+    [resto]
+  );
   const filteredResto = useMemo(() => {
     const t = q.trim().toLowerCase();
     return resto.filter(
       (o) =>
         (!statusFilter || o.status === statusFilter) &&
+        (!byFilter || o.accepted_by === byFilter) &&
         (!t ||
           (o.client_name || "").toLowerCase().includes(t) ||
           (o.beneficiary_name || "").toLowerCase().includes(t))
     );
-  }, [resto, q, statusFilter]);
+  }, [resto, q, statusFilter, byFilter]);
 
   function act(id: string, fn: (id: string) => Promise<unknown>) {
     setBusy(id);
@@ -198,6 +242,41 @@ export function OrdersManager({
     });
   }
 
+  function toggleSel(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function bulkAccept() {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    start(async () => {
+      for (const id of ids) await acceptOrder(id);
+      setSelected(new Set());
+      setSelecting(false);
+    });
+  }
+
+  async function bulkReject() {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    const ok = await confirm({
+      title: `¿Rechazar ${ids.length} pedidos?`,
+      message: "Se rechazarán sin motivo. Puedes deshacerlo luego.",
+      confirmLabel: "Rechazar",
+    });
+    if (!ok) return;
+    start(async () => {
+      for (const id of ids) await rejectOrder(id);
+      setSelected(new Set());
+      setSelecting(false);
+    });
+  }
+
   function waHref(o: Order): string | null {
     const digits = o.client_phone?.replace(/\D/g, "");
     if (!digits) return null;
@@ -207,7 +286,80 @@ export function OrdersManager({
     return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
   }
 
+  async function sharePedido(o: Order) {
+    const text = [
+      "📦 Pedido de remesa",
+      `Monto: ${usd(Number(o.amount_usd))}${
+        o.delivery_currency ? ` en ${o.delivery_currency}` : ""
+      }`,
+      `Cliente: ${o.client_name || "—"}${
+        o.client_phone ? ` · ${o.client_phone}` : ""
+      }`,
+      `Recibe: ${o.beneficiary_name || "—"}${
+        o.province ? ` · ${o.province}` : ""
+      }`,
+      o.beneficiary_phone ? `Tel. beneficiario: ${o.beneficiary_phone}` : null,
+      o.note ? `Nota: ${o.note}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Pedido", text });
+        return;
+      }
+    } catch {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      notify("Pedido copiado");
+    } catch {
+      /* nada */
+    }
+  }
+
   function renderPending(o: Order) {
+    // Modo selección: tarjeta compacta seleccionable.
+    if (selecting) {
+      const on = selected.has(o.id);
+      return (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => toggleSel(o.id)}
+          className="w-full text-left"
+        >
+          <Card
+            className={cn(
+              "flex items-center gap-3 p-3.5 transition",
+              on && "border-primary bg-primary/5"
+            )}
+          >
+            <span
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border",
+                on
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border"
+              )}
+            >
+              {on && <Check className="h-3.5 w-3.5" />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {usd(Number(o.amount_usd))} · {o.beneficiary_name || "—"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {o.client_name || "—"}
+                {now != null ? ` · ${agoLabel(o.created_at, now)}` : ""}
+              </p>
+            </div>
+          </Card>
+        </button>
+      );
+    }
+
     const stale =
       now != null &&
       (now - new Date(o.created_at).getTime()) / 3600000 >= STALE_HOURS;
@@ -286,6 +438,14 @@ export function OrdersManager({
             </a>
           )}
           <button
+            type="button"
+            onClick={() => sharePedido(o)}
+            aria-label="Compartir pedido"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition active:scale-95"
+          >
+            <Share2 className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => {
               setReason("");
               setRejecting(o);
@@ -309,9 +469,20 @@ export function OrdersManager({
 
   return (
     <div className="space-y-5">
+      {/* Aviso de pedido nuevo */}
+      {newAlert && (
+        <button
+          type="button"
+          onClick={() => setNewAlert(false)}
+          className="flex w-full animate-fade-up items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30"
+        >
+          <Bell className="h-4 w-4" /> Nuevo pedido recibido · toca para ver
+        </button>
+      )}
+
       {/* Resumen */}
       {pendientesRaw.length > 0 && (
-        <Card className="flex items-center justify-between gap-2 border-primary/20 bg-primary/5 p-3.5 text-sm">
+        <Card className="flex flex-wrap items-center gap-x-2 gap-y-1 border-primary/20 bg-primary/5 p-3.5 text-sm">
           <span className="font-semibold text-foreground">
             {pendientesRaw.length} pendiente
             {pendientesRaw.length > 1 ? "s" : ""}
@@ -322,11 +493,9 @@ export function OrdersManager({
           </span>
           <span className="text-muted-foreground">en juego</span>
           {oldest && now != null && (
-            <>
-              <span className="ml-auto text-xs text-muted-foreground">
-                el más viejo {agoLabel(oldest, now)}
-              </span>
-            </>
+            <span className="ml-auto text-xs text-muted-foreground">
+              el más viejo {agoLabel(oldest, now)}
+            </span>
           )}
         </Card>
       )}
@@ -338,39 +507,82 @@ export function OrdersManager({
           </h2>
           {pendientes.length > 1 && (
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setGrouped((g) => !g)}
-                className={cn(
-                  "flex items-center gap-1 text-[11px] font-semibold transition active:scale-95",
-                  grouped ? "text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Users className="h-3 w-3" /> Agrupar
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setSortBy((s) =>
-                    s === "antiguo"
-                      ? "reciente"
-                      : s === "reciente"
-                      ? "monto"
-                      : "antiguo"
-                  )
-                }
-                className="flex items-center gap-1 text-[11px] font-semibold text-primary transition active:scale-95"
-              >
-                <ArrowDownUp className="h-3 w-3" />
-                {sortBy === "antiguo"
-                  ? "Más antiguos"
-                  : sortBy === "reciente"
-                  ? "Más recientes"
-                  : "Mayor monto"}
-              </button>
+              {selecting ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelecting(false);
+                    setSelected(new Set());
+                  }}
+                  className="text-[11px] font-semibold text-muted-foreground transition active:scale-95"
+                >
+                  Cancelar
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setSelecting(true)}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground transition active:scale-95"
+                  >
+                    <CheckSquare className="h-3 w-3" /> Elegir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGrouped((g) => !g)}
+                    className={cn(
+                      "flex items-center gap-1 text-[11px] font-semibold transition active:scale-95",
+                      grouped ? "text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    <Users className="h-3 w-3" /> Agrupar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSortBy((s) =>
+                        s === "antiguo"
+                          ? "reciente"
+                          : s === "reciente"
+                          ? "monto"
+                          : "antiguo"
+                      )
+                    }
+                    className="flex items-center gap-1 text-[11px] font-semibold text-primary transition active:scale-95"
+                  >
+                    <ArrowDownUp className="h-3 w-3" />
+                    {sortBy === "antiguo"
+                      ? "Más antiguos"
+                      : sortBy === "reciente"
+                      ? "Más recientes"
+                      : "Mayor monto"}
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
+
+        {/* Barra de acciones en lote */}
+        {selecting && selected.size > 0 && (
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground">
+              {selected.size} elegido{selected.size > 1 ? "s" : ""}
+            </span>
+            <button
+              onClick={bulkReject}
+              className="ml-auto rounded-xl border border-border px-3 py-2 text-xs font-semibold text-destructive transition active:scale-95"
+            >
+              Rechazar ({selected.size})
+            </button>
+            <button
+              onClick={bulkAccept}
+              className="rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition active:scale-95"
+            >
+              Aceptar ({selected.size})
+            </button>
+          </div>
+        )}
 
         {pendientes.length === 0 ? (
           <EmptyState
@@ -429,6 +641,23 @@ export function OrdersManager({
                   ))}
                 </div>
               )}
+              {repartidores.length > 0 && acceptors.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  <Chip
+                    active={!byFilter}
+                    onClick={() => setByFilter("")}
+                    label="Cualquiera"
+                  />
+                  {acceptors.map((id) => (
+                    <Chip
+                      key={id}
+                      active={byFilter === id}
+                      onClick={() => setByFilter(id)}
+                      label={acceptorName(id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -438,65 +667,76 @@ export function OrdersManager({
             </p>
           ) : (
             <div className="space-y-2">
-              {filteredResto.map((o) => (
-                <Card key={o.id} className="space-y-2.5 p-3.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {usd(Number(o.amount_usd))} · {o.beneficiary_name || "—"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {o.client_name || "—"} ·{" "}
-                        {formatDate(o.created_at.slice(0, 10))}
-                      </p>
+              {filteredResto.map((o) => {
+                const respondedIn =
+                  o.status === "aceptado" && o.accepted_at
+                    ? durationLabel(o.created_at, o.accepted_at)
+                    : null;
+                return (
+                  <Card key={o.id} className="space-y-2.5 p-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-foreground">
+                          {usd(Number(o.amount_usd))} ·{" "}
+                          {o.beneficiary_name || "—"}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {o.client_name || "—"} ·{" "}
+                          {formatDate(o.created_at.slice(0, 10))}
+                          {o.accepted_by
+                            ? ` · por ${acceptorName(o.accepted_by)}`
+                            : ""}
+                          {respondedIn ? ` · en ${respondedIn}` : ""}
+                        </p>
+                      </div>
+                      <OrderStatusBadge order={o} />
                     </div>
-                    <OrderStatusBadge order={o} />
-                  </div>
-                  {o.status === "rechazado" && o.reject_reason && (
-                    <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
-                      Motivo: {o.reject_reason}
-                    </p>
-                  )}
-                  {o.status === "rechazado" && (
-                    <button
-                      onClick={() => act(o.id, restoreOrderToPending)}
-                      disabled={busy === o.id}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-semibold text-foreground transition active:scale-[0.98] disabled:opacity-50"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5" /> Deshacer rechazo
-                    </button>
-                  )}
-                  {o.status === "aceptado" && (
-                    <div className="flex gap-2">
-                      {o.remittance_id && (
-                        <Link
-                          href={`/remesas/${o.remittance_id}`}
-                          className="flex flex-1 items-center justify-center rounded-xl border border-border py-2 text-xs font-semibold text-foreground transition active:scale-[0.98]"
-                        >
-                          Ver remesa
-                        </Link>
-                      )}
+                    {o.status === "rechazado" && o.reject_reason && (
+                      <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
+                        Motivo: {o.reject_reason}
+                      </p>
+                    )}
+                    {o.status === "rechazado" && (
                       <button
-                        onClick={async () => {
-                          if (
-                            await confirm({
-                              title: "Cancelar pedido",
-                              message:
-                                "Se borrará la remesa vinculada y el cliente dejará de ver el envío.",
-                              confirmLabel: "Sí, cancelar",
-                            })
-                          )
-                            act(o.id, cancelAcceptedOrder);
-                        }}
+                        onClick={() => act(o.id, restoreOrderToPending)}
                         disabled={busy === o.id}
-                        className="flex-1 rounded-xl border border-border py-2 text-xs font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
+                        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-semibold text-foreground transition active:scale-[0.98] disabled:opacity-50"
                       >
-                        Cancelar pedido
+                        <RotateCcw className="h-3.5 w-3.5" /> Deshacer rechazo
                       </button>
-                    </div>
-                  )}
-                </Card>
-              ))}
+                    )}
+                    {o.status === "aceptado" && (
+                      <div className="flex gap-2">
+                        {o.remittance_id && (
+                          <Link
+                            href={`/remesas/${o.remittance_id}`}
+                            className="flex flex-1 items-center justify-center rounded-xl border border-border py-2 text-xs font-semibold text-foreground transition active:scale-[0.98]"
+                          >
+                            Ver remesa
+                          </Link>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (
+                              await confirm({
+                                title: "Cancelar pedido",
+                                message:
+                                  "Se borrará la remesa vinculada y el cliente dejará de ver el envío.",
+                                confirmLabel: "Sí, cancelar",
+                              })
+                            )
+                              act(o.id, cancelAcceptedOrder);
+                          }}
+                          disabled={busy === o.id}
+                          className="flex-1 rounded-xl border border-border py-2 text-xs font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
+                        >
+                          Cancelar pedido
+                        </button>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </section>
