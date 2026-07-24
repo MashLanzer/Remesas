@@ -5,12 +5,13 @@ import Link from "next/link";
 import {
   Plus,
   Send,
-  ArrowRight,
   Wallet,
   LayoutGrid,
   Inbox,
   UserCog,
   Activity,
+  Truck,
+  Coins,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
@@ -22,6 +23,35 @@ const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
   entregado: "emerald",
   liquidado: "blue",
 };
+
+function DaySeg({
+  href,
+  icon: Icon,
+  value,
+  label,
+  tone,
+}: {
+  href: string;
+  icon: typeof Truck;
+  value: string;
+  label: string;
+  tone: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-1 flex-col items-center gap-0.5 px-2 py-2.5 transition active:scale-95"
+    >
+      <Icon className={cn("h-4 w-4", tone)} />
+      <span className="tabular text-sm font-bold leading-none text-foreground">
+        {value}
+      </span>
+      <span className="text-center text-[10px] font-medium leading-tight text-muted-foreground">
+        {label}
+      </span>
+    </Link>
+  );
+}
 
 const periods = [
   { key: "todo", label: "Todo" },
@@ -87,15 +117,64 @@ export function DashboardView({
   const pending = remittances.filter((r) => r.status === "pendiente");
   const pendingTotal = pending.reduce((s, r) => s + Number(r.amount_usd), 0);
 
+  // Por cobrar a clientes: remesas marcadas como no cobradas.
+  const unpaid = remittances.filter((r) => r.client_paid === false);
+  const unpaidTotal = unpaid.reduce((s, r) => s + Number(r.amount_usd), 0);
+
   const recent = remittances.slice(0, 5);
   const firstName = name?.trim().split(" ")[0];
 
+  // Saludo según la hora del día.
+  const hour = new Date().getHours();
+  const greetWord =
+    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+
+  const hasDaySummary =
+    pending.length > 0 || unpaid.length > 0 || pendingOrders > 0;
+
   return (
     <div className="space-y-5">
-      {firstName && (
-        <p className="text-sm text-muted-foreground">
-          Hola, <span className="font-semibold text-foreground">{firstName}</span> 👋
-        </p>
+      <p className="text-sm text-muted-foreground">
+        {greetWord}
+        {firstName && (
+          <>
+            , <span className="font-semibold text-foreground">{firstName}</span>
+          </>
+        )}{" "}
+        👋
+      </p>
+
+      {/* Resumen "Tu día": una línea accionable que reúne lo pendiente */}
+      {hasDaySummary && (
+        <Card className="flex divide-x divide-border p-0">
+          {pending.length > 0 && (
+            <DaySeg
+              href="/remesas?estado=pendiente"
+              icon={Truck}
+              value={String(pending.length)}
+              label="por entregar"
+              tone="text-warning"
+            />
+          )}
+          {unpaid.length > 0 && (
+            <DaySeg
+              href="/finanzas#por-cobrar"
+              icon={Coins}
+              value={usd(unpaidTotal)}
+              label="por cobrar"
+              tone="text-income"
+            />
+          )}
+          {pendingOrders > 0 && (
+            <DaySeg
+              href="/pedidos"
+              icon={Inbox}
+              value={String(pendingOrders)}
+              label={pendingOrders > 1 ? "pedidos" : "pedido"}
+              tone="text-primary"
+            />
+          )}
+        </Card>
       )}
 
       {/* Selector de período */}
@@ -158,39 +237,6 @@ export function DashboardView({
           );
         })}
       </div>
-
-      {/* Pedidos nuevos de clientes */}
-      {pendingOrders > 0 && (
-        <Link href="/pedidos" className="block">
-          <Card className="flex items-center justify-between border-primary/30 bg-primary/5">
-            <div>
-              <p className="text-sm font-semibold text-primary">
-                {pendingOrders} pedido{pendingOrders > 1 ? "s" : ""} nuevo
-                {pendingOrders > 1 ? "s" : ""}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Clientes esperando que aceptes
-              </p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-primary" />
-          </Card>
-        </Link>
-      )}
-
-      {/* Alerta de pendientes */}
-      {pending.length > 0 && (
-        <Link href="/remesas?estado=pendiente" className="block">
-          <Card className="flex items-center justify-between border-warning/30 bg-warning/10">
-            <div>
-              <p className="text-sm font-semibold text-warning">
-                {pending.length} pendiente{pending.length > 1 ? "s" : ""} de entregar
-              </p>
-              <p className="text-xs text-warning/80">{usd(pendingTotal)} por entregar</p>
-            </div>
-            <ArrowRight className="h-5 w-5 text-warning" />
-          </Card>
-        </Link>
-      )}
 
       {/* Métricas */}
       <div className="grid grid-cols-2 gap-3">
