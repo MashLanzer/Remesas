@@ -14,11 +14,18 @@ import {
   Search,
   ArrowDownUp,
   AlertTriangle,
+  Users,
+  RotateCcw,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { OrderStatusBadge } from "@/components/order-status-badge";
-import { acceptOrder, rejectOrder, cancelAcceptedOrder } from "@/app/actions";
+import {
+  acceptOrder,
+  rejectOrder,
+  cancelAcceptedOrder,
+  restoreOrderToPending,
+} from "@/app/actions";
 import { usd, formatDate, cn } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 import { useDialog } from "@/components/confirm";
@@ -32,6 +39,8 @@ const QUICK_REASONS = [
   "No disponible ahora",
 ];
 
+type Rep = { id: string; name: string };
+
 function agoLabel(iso: string, now: number): string {
   const diff = now - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -42,7 +51,13 @@ function agoLabel(iso: string, now: number): string {
   return `hace ${d} día${d > 1 ? "s" : ""}`;
 }
 
-export function OrdersManager({ orders }: { orders: Order[] }) {
+export function OrdersManager({
+  orders,
+  repartidores = [],
+}: {
+  orders: Order[];
+  repartidores?: Rep[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
@@ -56,14 +71,20 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
   const [rejecting, setRejecting] = useState<Order | null>(null);
   const [reason, setReason] = useState("");
 
+  // Aceptación con repartidor + nota interna.
+  const [accepting, setAccepting] = useState<Order | null>(null);
+  const [acceptDeliverer, setAcceptDeliverer] = useState("");
+  const [acceptNote, setAcceptNote] = useState("");
+
   // Búsqueda / filtro en procesados.
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Orden de los pendientes.
+  // Orden y agrupación de los pendientes.
   const [sortBy, setSortBy] = useState<"antiguo" | "reciente" | "monto">(
     "antiguo"
   );
+  const [grouped, setGrouped] = useState(false);
 
   const pendientesRaw = orders.filter((o) => o.status === "pendiente");
   const resto = orders.filter((o) => o.status !== "pendiente");
@@ -99,6 +120,26 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
     return dups;
   }, [pendientesRaw]);
 
+  // Agrupación por cliente (para verlos juntos).
+  const groups = useMemo(() => {
+    if (!grouped) return null;
+    const m = new Map<string, Order[]>();
+    for (const o of pendientes) {
+      const k = o.client_name || "Sin nombre";
+      const arr = m.get(k) ?? [];
+      arr.push(o);
+      m.set(k, arr);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [grouped, pendientes]);
+
+  // Resumen de la cabecera.
+  const pendTotal = pendientesRaw.reduce((s, o) => s + Number(o.amount_usd), 0);
+  const oldest = pendientesRaw.reduce<string | null>(
+    (min, o) => (min == null || o.created_at < min ? o.created_at : min),
+    null
+  );
+
   const restoStatuses = useMemo(
     () => Array.from(new Set(resto.map((o) => o.status))),
     [resto]
@@ -114,7 +155,7 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
     );
   }, [resto, q, statusFilter]);
 
-  function act(id: string, fn: (id: string) => Promise<void>) {
+  function act(id: string, fn: (id: string) => Promise<unknown>) {
     setBusy(id);
     start(async () => {
       await fn(id);
@@ -135,12 +176,24 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
     });
   }
 
-  // Aceptar y abrir la remesa creada para revisar/ajustar.
-  function doAccept(o: Order) {
+  function openAccept(o: Order) {
+    setAcceptDeliverer("");
+    setAcceptNote("");
+    setAccepting(o);
+  }
+
+  function confirmAccept() {
+    const o = accepting;
+    if (!o) return;
     setBusy(o.id);
+    const opts = {
+      delivererId: acceptDeliverer || null,
+      note: acceptNote.trim() || undefined,
+    };
     start(async () => {
-      const rid = await acceptOrder(o.id);
+      const rid = await acceptOrder(o.id, opts);
       setBusy(null);
+      setAccepting(null);
       if (typeof rid === "string") router.push(`/remesas/${rid}`);
     });
   }
@@ -154,144 +207,190 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
     return `https://wa.me/${digits}?text=${encodeURIComponent(msg)}`;
   }
 
+  function renderPending(o: Order) {
+    const stale =
+      now != null &&
+      (now - new Date(o.created_at).getTime()) / 3600000 >= STALE_HOURS;
+    const wa = waHref(o);
+    return (
+      <Card key={o.id} className="space-y-3 p-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-bold text-foreground">
+              {usd(Number(o.amount_usd))}
+              {o.delivery_currency ? (
+                <span className="ml-1 text-xs font-medium text-muted-foreground">
+                  en {o.delivery_currency}
+                </span>
+              ) : null}
+            </p>
+            <p
+              className={cn(
+                "flex items-center gap-1 text-xs",
+                stale ? "font-medium text-warning" : "text-muted-foreground"
+              )}
+            >
+              <Clock className="h-3 w-3" />
+              {now != null
+                ? agoLabel(o.created_at, now)
+                : formatDate(o.created_at.slice(0, 10))}
+              {stale ? " · sin responder" : ""}
+            </p>
+          </div>
+          <OrderStatusBadge order={o} />
+        </div>
+
+        {dupIds.has(o.id) && (
+          <p className="flex items-center gap-1.5 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Posible duplicado (mismo cliente, monto y beneficiario)
+          </p>
+        )}
+
+        <div className="space-y-1 rounded-xl bg-muted/50 p-3 text-sm">
+          <p className="flex items-center gap-2 text-foreground">
+            <User className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">Cliente:</span>{" "}
+            {o.client_name || "—"}
+            {o.client_phone ? ` · ${o.client_phone}` : ""}
+          </p>
+          <p className="flex items-center gap-2 text-foreground">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-medium">Recibe:</span>{" "}
+            {o.beneficiary_name || "—"}
+            {o.province ? ` · ${o.province}` : ""}
+          </p>
+          {o.beneficiary_phone && (
+            <p className="flex items-center gap-2 text-muted-foreground">
+              <Phone className="h-3.5 w-3.5" />
+              {o.beneficiary_phone}
+            </p>
+          )}
+          {o.note && (
+            <p className="border-t border-border pt-1 text-muted-foreground">
+              “{o.note}”
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {wa && (
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp al cliente"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-income/10 text-income transition active:scale-95"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          )}
+          <button
+            onClick={() => {
+              setReason("");
+              setRejecting(o);
+            }}
+            disabled={busy === o.id}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
+          >
+            <X className="h-4 w-4" /> Rechazar
+          </button>
+          <button
+            onClick={() => openAccept(o)}
+            disabled={busy === o.id}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
+          >
+            <Check className="h-4 w-4" /> Aceptar
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      {/* Resumen */}
+      {pendientesRaw.length > 0 && (
+        <Card className="flex items-center justify-between gap-2 border-primary/20 bg-primary/5 p-3.5 text-sm">
+          <span className="font-semibold text-foreground">
+            {pendientesRaw.length} pendiente
+            {pendientesRaw.length > 1 ? "s" : ""}
+          </span>
+          <span className="text-muted-foreground">·</span>
+          <span className="tabular font-semibold text-primary">
+            {usd(pendTotal)}
+          </span>
+          <span className="text-muted-foreground">en juego</span>
+          {oldest && now != null && (
+            <>
+              <span className="ml-auto text-xs text-muted-foreground">
+                el más viejo {agoLabel(oldest, now)}
+              </span>
+            </>
+          )}
+        </Card>
+      )}
+
       <section>
         <div className="mb-2 flex items-center justify-between gap-2 px-1">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Pendientes ({pendientes.length})
           </h2>
           {pendientes.length > 1 && (
-            <button
-              type="button"
-              onClick={() =>
-                setSortBy((s) =>
-                  s === "antiguo"
-                    ? "reciente"
-                    : s === "reciente"
-                    ? "monto"
-                    : "antiguo"
-                )
-              }
-              className="flex items-center gap-1 text-[11px] font-semibold text-primary transition active:scale-95"
-            >
-              <ArrowDownUp className="h-3 w-3" />
-              {sortBy === "antiguo"
-                ? "Más antiguos"
-                : sortBy === "reciente"
-                ? "Más recientes"
-                : "Mayor monto"}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setGrouped((g) => !g)}
+                className={cn(
+                  "flex items-center gap-1 text-[11px] font-semibold transition active:scale-95",
+                  grouped ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <Users className="h-3 w-3" /> Agrupar
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setSortBy((s) =>
+                    s === "antiguo"
+                      ? "reciente"
+                      : s === "reciente"
+                      ? "monto"
+                      : "antiguo"
+                  )
+                }
+                className="flex items-center gap-1 text-[11px] font-semibold text-primary transition active:scale-95"
+              >
+                <ArrowDownUp className="h-3 w-3" />
+                {sortBy === "antiguo"
+                  ? "Más antiguos"
+                  : sortBy === "reciente"
+                  ? "Más recientes"
+                  : "Mayor monto"}
+              </button>
+            </div>
           )}
         </div>
+
         {pendientes.length === 0 ? (
           <EmptyState
             title="Sin pedidos nuevos"
             description="Cuando un cliente pida una remesa, aparecerá aquí."
           />
-        ) : (
-          <div className="space-y-2">
-            {pendientes.map((o) => {
-              const stale =
-                now != null &&
-                (now - new Date(o.created_at).getTime()) / 3600000 >=
-                  STALE_HOURS;
-              const wa = waHref(o);
-              return (
-                <Card key={o.id} className="space-y-3 p-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-lg font-bold text-foreground">
-                        {usd(Number(o.amount_usd))}
-                        {o.delivery_currency ? (
-                          <span className="ml-1 text-xs font-medium text-muted-foreground">
-                            en {o.delivery_currency}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p
-                        className={cn(
-                          "flex items-center gap-1 text-xs",
-                          stale ? "font-medium text-warning" : "text-muted-foreground"
-                        )}
-                      >
-                        <Clock className="h-3 w-3" />
-                        {now != null
-                          ? agoLabel(o.created_at, now)
-                          : formatDate(o.created_at.slice(0, 10))}
-                        {stale ? " · sin responder" : ""}
-                      </p>
-                    </div>
-                    <OrderStatusBadge order={o} />
-                  </div>
-
-                  {dupIds.has(o.id) && (
-                    <p className="flex items-center gap-1.5 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs font-medium text-warning">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      Posible duplicado (mismo cliente, monto y beneficiario)
-                    </p>
-                  )}
-
-                  <div className="space-y-1 rounded-xl bg-muted/50 p-3 text-sm">
-                    <p className="flex items-center gap-2 text-foreground">
-                      <User className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="font-medium">Cliente:</span>{" "}
-                      {o.client_name || "—"}
-                      {o.client_phone ? ` · ${o.client_phone}` : ""}
-                    </p>
-                    <p className="flex items-center gap-2 text-foreground">
-                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="font-medium">Recibe:</span>{" "}
-                      {o.beneficiary_name || "—"}
-                      {o.province ? ` · ${o.province}` : ""}
-                    </p>
-                    {o.beneficiary_phone && (
-                      <p className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        {o.beneficiary_phone}
-                      </p>
-                    )}
-                    {o.note && (
-                      <p className="border-t border-border pt-1 text-muted-foreground">
-                        “{o.note}”
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    {wa && (
-                      <a
-                        href={wa}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="WhatsApp al cliente"
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-income/10 text-income transition active:scale-95"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                      </a>
-                    )}
-                    <button
-                      onClick={() => {
-                        setReason("");
-                        setRejecting(o);
-                      }}
-                      disabled={busy === o.id}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm font-semibold text-destructive transition active:scale-[0.98] disabled:opacity-50"
-                    >
-                      <X className="h-4 w-4" /> Rechazar
-                    </button>
-                    <button
-                      onClick={() => doAccept(o)}
-                      disabled={busy === o.id}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
-                    >
-                      <Check className="h-4 w-4" /> Aceptar
-                    </button>
-                  </div>
-                </Card>
-              );
-            })}
+        ) : groups ? (
+          <div className="space-y-4">
+            {groups.map(([client, list]) => (
+              <div key={client}>
+                <p className="mb-1.5 px-1 text-xs font-semibold text-foreground">
+                  {client}{" "}
+                  <span className="text-muted-foreground">({list.length})</span>
+                </p>
+                <div className="space-y-2">{list.map(renderPending)}</div>
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="space-y-2">{pendientes.map(renderPending)}</div>
         )}
       </section>
 
@@ -358,6 +457,15 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
                       Motivo: {o.reject_reason}
                     </p>
                   )}
+                  {o.status === "rechazado" && (
+                    <button
+                      onClick={() => act(o.id, restoreOrderToPending)}
+                      disabled={busy === o.id}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-border py-2 text-xs font-semibold text-foreground transition active:scale-[0.98] disabled:opacity-50"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Deshacer rechazo
+                    </button>
+                  )}
                   {o.status === "aceptado" && (
                     <div className="flex gap-2">
                       {o.remittance_id && (
@@ -393,6 +501,74 @@ export function OrdersManager({ orders }: { orders: Order[] }) {
           )}
         </section>
       )}
+
+      {/* Hoja: aceptar (repartidor + nota interna) */}
+      <Sheet
+        open={!!accepting}
+        onClose={() => setAccepting(null)}
+        title="Aceptar pedido"
+      >
+        {accepting && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Se creará la remesa de{" "}
+              <span className="font-semibold text-foreground">
+                {usd(Number(accepting.amount_usd))}
+              </span>{" "}
+              para {accepting.beneficiary_name || "el beneficiario"}.
+            </p>
+
+            {repartidores.length > 0 && (
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-foreground">
+                  Asignar a repartidor
+                </label>
+                <select
+                  value={acceptDeliverer}
+                  onChange={(e) => setAcceptDeliverer(e.target.value)}
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+                >
+                  <option value="">Sin asignar (lo llevo yo)</option>
+                  {repartidores.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-foreground">
+                Nota interna (opcional)
+              </label>
+              <textarea
+                value={acceptNote}
+                onChange={(e) => setAcceptNote(e.target.value)}
+                rows={2}
+                placeholder="Solo para tu equipo, el cliente no la ve."
+                className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setAccepting(null)}
+                className="flex-1 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmAccept}
+                disabled={busy === accepting.id}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-60"
+              >
+                <Check className="h-4 w-4" /> Aceptar
+              </button>
+            </div>
+          </div>
+        )}
+      </Sheet>
 
       {/* Hoja: rechazar con motivo */}
       <Sheet

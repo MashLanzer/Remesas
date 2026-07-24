@@ -539,9 +539,29 @@ export async function rejectOrder(id: string, reason?: string) {
   revalidatePath("/c");
 }
 
+// Deshacer un rechazo: devuelve el pedido a pendiente.
+export async function restoreOrderToPending(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  await supabase
+    .from("orders")
+    .update({ status: "pendiente", accepted_by: null })
+    .eq("id", id)
+    .eq("status", "rechazado");
+  // Limpia el motivo (tolerante si la columna no existe — 0024).
+  await supabase.from("orders").update({ reject_reason: null }).eq("id", id);
+  await logActivity("pedido.restaurar", { entityType: "pedido", entityId: id });
+  revalidatePath("/pedidos");
+  revalidatePath("/c");
+}
+
 // El personal acepta un pedido → se convierte en remesa (cliente + beneficiario
 // + remesa pendiente por cobrar). Si acepta un repartidor, queda asignada a él.
-export async function acceptOrder(id: string) {
+export async function acceptOrder(
+  id: string,
+  opts?: { delivererId?: string | null; note?: string }
+) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!isStaff(ctx) || !ctx.tenantId) return;
@@ -737,7 +757,20 @@ export async function acceptOrder(id: string) {
     mySplitPercent: split,
   });
 
-  const delivererId = ctx.role === "repartidor" ? ctx.userId : null;
+  // Repartidor asignado: si el operador eligió uno explícito, se usa ese;
+  // si acepta un repartidor, queda asignada a él.
+  const delivererId = ctx.isOperador
+    ? opts?.delivererId || null
+    : ctx.role === "repartidor"
+    ? ctx.userId
+    : null;
+
+  // Nota interna del personal (no visible al cliente), junto a la del cliente.
+  const internalNote = opts?.note?.trim();
+  const notes =
+    [order.note, internalNote ? `📝 ${internalNote}` : null]
+      .filter(Boolean)
+      .join("\n\n") || null;
 
   const { data: rem } = await supabase
     .from("remittances")
@@ -757,7 +790,7 @@ export async function acceptOrder(id: string) {
       my_share: c.myShare,
       partner_share: c.partnerShare,
       status: "pendiente",
-      notes: order.note,
+      notes,
       created_by: ctx.userId,
       client_paid: false,
       ...(delivererId ? { deliverer_id: delivererId } : {}),
