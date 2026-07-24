@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Repeat,
   MessageCircle,
+  Check,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -58,7 +59,7 @@ export function AgendaView({
   const [tab, setTab] = useState<"clientes" | "beneficiarios">("clientes");
   const [showForm, setShowForm] = useState(false);
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<"nombre" | "actividad">("nombre");
+  const [sort, setSort] = useState<"nombre" | "actividad" | "deuda">("nombre");
   type Filter =
     | "todos"
     | "deuda"
@@ -71,6 +72,33 @@ export function AgendaView({
   const [showDebts, setShowDebts] = useState(false);
   const [busyMerge, startMerge] = useTransition();
   const { confirm } = useDialog();
+
+  // Control de "ya le escribí" (persistido en el dispositivo).
+  const [reminded, setReminded] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("giro_reminded");
+      if (raw) setReminded(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function markReminded(id: string, on: boolean) {
+    setReminded((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      try {
+        localStorage.setItem(
+          "giro_reminded",
+          JSON.stringify(Array.from(next))
+        );
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   // Clientes que deben, de mayor a menor deuda.
   const debtors = useMemo(
@@ -143,8 +171,9 @@ export function AgendaView({
   function goTab(next: "clientes" | "beneficiarios") {
     setTab(next);
     setShowForm(false);
-    // "Con deuda" solo aplica a clientes.
+    // "Con deuda" y "ordenar por deuda" solo aplican a clientes.
     if (next === "beneficiarios" && filter === "deuda") setFilter("todos");
+    if (next === "beneficiarios" && sort === "deuda") setSort("nombre");
   }
 
   // Chips de filtro (el de deuda solo en clientes), con contador.
@@ -194,6 +223,8 @@ export function AgendaView({
       const ap = a.pinned ? 1 : 0;
       const bp = b.pinned ? 1 : 0;
       if (ap !== bp) return bp - ap; // favoritos arriba
+      if (sort === "deuda")
+        return (stats[b.id]?.owed ?? 0) - (stats[a.id]?.owed ?? 0);
       if (sort === "actividad")
         return (stats[b.id]?.count ?? 0) - (stats[a.id]?.count ?? 0);
       return a.name.localeCompare(b.name);
@@ -311,18 +342,31 @@ export function AgendaView({
             </p>
             {debtors.map(({ client, owed }) => {
               const digits = client.phone?.replace(/\D/g, "");
+              const done = reminded.has(client.id);
               return (
                 <Card
                   key={client.id}
-                  className="flex items-center justify-between gap-3 p-3"
+                  className={cn(
+                    "flex items-center justify-between gap-3 p-3",
+                    done && "opacity-60"
+                  )}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {client.name}
                     </p>
-                    <p className="text-xs font-semibold text-warning">
-                      Debe {usd(owed)}
-                    </p>
+                    {done ? (
+                      <button
+                        onClick={() => markReminded(client.id, false)}
+                        className="flex items-center gap-1 text-xs font-semibold text-income"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Recordado · deshacer
+                      </button>
+                    ) : (
+                      <p className="text-xs font-semibold text-warning">
+                        Debe {usd(owed)}
+                      </p>
+                    )}
                   </div>
                   {digits ? (
                     <a
@@ -333,6 +377,7 @@ export function AgendaView({
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => markReminded(client.id, true)}
                       className="flex shrink-0 items-center gap-1.5 rounded-lg bg-warning px-3 py-2 text-xs font-semibold text-white transition active:scale-95"
                     >
                       <MessageCircle className="h-4 w-4" /> WhatsApp
@@ -367,6 +412,7 @@ export function AgendaView({
         >
           <option value="nombre">A-Z</option>
           <option value="actividad">Activos</option>
+          {tab === "clientes" && <option value="deuda">Deuda</option>}
         </Select>
       </div>
 
