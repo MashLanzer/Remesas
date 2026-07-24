@@ -1,7 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Share2, Download, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Share2,
+  Download,
+  ArrowLeft,
+  CheckCircle2,
+  MessageCircle,
+} from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
 import { Button } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
@@ -11,6 +17,7 @@ export type ReceiptData = {
   brand: string;
   date: string;
   clientName?: string | null;
+  clientPhone?: string | null;
   beneficiaryName?: string | null;
   province?: string | null;
   amountUsd: string;
@@ -19,11 +26,32 @@ export type ReceiptData = {
   phone?: string | null;
 };
 
-export function ShareReceipt({ data }: { data: ReceiptData }) {
+export function ShareReceipt({
+  data,
+  autoOpen = false,
+}: {
+  data: ReceiptData;
+  autoOpen?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (autoOpen) setOpen(true);
+  }, [autoOpen]);
+
+  const clientDigits = data.clientPhone?.replace(/\D/g, "");
+  const waClient = clientDigits
+    ? `https://wa.me/${clientDigits}?text=${encodeURIComponent(
+        `Hola ${data.clientName || ""}, aquí el comprobante de tu envío de ${
+          data.amountUsd
+        } para ${data.beneficiaryName || "tu familiar"}. Estado: ${
+          data.status
+        }.`
+      )}`
+    : null;
 
   function close() {
     setOpen(false);
@@ -172,6 +200,18 @@ export function ShareReceipt({ data }: { data: ReceiptData }) {
             </>
           )}
         </div>
+
+        {/* Enviar el comprobante al cliente por WhatsApp */}
+        {waClient && !imgUrl && (
+          <a
+            href={waClient}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-income/10 py-3 text-sm font-semibold text-income transition active:scale-[0.98]"
+          >
+            <MessageCircle className="h-4 w-4" /> WhatsApp al cliente
+          </a>
+        )}
       </Sheet>
     </>
   );

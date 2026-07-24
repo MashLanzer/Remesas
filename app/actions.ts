@@ -1102,6 +1102,10 @@ export async function createRemittance(formData: FormData) {
 
   revalidatePath("/remesas");
   revalidatePath("/");
+  // "Guardar y compartir": ir al detalle con el comprobante abierto.
+  if (str(formData.get("go")) === "share" && inserted?.id) {
+    redirect(`/remesas/${inserted.id}?share=1`);
+  }
   redirect("/remesas");
 }
 
@@ -1456,6 +1460,56 @@ export async function deleteBeneficiary(id: string) {
   const supabase = await createClient();
   await supabase.from("beneficiaries").delete().eq("id", id);
   revalidatePath("/agenda");
+}
+
+// Alta rápida de cliente desde el formulario de remesa (devuelve el registro).
+export async function quickAddClient(name: string, phone?: string | null) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return null;
+  const { data } = await supabase
+    .from("clients")
+    .insert({
+      name: name.trim() || "Sin nombre",
+      phone: phone?.trim() || null,
+      operator_id: ctx.tenantId,
+    })
+    .select("id, name")
+    .single();
+  revalidatePath("/agenda");
+  return (data as { id: string; name: string } | null) ?? null;
+}
+
+// Alta rápida de beneficiario desde el formulario de remesa.
+export async function quickAddBeneficiary(input: {
+  name: string;
+  province?: string | null;
+  phone?: string | null;
+  clientId?: string | null;
+}) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx) || !ctx.tenantId) return null;
+  const { data } = await supabase
+    .from("beneficiaries")
+    .insert({
+      name: input.name.trim() || "Sin nombre",
+      province: input.province?.trim() || null,
+      phone: input.phone?.trim() || null,
+      client_id: input.clientId || null,
+      operator_id: ctx.tenantId,
+    })
+    .select("id, name, province, client_id")
+    .single();
+  revalidatePath("/agenda");
+  return (
+    (data as {
+      id: string;
+      name: string;
+      province: string | null;
+      client_id: string | null;
+    } | null) ?? null
+  );
 }
 
 // Vincular / desvincular un beneficiario a un cliente (client_id).

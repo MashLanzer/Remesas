@@ -21,10 +21,13 @@ const statusTone: Record<RemittanceStatus, "amber" | "emerald" | "blue"> = {
 
 export default async function RemesaDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ share?: string }>;
 }) {
   const { id } = await params;
+  const { share } = (await searchParams) ?? {};
   const r = await getRemittance(id);
   if (!r) notFound();
 
@@ -191,10 +194,12 @@ export default async function RemesaDetailPage({
 
       <div className="mb-4">
         <ShareReceipt
+          autoOpen={share === "1"}
           data={{
             brand: settings.business_name || "Giro",
             date: formatDate(r.date),
             clientName: r.client?.name ?? null,
+            clientPhone: r.client?.phone ?? null,
             beneficiaryName: r.beneficiary?.name ?? null,
             province: r.beneficiary?.province ?? null,
             amountUsd: usd(r.amount_usd),
