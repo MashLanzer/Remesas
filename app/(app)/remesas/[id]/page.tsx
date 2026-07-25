@@ -339,7 +339,12 @@ export default async function RemesaDetailPage({
 
       {/* Repartidor: "en camino" + confirmación de entrega cuando está pendiente */}
       {!ctx.isOperador && r.status === "pendiente" && (
-        <EnRouteToggle id={r.id} enRoute={!!r.en_route_at} />
+        <EnRouteToggle
+          id={r.id}
+          enRoute={!!r.en_route_at}
+          beneficiaryName={r.beneficiary?.name ?? null}
+          beneficiaryPhone={r.beneficiary?.phone ?? null}
+        />
       )}
       {!ctx.isOperador && r.status === "pendiente" && (
         <DeliverSheet
