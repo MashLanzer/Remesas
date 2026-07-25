@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
+import { IlluOrders } from "@/components/illustrations";
 import { cn } from "@/lib/utils";
 import type { ActivityEntry } from "@/lib/data";
 
@@ -124,6 +125,7 @@ export function ActivityList({
   if (entries.length === 0) {
     return (
       <EmptyState
+        illustration={<IlluOrders />}
         title="Sin actividad todavía"
         description="Aquí aparece cada acción: remesas, cobros, pagos y cambios del equipo."
       />

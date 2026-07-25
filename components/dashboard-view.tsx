@@ -18,6 +18,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
+import { IlluOrders } from "@/components/illustrations";
 import { usd, formatDate, localAmount, cn } from "@/lib/utils";
 import type {
   Remittance,
@@ -575,6 +576,7 @@ export function DashboardView({
 
         {recent.length === 0 ? (
           <EmptyState
+            illustration={isRep ? <IlluOrders /> : undefined}
             title="Aún no hay remesas"
             description="Registra tu primer envío para empezar a llevar la cuenta."
             action={
