@@ -13,6 +13,7 @@ import { Card } from "@/components/ui";
 import { SettlementView } from "@/components/settlement-view";
 import { MovementsView, type Movement } from "@/components/movements-view";
 import { ShareStatement } from "@/components/share-statement";
+import { SettleRequestButton } from "@/components/settle-request-button";
 import type { BusinessSettings, Remittance, Settlement } from "@/lib/types";
 
 export function CuentasView({
@@ -25,6 +26,8 @@ export function CuentasView({
   delivererPhone,
   canSettle = true,
   clientDebts = [],
+  operatorPhone = null,
+  operatorName = null,
 }: {
   remittances: Remittance[];
   settlements: Settlement[];
@@ -35,6 +38,8 @@ export function CuentasView({
   delivererPhone?: string | null;
   canSettle?: boolean;
   clientDebts?: { name: string; phone: string | null; owed: number }[];
+  operatorPhone?: string | null;
+  operatorName?: string | null;
 }) {
   const isRep = perspective === "repartidor";
   const partnerName = settings.partner_name?.trim() || null;
@@ -219,6 +224,15 @@ export function CuentasView({
           </p>
         )}
       </div>
+
+      {/* Repartidor: avisar que está listo para liquidar */}
+      {isRep && owed && !settled && (
+        <SettleRequestButton
+          amount={Math.abs(balance)}
+          operatorPhone={operatorPhone}
+          operatorName={operatorName}
+        />
+      )}
 
       {/* Ganancias acumuladas */}
       {isRep ? (

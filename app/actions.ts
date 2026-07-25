@@ -1322,6 +1322,18 @@ export async function deliverRemittance(formData: FormData) {
   await updateRemittanceStatus(id, "entregado");
 }
 
+// El repartidor avisa al operador que su saldo está listo para liquidar. Queda
+// registrado en la actividad del negocio (el operador lo ve en /actividad).
+export async function requestSettlement(amount: number) {
+  const ctx = await getSessionContext();
+  if (ctx.isOperador) return; // solo el repartidor pide cobrar
+  await logActivity("repartidor.liquidar", {
+    entityType: "saldo",
+    details: { amount },
+  });
+  revalidatePath("/finanzas");
+}
+
 // Meta personal (mensual) del repartidor, en su propio perfil. Tolerante si la
 // columna monthly_goal aún no existe (migración 0032).
 export async function updatePersonalGoal(value: number | null) {
