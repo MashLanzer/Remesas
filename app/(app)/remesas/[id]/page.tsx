@@ -325,6 +325,19 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
+      {r.signature_url && (
+        <Card className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Firma de recepción
+          </p>
+          <SmartImage
+            src={r.signature_url}
+            alt="Firma de recepción"
+            className="w-full rounded-xl border border-border bg-white"
+          />
+        </Card>
+      )}
+
       {r.delivery_proof_url && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

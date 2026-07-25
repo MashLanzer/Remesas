@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Camera, User, MapPin } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui";
+import { SignaturePad } from "@/components/signature-pad";
 import { deliverRemittance } from "@/app/actions";
 
 // Confirmación de entrega pulida para el repartidor: resumen (a quién, cuánto)
@@ -100,6 +101,9 @@ export function DeliverSheet({
               />
             </div>
           </div>
+
+          {/* Firma de recepción (opcional) */}
+          <SignaturePad name="signature" />
 
           {/* Foto de comprobante (opcional) */}
           <div>

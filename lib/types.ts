@@ -306,6 +306,7 @@ export interface Remittance {
   client_paid: boolean;
   receipt_url: string | null;
   delivery_proof_url?: string | null;
+  signature_url?: string | null; // firma de recepción en pantalla
   en_route_at?: string | null; // el repartidor marcó "en camino"
   received_by_name?: string | null; // quién recibió la entrega
   received_by_id?: string | null; // carné (CI) de quien recibió

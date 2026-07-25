@@ -1312,6 +1312,29 @@ export async function updateRemittanceStatus(id: string, status: string) {
 // Marcar entregada con comprobante opcional (foto de la entrega). Usa el mismo
 // flujo de estado (puntos, pedido vinculado, revalidación) que el cambio de
 // estado normal, pero sube antes la foto si el repartidor la adjuntó.
+// Sube una firma (data URL PNG) al bucket y guarda signature_url. Tolerante.
+async function handleSignature(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  id: string
+) {
+  const dataUrl = str(formData.get("signature"));
+  if (!dataUrl || !dataUrl.startsWith("data:image")) return;
+  const base64 = dataUrl.split(",")[1];
+  if (!base64) return;
+  const bytes = Buffer.from(base64, "base64");
+  const path = `remittances/${id}/firma-${Date.now()}.png`;
+  const { error } = await supabase.storage
+    .from("receipts")
+    .upload(path, bytes, { upsert: true, contentType: "image/png" });
+  if (error) return;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  await supabase
+    .from("remittances")
+    .update({ signature_url: data.publicUrl })
+    .eq("id", id);
+}
+
 export async function deliverRemittance(formData: FormData) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
@@ -1319,6 +1342,7 @@ export async function deliverRemittance(formData: FormData) {
   const id = str(formData.get("id"));
   if (!id) return;
   await handleDeliveryProof(supabase, formData, id);
+  await handleSignature(supabase, formData, id);
   // "Recibido por" (tolerante si las columnas no existen — migración 0035).
   const receivedByName = str(formData.get("received_by_name"));
   const receivedById = str(formData.get("received_by_id"));
