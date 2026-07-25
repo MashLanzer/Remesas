@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "@/app/actions";
 import { getMyOrders, getMyPoints } from "@/lib/data";
 import { orderDisplay } from "@/components/order-status-badge";
+import { SavedBeneficiaries } from "@/components/saved-beneficiaries";
 import { usd } from "@/lib/utils";
 import { Card, Field, Input, Button } from "@/components/ui";
 
@@ -106,6 +107,8 @@ export default async function ClientePerfilPage() {
           </Button>
         </form>
       </Card>
+
+      <SavedBeneficiaries />
 
       <form action="/auth/signout" method="post">
         <button
