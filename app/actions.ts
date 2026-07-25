@@ -1393,6 +1393,35 @@ export async function updatePersonalGoal(value: number | null) {
   revalidatePath("/");
 }
 
+// El repartidor devuelve una remesa que no puede entregar: se quita como
+// repartidor asignado (queda sin asignar) para que el operador la reasigne.
+export async function returnRemittanceToOperator(id: string, reason?: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.isOperador || !ctx.userId) return; // acción del repartidor
+  // Solo puede devolver una remesa que es suya y sigue pendiente.
+  const { data: r } = await supabase
+    .from("remittances")
+    .select("deliverer_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  const row = r as { deliverer_id?: string | null; status?: string } | null;
+  if (!row || row.deliverer_id !== ctx.userId || row.status !== "pendiente")
+    return;
+  await supabase
+    .from("remittances")
+    .update({ deliverer_id: null, en_route_at: null })
+    .eq("id", id);
+  await logActivity("remesa.devuelta", {
+    entityType: "remesa",
+    entityId: id,
+    details: { reason: reason?.trim() || null },
+  });
+  revalidatePath("/remesas");
+  revalidatePath(`/remesas/${id}`);
+  revalidatePath("/");
+}
+
 // El repartidor registra un intento fallido de entrega (incidencia). La remesa
 // sigue pendiente para reintentar. Tolerante si las columnas no existen (0036).
 export async function logDeliveryIncident(id: string, reason: string) {

@@ -20,6 +20,7 @@ import { RemittanceStepper } from "@/components/remittance-stepper";
 import { DeliverSheet } from "@/components/deliver-sheet";
 import { EnRouteToggle } from "@/components/en-route-toggle";
 import { IncidentButton } from "@/components/incident-button";
+import { ReturnDeliveryButton } from "@/components/return-delivery-button";
 import { CopyBeneficiary } from "@/components/copy-beneficiary";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
@@ -374,6 +375,9 @@ export default async function RemesaDetailPage({
       )}
       {!ctx.isOperador && r.status === "pendiente" && (
         <IncidentButton id={r.id} />
+      )}
+      {!ctx.isOperador && r.status === "pendiente" && r.deliverer_id && (
+        <ReturnDeliveryButton id={r.id} />
       )}
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
