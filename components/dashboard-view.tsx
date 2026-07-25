@@ -22,6 +22,7 @@ import { Card, Badge, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
 import { RepartidorGoal } from "@/components/repartidor-goal";
 import { DayCloseShare } from "@/components/day-close-share";
+import { RouteChecklist } from "@/components/route-checklist";
 import { usd, formatDate, localAmount, cn } from "@/lib/utils";
 import type {
   Remittance,
@@ -374,14 +375,7 @@ export function DashboardView({
               </span>
               Para entregar
             </h2>
-            {pending.length > 3 && (
-              <Link
-                href="/remesas?estado=pendiente"
-                className="text-xs font-semibold text-primary"
-              >
-                Ver todas ({pending.length})
-              </Link>
-            )}
+            <RouteChecklist pending={pending} />
           </div>
           <div className="space-y-2">
             {pending.slice(0, 3).map((r) => (
