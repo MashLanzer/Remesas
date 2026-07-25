@@ -1343,6 +1343,22 @@ export async function deliverRemittance(formData: FormData) {
   if (!id) return;
   await handleDeliveryProof(supabase, formData, id);
   await handleSignature(supabase, formData, id);
+  // Foto del carné de quien recibe (tolerante — columna 0039).
+  const idPhoto = formData.get("id_photo");
+  if (idPhoto instanceof File && idPhoto.size > 0) {
+    const ext = (idPhoto.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `remittances/${id}/carne-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("receipts")
+      .upload(path, idPhoto, { upsert: true, contentType: idPhoto.type });
+    if (!error) {
+      const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+      await supabase
+        .from("remittances")
+        .update({ id_photo_url: data.publicUrl })
+        .eq("id", id);
+    }
+  }
   // "Recibido por" (tolerante si las columnas no existen — migración 0035).
   const receivedByName = str(formData.get("received_by_name"));
   const receivedById = str(formData.get("received_by_id"));

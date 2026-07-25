@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Camera, User, MapPin } from "lucide-react";
+import { Check, Camera, User, MapPin, IdCard } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui";
 import { SignaturePad } from "@/components/signature-pad";
@@ -24,6 +24,7 @@ export function DeliverSheet({
 }) {
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [idPhotoName, setIdPhotoName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   return (
@@ -101,6 +102,28 @@ export function DeliverSheet({
               />
             </div>
           </div>
+
+          {/* Foto del carné (opcional) */}
+          <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-4 transition active:scale-[0.99]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-info/10 text-info">
+              <IdCard className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-foreground">
+                {idPhotoName ? "Carné añadido" : "Foto del carné (opcional)"}
+              </span>
+              <span className="block truncate text-xs text-muted-foreground">
+                {idPhotoName || "Documento de quien recibe"}
+              </span>
+            </span>
+            <input
+              type="file"
+              name="id_photo"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setIdPhotoName(e.target.files?.[0]?.name ?? null)}
+            />
+          </label>
 
           {/* Firma de recepción (opcional) */}
           <SignaturePad name="signature" />

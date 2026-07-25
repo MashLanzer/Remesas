@@ -325,6 +325,19 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
+      {r.id_photo_url && (
+        <Card className="mb-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Foto del carné
+          </p>
+          <SmartImage
+            src={r.id_photo_url}
+            alt="Foto del carné"
+            className="w-full rounded-xl border border-border"
+          />
+        </Card>
+      )}
+
       {r.signature_url && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

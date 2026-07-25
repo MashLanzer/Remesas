@@ -310,6 +310,7 @@ export interface Remittance {
   en_route_at?: string | null; // el repartidor marcó "en camino"
   received_by_name?: string | null; // quién recibió la entrega
   received_by_id?: string | null; // carné (CI) de quien recibió
+  id_photo_url?: string | null; // foto del carné de quien recibió
   last_incident?: string | null; // motivo del último intento fallido
   incident_at?: string | null; // cuándo fue el último intento fallido
   incident_count?: number | null; // cuántos intentos fallidos van
