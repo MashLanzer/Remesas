@@ -62,13 +62,14 @@ export function Badge({
   tone = "slate",
 }: {
   children: ReactNode;
-  tone?: "slate" | "amber" | "emerald" | "blue";
+  tone?: "slate" | "amber" | "emerald" | "blue" | "red";
 }) {
   const toneClass = {
     slate: "bg-muted text-muted-foreground",
     amber: "bg-warning/10 text-warning",
     emerald: "bg-income/10 text-income",
     blue: "bg-info/10 text-info",
+    red: "bg-destructive/10 text-destructive",
   }[tone];
   return (
     <span

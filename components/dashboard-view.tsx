@@ -277,6 +277,21 @@ export function DashboardView({
   const pending = remittances.filter((r) => r.status === "pendiente");
   const pendingTotal = pending.reduce((s, r) => s + Number(r.amount_usd), 0);
 
+  // Entrega atrasada: pendiente desde hace 2+ días (para avisar al repartidor).
+  const STALE_DAYS = 2;
+  const isStale = (r: Remittance) => {
+    const d = new Date(r.date + "T00:00:00").getTime();
+    return (Date.now() - d) / 86400000 >= STALE_DAYS;
+  };
+  const staleCount = pending.filter(isStale).length;
+  // Para el bloque "Para entregar": atrasadas primero (las más viejas arriba).
+  const pendingSorted = [...pending].sort((a, b) => {
+    const sa = isStale(a) ? 1 : 0;
+    const sb = isStale(b) ? 1 : 0;
+    if (sa !== sb) return sb - sa;
+    return a.date.localeCompare(b.date);
+  });
+
   // Por cobrar a clientes: remesas marcadas como no cobradas.
   const unpaid = remittances.filter((r) => r.client_paid === false);
   const unpaidTotal = unpaid.reduce((s, r) => s + Number(r.amount_usd), 0);
@@ -318,6 +333,11 @@ export function DashboardView({
                     : "entregas pendientes"
                 }.`
               : "Estás al día, sin entregas pendientes. 🎉"}
+            {staleCount > 0 && (
+              <span className="ml-1 font-semibold text-destructive">
+                {staleCount} atrasada{staleCount > 1 ? "s" : ""}.
+              </span>
+            )}
           </p>
         )}
       </div>
@@ -391,7 +411,7 @@ export function DashboardView({
             <RouteChecklist pending={pending} />
           </div>
           <div className="space-y-2">
-            {pending.slice(0, 3).map((r) => (
+            {pendingSorted.slice(0, 3).map((r) => (
               <Link key={r.id} href={`/remesas/${r.id}`} className="block">
                 <Card className="flex items-center gap-3 border-warning/20 bg-warning/5 p-3.5 transition active:scale-[0.99]">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
@@ -403,6 +423,11 @@ export function DashboardView({
                       {r.en_route_at && (
                         <span className="shrink-0 rounded-full bg-info/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-info">
                           En camino
+                        </span>
+                      )}
+                      {!r.en_route_at && isStale(r) && (
+                        <span className="shrink-0 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-destructive">
+                          Atrasada
                         </span>
                       )}
                     </p>

@@ -565,6 +565,12 @@ function RemesaCard({
           </span>
           <div className="flex items-center gap-1">
             {r.client_paid === false && <Badge tone="amber">Por cobrar</Badge>}
+            {!isOperador &&
+              r.status === "pendiente" &&
+              !r.en_route_at &&
+              (Date.now() - new Date(r.date + "T00:00:00").getTime()) /
+                86400000 >=
+                2 && <Badge tone="red">Atrasada</Badge>}
             {!isOperador && r.status === "pendiente" && r.en_route_at ? (
               <Badge tone="blue">En camino</Badge>
             ) : (
