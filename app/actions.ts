@@ -138,6 +138,18 @@ export async function becomeCliente() {
   const { error } = await supabase.rpc("become_cliente");
   if (error) redirect("/onboarding");
 
+  // Si llegó por un link de invitación, adjunta a quien lo refirió (tolerante
+  // si aún no está la migración 0043).
+  const ref = cookies().get("giro_ref")?.value;
+  if (ref) {
+    try {
+      await supabase.rpc("apply_referral", { p_code: ref });
+    } catch {
+      /* migración no aplicada aún */
+    }
+    cookies().delete("giro_ref");
+  }
+
   revalidatePath("/", "layout");
   redirect("/c");
 }
@@ -1289,6 +1301,13 @@ export async function updateRemittanceStatus(id: string, status: string) {
           reason: "remesa",
           order_id: o.id,
         });
+      }
+      // Bono de referido: si este cliente llegó por invitación y aún no se
+      // premió, se recompensa a ambos (tolerante si falta la migración 0043).
+      try {
+        await supabase.rpc("reward_referral", { p_referred: o.client_id });
+      } catch {
+        /* migración no aplicada aún */
       }
     }
   } else if (status === "pendiente") {

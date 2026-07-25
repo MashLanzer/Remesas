@@ -18,7 +18,9 @@ import {
   getMyOrders,
   getMyPoints,
   getMyBeneficiaries,
+  getMyReferral,
 } from "@/lib/data";
+import { ReferralCard } from "@/components/referral-card";
 import { Card } from "@/components/ui";
 import { localAmount, packageReceives, usd } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
@@ -65,6 +67,7 @@ export default async function ClienteHome() {
     getMyBeneficiaries(),
     getRateHistory(),
   ]);
+  const referral = await getMyReferral();
   // Envío en curso destacado (el más reciente pendiente / en reparto).
   const activeList = orders.filter((o) => {
     const d = orderDisplay(o);
@@ -265,6 +268,16 @@ export default async function ClienteHome() {
             {deliveredCount > 1 ? "s" : ""} · gracias por cuidar a tu familia ❤️
           </p>
         </div>
+      )}
+
+      {/* Invita y gana (referidos) */}
+      {referral?.code && (
+        <ReferralCard
+          code={referral.code}
+          invited={referral.invited}
+          rewarded={referral.rewarded}
+          bonus={referral.bonus}
+        />
       )}
 
       {/* Paquetes de remesa destacados (scroll horizontal) */}

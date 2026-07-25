@@ -453,6 +453,33 @@ export async function getMyDeliveryExpenses(): Promise<DeliveryExpense[]> {
   return (data as DeliveryExpense[]) ?? [];
 }
 
+// Referidos del cliente actual: su código (lo genera si falta), cuántos invitó,
+// cuántos ya se premiaron y el bono en puntos. Tolerante si falta la 0043.
+export async function getMyReferral(): Promise<{
+  code: string | null;
+  invited: number;
+  rewarded: number;
+  bonus: number;
+} | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isCliente || !ctx.userId) return null;
+  const [{ data: code, error: e1 }, { data: stats }] = await Promise.all([
+    supabase.rpc("ensure_referral_code"),
+    supabase.rpc("my_referral_stats"),
+  ]);
+  if (e1) return null; // migración no aplicada aún
+  const row = (Array.isArray(stats) ? stats[0] : stats) as
+    | { invited?: number; rewarded?: number; bonus?: number }
+    | null;
+  return {
+    code: (code as string | null) ?? null,
+    invited: Number(row?.invited ?? 0),
+    rewarded: Number(row?.rewarded ?? 0),
+    bonus: Number(row?.bonus ?? 50),
+  };
+}
+
 export async function getSettlements(): Promise<Settlement[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
