@@ -5,6 +5,7 @@ import {
   Send,
   BarChart3,
   Clock,
+  User,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -70,7 +71,7 @@ export default async function PerfilPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Perfil" />
+      <PageHeader title="Perfil" icon={User} />
 
       {/* Cabecera */}
       {isOperador ? (

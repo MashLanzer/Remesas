@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { User, ChevronRight } from "lucide-react";
+import { User, ChevronRight, Settings } from "lucide-react";
 import {
   getRemittances,
   getBusinessSettings,
@@ -42,7 +42,7 @@ export default async function AjustesPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Ajustes" />
+      <PageHeader title="Ajustes" icon={Settings} />
 
       {/* Cuenta */}
       <section>

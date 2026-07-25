@@ -1,3 +1,4 @@
+import { Activity } from "lucide-react";
 import { getActivityLog, getSessionContext } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { ActivityList } from "@/components/activity-list";
@@ -17,6 +18,7 @@ export default async function ActividadPage() {
         subtitle={
           ctx.isOperador ? "Todo lo que hace tu equipo" : "Tu historial"
         }
+        icon={Activity}
       />
       <ActivityList entries={entries} isOperador={ctx.isOperador} />
     </div>

@@ -3,6 +3,7 @@ import {
   getRateHistory,
   getBusinessSettings,
 } from "@/lib/data";
+import { RefreshCw } from "lucide-react";
 import { RatesView } from "@/components/rates-view";
 import { RateConverter } from "@/components/rate-converter";
 import { ShareRates } from "@/components/share-rates";
@@ -27,6 +28,7 @@ export default async function TasasPage() {
       <PageHeader
         title="Tasas de cambio"
         subtitle="Se aplican por defecto en cada remesa"
+        icon={RefreshCw}
       />
       <RateConverter rates={rates} />
       <ShareRates brand={brand} date={date} rates={rates} />

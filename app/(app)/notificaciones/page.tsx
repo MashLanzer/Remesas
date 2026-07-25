@@ -8,6 +8,7 @@ import {
   Wallet,
   TrendingUp,
   Truck,
+  Bell,
 } from "lucide-react";
 import {
   getRemittances,
@@ -65,7 +66,11 @@ export default async function NotificacionesPage() {
 
   return (
     <div>
-      <PageHeader title="Notificaciones" subtitle="Lo que necesita tu atención" />
+      <PageHeader
+        title="Notificaciones"
+        subtitle="Lo que necesita tu atención"
+        icon={Bell}
+      />
 
       {nada ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
