@@ -29,12 +29,16 @@ export default async function ClientePerfilPage() {
   const { data: profile } = user
     ? await supabase
         .from("profiles")
-        .select("full_name, phone")
+        .select("full_name, phone, avatar_url")
         .eq("id", user.id)
         .single()
     : { data: null };
 
-  const p = (profile ?? {}) as { full_name?: string | null; phone?: string | null };
+  const p = (profile ?? {}) as {
+    full_name?: string | null;
+    phone?: string | null;
+    avatar_url?: string | null;
+  };
 
   const [orders, points, contact] = await Promise.all([
     getMyOrders(),
@@ -73,17 +77,26 @@ export default async function ClientePerfilPage() {
         <ArrowLeft className="h-4 w-4" /> Inicio
       </Link>
 
-      {/* Cabecera con avatar de color propio + mini-stats */}
+      {/* Cabecera con foto o avatar de color propio + mini-stats */}
       <div className="flex flex-col items-center pt-1 text-center">
-        <span
-          style={{
-            background: `hsl(${hue} 60% 50% / 0.16)`,
-            color: `hsl(${hue} 55% 45%)`,
-          }}
-          className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-extrabold"
-        >
-          {initial}
-        </span>
+        {p.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={p.avatar_url}
+            alt=""
+            className="h-20 w-20 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            style={{
+              background: `hsl(${hue} 60% 50% / 0.16)`,
+              color: `hsl(${hue} 55% 45%)`,
+            }}
+            className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-extrabold"
+          >
+            {initial}
+          </span>
+        )}
         <h1 className="mt-3 text-xl font-bold text-foreground">
           {p.full_name || "Tu perfil"}
         </h1>
@@ -109,6 +122,21 @@ export default async function ClientePerfilPage() {
               name="full_name"
               defaultValue={p.full_name ?? ""}
               placeholder="Tu nombre"
+            />
+          </Field>
+          <Field
+            label="Foto de perfil (opcional)"
+            hint={
+              p.avatar_url
+                ? "Sube otra para reemplazarla."
+                : "Se ve en tu perfil, en vez de la inicial."
+            }
+          >
+            <input
+              type="file"
+              name="avatar"
+              accept="image/*"
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
             />
           </Field>
           <Field

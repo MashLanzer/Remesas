@@ -39,10 +39,15 @@ export default async function ClienteLayout({
       getMyPoints(),
       supabase.rpc("my_client_config"),
       getMyBeneficiaries(),
-      supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+      supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user.id)
+        .single(),
       getMyOperatorContact(),
     ]);
   const fullName = (profileRes.data?.full_name as string | null) ?? null;
+  const avatarUrl = (profileRes.data?.avatar_url as string | null) ?? null;
   const firstName = fullName?.trim().split(" ")[0] ?? null;
   const initial = (firstName || user.email || "?").charAt(0).toUpperCase();
   const bizDigits = contact.phone?.replace(/\D/g, "") || "";
@@ -96,6 +101,7 @@ export default async function ClienteLayout({
               firstName={firstName}
               initial={initial}
               email={user.email}
+              avatarUrl={avatarUrl}
             />
           </div>
         </div>

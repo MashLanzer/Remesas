@@ -8,10 +8,12 @@ export function ClienteProfileMenu({
   firstName,
   initial,
   email,
+  avatarUrl,
 }: {
   firstName?: string | null;
   initial: string;
   email?: string | null;
+  avatarUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -58,12 +60,21 @@ export function ClienteProfileMenu({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span
-          style={avatarStyle}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-        >
-          {initial}
-        </span>
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            className="h-8 w-8 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            style={avatarStyle}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+          >
+            {initial}
+          </span>
+        )}
         {firstName && (
           <span className="max-w-[7rem] truncate text-sm font-semibold text-foreground">
             {firstName}

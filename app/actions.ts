@@ -156,6 +156,22 @@ export async function updateClientProfile(formData: FormData) {
       phone: str(formData.get("phone")),
     })
     .eq("id", user.id);
+  // Foto de perfil (tolerante — columna 0027).
+  const avatar = formData.get("avatar");
+  if (avatar instanceof File && avatar.size > 0) {
+    const ext = (avatar.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `avatars/${user.id}/a-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("receipts")
+      .upload(path, avatar, { upsert: true, contentType: avatar.type });
+    if (!error) {
+      const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: data.publicUrl })
+        .eq("id", user.id);
+    }
+  }
   revalidatePath("/c", "layout");
   revalidatePath("/c/perfil");
 }
