@@ -6,6 +6,8 @@ import {
   BarChart3,
   Clock,
   User,
+  MapPin,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -73,6 +75,33 @@ export default async function PerfilPage() {
 
   // Comprobantes de entrega que ha subido el repartidor (galería).
   const proofs = remittances.filter((r) => r.delivery_proof_url);
+
+  // Estadísticas personales del repartidor.
+  const delivered = remittances.filter((r) => r.status !== "pendiente");
+  // Provincia más frecuente.
+  const provinceCounts: Record<string, number> = {};
+  for (const r of delivered) {
+    const pv = r.beneficiary?.province;
+    if (pv) provinceCounts[pv] = (provinceCounts[pv] ?? 0) + 1;
+  }
+  const topProvince =
+    Object.entries(provinceCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+  // Entregas por semana (promedio) desde la primera remesa.
+  const dates = remittances.map((r) => r.date).filter(Boolean).sort();
+  const firstDate = dates[0] ? new Date(dates[0] + "T00:00:00") : null;
+  const weeksActive = firstDate
+    ? Math.max(1, (Date.now() - firstDate.getTime()) / (7 * 86400000))
+    : 1;
+  const perWeek = delivered.length / weeksActive;
+  // Entregas de los últimos 7 días.
+  const weekAgoStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+  })();
+  const thisWeek = delivered.filter((r) => r.date >= weekAgoStr).length;
 
   return (
     <div className="space-y-6">
@@ -150,6 +179,33 @@ export default async function PerfilPage() {
           <StatTile icon={BarChart3} tone="primary" label="Promedio" value={usd(avgTicket)} />
           <StatTile icon={Clock} tone="info" label="Desde" value={since ? formatDate(since) : "—"} />
         </div>
+      )}
+
+      {/* Estadísticas personales (repartidor) */}
+      {!isOperador && delivered.length > 0 && (
+        <section className="space-y-2">
+          <SectionTitle>Tus estadísticas</SectionTitle>
+          <div className="grid grid-cols-3 gap-3">
+            <StatTile
+              icon={MapPin}
+              tone="info"
+              label="Zona frecuente"
+              value={topProvince}
+            />
+            <StatTile
+              icon={CalendarDays}
+              tone="primary"
+              label="Por semana"
+              value={perWeek.toFixed(1)}
+            />
+            <StatTile
+              icon={Truck}
+              tone="income"
+              label="Últimos 7 días"
+              value={String(thisWeek)}
+            />
+          </div>
+        </section>
       )}
 
       {/* Galería de comprobantes de entrega (repartidor) */}
