@@ -8,7 +8,9 @@ import {
   getMyPoints,
   getMyBeneficiaries,
   getMyOperatorContact,
+  getMyReviewMap,
 } from "@/lib/data";
+import { ReviewForm } from "@/components/review-form";
 import { Card, PageHeader } from "@/components/ui";
 import {
   OrderStatusBadge,
@@ -31,7 +33,7 @@ export default async function MiPedidoDetallePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [order, rates, points, cfgRes, beneficiaries, contact] =
+  const [order, rates, points, cfgRes, beneficiaries, contact, reviewMap] =
     await Promise.all([
       getMyOrder(id),
       getExchangeRates(),
@@ -39,6 +41,7 @@ export default async function MiPedidoDetallePage({
       supabase.rpc("my_client_config"),
       getMyBeneficiaries(),
       getMyOperatorContact(),
+      getMyReviewMap(),
     ]);
   if (!order) notFound();
 
@@ -117,6 +120,11 @@ export default async function MiPedidoDetallePage({
             Motivo: {order.reject_reason}
           </p>
         </Card>
+      )}
+
+      {/* Calificación del envío (solo entregado) */}
+      {isDelivered && (
+        <ReviewForm orderId={order.id} initialRating={reviewMap[order.id] ?? 0} />
       )}
 
       {/* Comprobante de entrega (foto) */}

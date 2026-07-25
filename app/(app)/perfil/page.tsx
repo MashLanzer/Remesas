@@ -8,6 +8,7 @@ import {
   User,
   MapPin,
   Truck,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +16,7 @@ import {
   getRemittances,
   getBusinessSettings,
   getSessionContext,
+  getMyDelivererRating,
 } from "@/lib/data";
 import Link from "next/link";
 import { updateProfile } from "@/app/actions";
@@ -43,6 +45,7 @@ export default async function PerfilPage() {
     getSessionContext(),
   ]);
   const isOperador = ctx.isOperador;
+  const rating = isOperador ? null : await getMyDelivererRating();
   const share = (r: { my_share: number; partner_share: number }) =>
     Number(isOperador ? r.my_share : r.partner_share);
 
@@ -212,6 +215,14 @@ export default async function PerfilPage() {
               label="Últimos 7 días"
               value={String(thisWeek)}
             />
+            {rating && rating.total > 0 && (
+              <StatTile
+                icon={Star}
+                tone="primary"
+                label={`${rating.total} reseña${rating.total === 1 ? "" : "s"}`}
+                value={`${rating.avg.toFixed(1)}★`}
+              />
+            )}
           </div>
         </section>
       )}

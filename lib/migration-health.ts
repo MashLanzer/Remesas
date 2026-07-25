@@ -40,6 +40,7 @@ const COLUMN_CHECKS: ColCheck[] = [
 type TableCheck = { table: string; probe: string; feature: string; migration: string };
 const TABLE_CHECKS: TableCheck[] = [
   { table: "delivery_expenses", probe: "id", feature: "Gastos de reparto", migration: "0034" },
+  { table: "reviews", probe: "id", feature: "Reseñas / calificaciones", migration: "0044" },
 ];
 
 type RpcCheck = { fn: string; args?: Record<string, unknown>; feature: string; migration: string };

@@ -154,6 +154,23 @@ export async function becomeCliente() {
   redirect("/c");
 }
 
+// El cliente califica un envío suyo ya entregado (verificado por RPC 0044).
+export async function submitReview(
+  orderId: string,
+  rating: number,
+  comment: string
+) {
+  const supabase = await createClient();
+  await supabase.rpc("submit_review", {
+    p_order: orderId,
+    p_rating: rating,
+    p_comment: comment,
+  });
+  revalidatePath("/c/pedidos");
+  revalidatePath(`/c/pedidos/${orderId}`);
+  revalidatePath("/c/opiniones");
+}
+
 // El cliente edita sus datos básicos (nombre y teléfono).
 export async function updateClientProfile(formData: FormData) {
   const supabase = await createClient();

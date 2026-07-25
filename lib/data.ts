@@ -480,6 +480,119 @@ export async function getMyReferral(): Promise<{
   };
 }
 
+// === Reseñas (⭐) ===
+export type ReviewItem = {
+  rating: number;
+  comment: string | null;
+  name: string | null;
+  created_at: string;
+};
+
+// Reputación pública de un negocio (por código, o el del cliente actual).
+export async function getBusinessReviews(code?: string): Promise<{
+  businessName: string | null;
+  avg: number;
+  total: number;
+  list: ReviewItem[];
+} | null> {
+  const supabase = await createClient();
+  const arg = code ? { p_code: code } : {};
+  const [{ data: sum, error }, { data: list }] = await Promise.all([
+    supabase.rpc("business_review_summary", arg),
+    supabase.rpc("business_review_list", arg),
+  ]);
+  if (error) return null; // migración no aplicada
+  const s = (Array.isArray(sum) ? sum[0] : sum) as
+    | { business_name?: string | null; avg_rating?: number; total?: number }
+    | null;
+  return {
+    businessName: s?.business_name ?? null,
+    avg: Number(s?.avg_rating ?? 0),
+    total: Number(s?.total ?? 0),
+    list: ((list as ReviewItem[]) ?? []).map((r) => ({
+      rating: Number(r.rating),
+      comment: r.comment ?? null,
+      name: r.name ?? null,
+      created_at: r.created_at,
+    })),
+  };
+}
+
+// Reseñas propias del cliente (order_id → rating) para saber qué ya calificó.
+export async function getMyReviewMap(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return {};
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("order_id, rating")
+    .eq("client_id", ctx.userId);
+  if (error) return {};
+  const map: Record<string, number> = {};
+  for (const r of (data as { order_id: string; rating: number }[]) ?? [])
+    map[r.order_id] = r.rating;
+  return map;
+}
+
+// Resumen de reseñas del negocio para el operador (privado): promedio, total y
+// promedio por repartidor. Tolerante si falta la tabla.
+export async function getOperatorReviewStats(): Promise<{
+  avg: number;
+  total: number;
+  recent: (ReviewItem & { deliverer_id: string | null })[];
+} | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return null;
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("rating, comment, created_at, deliverer_id, client_id")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  if (error) return null;
+  const rows =
+    (data as {
+      rating: number;
+      comment: string | null;
+      created_at: string;
+      deliverer_id: string | null;
+    }[]) ?? [];
+  const total = rows.length;
+  const avg = total
+    ? rows.reduce((s, r) => s + Number(r.rating), 0) / total
+    : 0;
+  return {
+    avg,
+    total,
+    recent: rows.slice(0, 5).map((r) => ({
+      rating: Number(r.rating),
+      comment: r.comment,
+      name: null,
+      created_at: r.created_at,
+      deliverer_id: r.deliverer_id,
+    })),
+  };
+}
+
+// Calificación propia del repartidor (promedio de sus entregas reseñadas).
+export async function getMyDelivererRating(): Promise<{
+  avg: number;
+  total: number;
+} | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.isOperador || !ctx.userId) return null;
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("rating")
+    .eq("deliverer_id", ctx.userId);
+  if (error) return null;
+  const rows = (data as { rating: number }[]) ?? [];
+  const total = rows.length;
+  const avg = total ? rows.reduce((s, r) => s + Number(r.rating), 0) / total : 0;
+  return { avg, total };
+}
+
 export async function getSettlements(): Promise<Settlement[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();

@@ -9,6 +9,8 @@ import {
   HelpCircle,
   Check,
   PartyPopper,
+  MessageSquareQuote,
+  ChevronRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "@/app/actions";
@@ -188,6 +190,22 @@ export default async function ClientePerfilPage() {
             </div>
           </a>
         )}
+
+        <Link
+          href="/c/opiniones"
+          className="mb-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition active:scale-[0.99]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <MessageSquareQuote className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-foreground">Opiniones</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Lo que dicen otros clientes del negocio
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Link>
 
         <Card className="p-4">
           <p className="mb-3 text-sm font-bold text-foreground">Cómo funciona</p>
