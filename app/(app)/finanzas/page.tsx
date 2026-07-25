@@ -7,6 +7,7 @@ import {
 } from "@/lib/data";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd } from "@/lib/utils";
+import { Wallet } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui";
 import { CuentasView } from "@/components/cuentas-view";
 import { ReportesView } from "@/components/reportes-view";
@@ -142,7 +143,13 @@ export default async function FinanzasPage({
 
   return (
     <div>
-      <PageHeader title="Finanzas" subtitle="Cuentas con Cuba y reportes" />
+      <PageHeader
+        title="Finanzas"
+        subtitle={
+          isOperador ? "Cuentas con Cuba y reportes" : "Tu ganancia y tu saldo"
+        }
+        icon={isOperador ? undefined : Wallet}
+      />
       <FinanzasTabs
         initial={initial}
         kpis={kpis}
