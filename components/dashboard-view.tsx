@@ -327,8 +327,13 @@ export function DashboardView({
                     <Truck className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">
+                    <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
                       {r.beneficiary?.name || r.client?.name || "Remesa"}
+                      {r.en_route_at && (
+                        <span className="shrink-0 rounded-full bg-info/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-info">
+                          En camino
+                        </span>
+                      )}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {r.beneficiary?.province

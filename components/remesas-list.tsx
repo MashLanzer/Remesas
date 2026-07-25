@@ -542,7 +542,11 @@ function RemesaCard({
           </span>
           <div className="flex items-center gap-1">
             {r.client_paid === false && <Badge tone="amber">Por cobrar</Badge>}
-            <Badge tone={statusTone[r.status]}>{r.status}</Badge>
+            {!isOperador && r.status === "pendiente" && r.en_route_at ? (
+              <Badge tone="blue">En camino</Badge>
+            ) : (
+              <Badge tone={statusTone[r.status]}>{r.status}</Badge>
+            )}
           </div>
         </div>
         {waDigits && (

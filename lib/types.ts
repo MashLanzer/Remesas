@@ -285,6 +285,7 @@ export interface Remittance {
   client_paid: boolean;
   receipt_url: string | null;
   delivery_proof_url?: string | null;
+  en_route_at?: string | null; // el repartidor marcó "en camino"
   notes: string | null;
   created_by: string | null;
   created_at: string;

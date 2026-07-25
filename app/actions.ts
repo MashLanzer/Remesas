@@ -1322,6 +1322,22 @@ export async function deliverRemittance(formData: FormData) {
   await updateRemittanceStatus(id, "entregado");
 }
 
+// El repartidor marca (o desmarca) que salió a entregar una remesa pendiente.
+// Solo escribe una marca de tiempo; no cambia el estado. Tolerante si la
+// columna en_route_at aún no existe (migración 0031).
+export async function setRemittanceEnRoute(id: string, on: boolean) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  await supabase
+    .from("remittances")
+    .update({ en_route_at: on ? new Date().toISOString() : null })
+    .eq("id", id);
+  revalidatePath("/remesas");
+  revalidatePath(`/remesas/${id}`);
+  revalidatePath("/");
+}
+
 export async function deleteRemittance(id: string) {
   const supabase = await createClient();
   await logActivity("remesa.borrar", { entityType: "remesa", entityId: id });

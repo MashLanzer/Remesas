@@ -8,6 +8,7 @@ import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
 import { RemittanceStepper } from "@/components/remittance-stepper";
 import { DeliverSheet } from "@/components/deliver-sheet";
+import { EnRouteToggle } from "@/components/en-route-toggle";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import { SmartImage } from "@/components/smart-image";
@@ -226,7 +227,10 @@ export default async function RemesaDetailPage({
         />
       </div>
 
-      {/* Repartidor: confirmación de entrega pulida cuando está pendiente */}
+      {/* Repartidor: "en camino" + confirmación de entrega cuando está pendiente */}
+      {!ctx.isOperador && r.status === "pendiente" && (
+        <EnRouteToggle id={r.id} enRoute={!!r.en_route_at} />
+      )}
       {!ctx.isOperador && r.status === "pendiente" && (
         <DeliverSheet
           id={r.id}
