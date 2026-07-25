@@ -14,6 +14,7 @@ import {
   CircleDollarSign,
   CheckCheck,
   MessageCircle,
+  Truck,
 } from "lucide-react";
 import { Card, Badge, EmptyState, Select } from "@/components/ui";
 import { usd, formatDate, localAmount } from "@/lib/utils";
@@ -499,8 +500,27 @@ function RemesaCard({
           href={`/remesas/${r.id}`}
           className="flex min-w-0 flex-1 items-center gap-3"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Send className="h-4 w-4" />
+          <span
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+              isOperador
+                ? "bg-primary/10 text-primary"
+                : r.status === "pendiente"
+                ? "bg-warning/10 text-warning"
+                : r.status === "entregado"
+                ? "bg-income/10 text-income"
+                : "bg-info/10 text-info"
+            )}
+          >
+            {isOperador ? (
+              <Send className="h-4 w-4" />
+            ) : r.status === "pendiente" ? (
+              <Truck className="h-4 w-4" />
+            ) : r.status === "entregado" ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <CheckCheck className="h-4 w-4" />
+            )}
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">
