@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { AlertTriangle, MessageCircle, Users, ChevronRight } from "lucide-react";
+import {
+  AlertTriangle,
+  MessageCircle,
+  Users,
+  ChevronRight,
+  Wallet,
+  HandCoins,
+} from "lucide-react";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd } from "@/lib/utils";
 import { Card } from "@/components/ui";
@@ -197,22 +204,49 @@ export function CuentasView({
       </div>
 
       {/* Ganancias acumuladas */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">Has ganado tú</p>
-          <p className="tabular mt-1 text-2xl font-bold text-income">
-            {usd(isRep ? partnerProfit : myProfit)}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
-            {isRep ? "Entregado a familias" : "Ganado en Cuba"}
-          </p>
-          <p className="tabular mt-1 text-2xl font-bold text-foreground">
-            {usd(isRep ? totalDelivered : partnerProfit)}
-          </p>
-        </Card>
-      </div>
+      {isRep ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="p-4">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-income/10 text-income">
+              <Wallet className="h-5 w-5" />
+            </span>
+            <p className="tabular mt-2 text-2xl font-bold text-income">
+              {usd(partnerProfit)}
+            </p>
+            <p className="text-xs font-medium text-foreground">Has ganado tú</p>
+          </Card>
+          <Card className="p-4">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <HandCoins className="h-5 w-5" />
+            </span>
+            <p className="tabular mt-2 text-2xl font-bold text-foreground">
+              {usd(totalDelivered)}
+            </p>
+            <p className="text-xs font-medium text-foreground">
+              Entregado a familias
+            </p>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Has ganado tú
+            </p>
+            <p className="tabular mt-1 text-2xl font-bold text-income">
+              {usd(myProfit)}
+            </p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Ganado en Cuba
+            </p>
+            <p className="tabular mt-1 text-2xl font-bold text-foreground">
+              {usd(partnerProfit)}
+            </p>
+          </Card>
+        </div>
+      )}
 
       {/* Cobrado reciente (solo operador) */}
       {!isRep && (
