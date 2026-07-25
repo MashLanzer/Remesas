@@ -60,6 +60,44 @@ function DaySeg({
   );
 }
 
+function MetricTile({
+  icon: Icon,
+  tone,
+  label,
+  value,
+  hint,
+}: {
+  icon: typeof Truck;
+  tone: "warning" | "income" | "destructive" | "primary";
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  const toneCls =
+    tone === "warning"
+      ? "bg-warning/10 text-warning"
+      : tone === "income"
+      ? "bg-income/10 text-income"
+      : tone === "destructive"
+      ? "bg-destructive/10 text-destructive"
+      : "bg-primary/10 text-primary";
+  return (
+    <Card className="p-4">
+      <span
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-2xl",
+          toneCls
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <p className="tabular mt-2 text-2xl font-bold text-foreground">{value}</p>
+      <p className="text-xs font-medium text-foreground">{label}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+    </Card>
+  );
+}
+
 const periods = [
   { key: "todo", label: "Todo" },
   { key: "hoy", label: "Hoy" },
@@ -379,47 +417,60 @@ export function DashboardView({
       )}
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">Pendientes</p>
-          <p className="tabular mt-1 text-2xl font-bold text-foreground">
-            {pending.length}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {usd(pendingTotal)} por entregar
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
-            {isRep
-              ? partnerBalance >= 0
+      {isRep ? (
+        <div className="grid grid-cols-2 gap-3">
+          <MetricTile
+            icon={Truck}
+            tone="warning"
+            label="Pendientes"
+            value={String(pending.length)}
+            hint={`${usd(pendingTotal)} por entregar`}
+          />
+          <MetricTile
+            icon={Coins}
+            tone={partnerBalance < 0 ? "destructive" : "income"}
+            label={
+              partnerBalance >= 0
                 ? "Por cobrar al operador"
                 : "Le debes al operador"
-              : partnerBalance >= 0
-              ? "Por enviar a Cuba"
-              : "A tu favor"}
-          </p>
-          <p
-            className={
-              "tabular mt-1 text-2xl font-bold " +
-              // Para el repartidor, un saldo a favor (le deben) es positivo/verde;
-              // para el operador, deber dinero es lo "rojo".
-              (partnerBalance > 0
-                ? isRep
-                  ? "text-income"
-                  : "text-destructive"
-                : partnerBalance < 0
-                ? isRep
-                  ? "text-destructive"
-                  : "text-income"
-                : "text-foreground")
             }
-          >
-            {usd(Math.abs(partnerBalance))}
-          </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">saldo actual</p>
-        </Card>
-      </div>
+            value={usd(Math.abs(partnerBalance))}
+            hint="saldo actual"
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              Pendientes
+            </p>
+            <p className="tabular mt-1 text-2xl font-bold text-foreground">
+              {pending.length}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {usd(pendingTotal)} por entregar
+            </p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              {partnerBalance >= 0 ? "Por enviar a Cuba" : "A tu favor"}
+            </p>
+            <p
+              className={
+                "tabular mt-1 text-2xl font-bold " +
+                (partnerBalance > 0
+                  ? "text-destructive"
+                  : partnerBalance < 0
+                  ? "text-income"
+                  : "text-foreground")
+              }
+            >
+              {usd(Math.abs(partnerBalance))}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">saldo actual</p>
+          </Card>
+        </div>
+      )}
 
       {/* Últimas remesas */}
       <div>
