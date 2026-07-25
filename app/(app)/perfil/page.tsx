@@ -14,10 +14,12 @@ import {
   getBusinessSettings,
   getSessionContext,
 } from "@/lib/data";
+import Link from "next/link";
 import { updateProfile } from "@/app/actions";
 import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
 import { ShareCard } from "@/components/share-card";
 import { PaymentMethods } from "@/components/payment-methods";
+import { SmartImage } from "@/components/smart-image";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +70,9 @@ export default async function PerfilPage() {
   const avgTicket = count
     ? remittances.reduce((s, r) => s + Number(r.amount_usd), 0) / count
     : 0;
+
+  // Comprobantes de entrega que ha subido el repartidor (galería).
+  const proofs = remittances.filter((r) => r.delivery_proof_url);
 
   return (
     <div className="space-y-6">
@@ -145,6 +150,31 @@ export default async function PerfilPage() {
           <StatTile icon={BarChart3} tone="primary" label="Promedio" value={usd(avgTicket)} />
           <StatTile icon={Clock} tone="info" label="Desde" value={since ? formatDate(since) : "—"} />
         </div>
+      )}
+
+      {/* Galería de comprobantes de entrega (repartidor) */}
+      {!isOperador && proofs.length > 0 && (
+        <section className="space-y-2">
+          <SectionTitle>Comprobantes de entrega ({proofs.length})</SectionTitle>
+          <div className="grid grid-cols-3 gap-2">
+            {proofs.slice(0, 12).map((r) => (
+              <Link
+                key={r.id}
+                href={`/remesas/${r.id}`}
+                className="relative aspect-square overflow-hidden rounded-xl border border-border transition active:scale-95"
+              >
+                <SmartImage
+                  src={r.delivery_proof_url as string}
+                  alt="Comprobante de entrega"
+                  className="h-full w-full object-cover"
+                />
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 py-1 text-[10px] font-semibold text-white">
+                  {r.beneficiary?.name || usd(r.amount_usd)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Tarjeta y datos de cobro */}
