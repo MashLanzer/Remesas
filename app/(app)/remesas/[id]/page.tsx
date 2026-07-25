@@ -150,10 +150,12 @@ export default async function RemesaDetailPage({
                 <Phone className="h-5 w-5" /> Llamar
               </span>
             )}
-            {r.beneficiary?.province ? (
+            {r.beneficiary?.address || r.beneficiary?.province ? (
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                  `${r.beneficiary.province}, Cuba`
+                  [r.beneficiary.address, r.beneficiary.province, "Cuba"]
+                    .filter(Boolean)
+                    .join(", ")
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -176,6 +178,9 @@ export default async function RemesaDetailPage({
         {r.beneficiary?.province && (
           <Row label="Provincia" value={r.beneficiary.province} />
         )}
+        {r.beneficiary?.address && (
+          <Row label="Dirección" value={r.beneficiary.address} />
+        )}
         <Row label="Método de pago" value={r.payment_method || "—"} />
         {r.beneficiary?.name && (
           <Link
@@ -191,6 +196,7 @@ export default async function RemesaDetailPage({
             text={[
               r.beneficiary.name,
               r.beneficiary.phone || null,
+              r.beneficiary.address || null,
               r.beneficiary.province || null,
             ]
               .filter(Boolean)

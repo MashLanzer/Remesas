@@ -872,6 +872,9 @@ function BeneficiaryForm({ clients, onDone }: { clients: Client[]; onDone: () =>
             <Input name="province" placeholder="La Habana" />
           </Field>
         </div>
+        <Field label="Dirección (para el mapa)">
+          <Input name="address" placeholder="Calle, número, municipio…" />
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Moneda preferida">
             <Select name="preferred_currency" defaultValue="">

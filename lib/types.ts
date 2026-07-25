@@ -239,6 +239,7 @@ export interface Beneficiary {
   name: string;
   phone: string | null;
   province: string | null;
+  address?: string | null; // dirección exacta (calle, número) para el mapa
   preferred_currency: DeliveryCurrency | null;
   preferred_delivery?: string | null;
   id_card: string | null;

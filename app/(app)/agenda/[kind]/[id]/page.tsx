@@ -209,6 +209,9 @@ export default async function ContactoPage({
         ) : (
           <>
             <Row label="Provincia" value={beneficiary?.province || "—"} />
+            {beneficiary?.address && (
+              <Row label="Dirección" value={beneficiary.address} />
+            )}
             <Row label="Moneda preferida" value={beneficiary?.preferred_currency || "—"} />
             <Row label="Cómo recibe" value={beneficiary?.preferred_delivery || "—"} />
             <Row label="Carnet (CI)" value={beneficiary?.id_card || "—"} />

@@ -1549,12 +1549,20 @@ export async function createBeneficiary(formData: FormData) {
     targetId = data?.id ?? null;
   }
 
-  // Método de entrega preferido, aparte (tolerante si la columna no existe).
+  // Método de entrega preferido y dirección, aparte (tolerante si las columnas
+  // no existen aún — migraciones 0033 para address).
   if (targetId) {
     await supabase
       .from("beneficiaries")
       .update({ preferred_delivery: str(formData.get("preferred_delivery")) })
       .eq("id", targetId);
+    const address = formData.get("address");
+    if (address !== null) {
+      await supabase
+        .from("beneficiaries")
+        .update({ address: str(address) })
+        .eq("id", targetId);
+    }
     revalidatePath(`/agenda/beneficiario/${targetId}`);
   }
   revalidatePath("/agenda");

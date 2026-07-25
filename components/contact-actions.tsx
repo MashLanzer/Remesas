@@ -108,6 +108,13 @@ export function ContactActions({
                     <Input name="province" defaultValue={beneficiary?.province ?? ""} />
                   </Field>
                 </div>
+                <Field label="Dirección (para el mapa)">
+                  <Input
+                    name="address"
+                    defaultValue={beneficiary?.address ?? ""}
+                    placeholder="Calle, número, municipio…"
+                  />
+                </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Moneda preferida">
                     <Select
