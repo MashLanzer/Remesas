@@ -1,8 +1,18 @@
 import Link from "next/link";
-import { ArrowLeft, LogOut, Send, Wallet, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  LogOut,
+  Send,
+  Wallet,
+  Star,
+  MessageCircle,
+  HelpCircle,
+  Check,
+  PartyPopper,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "@/app/actions";
-import { getMyOrders, getMyPoints } from "@/lib/data";
+import { getMyOrders, getMyPoints, getMyOperatorContact } from "@/lib/data";
 import { orderDisplay } from "@/components/order-status-badge";
 import { SavedBeneficiaries } from "@/components/saved-beneficiaries";
 import { usd } from "@/lib/utils";
@@ -26,7 +36,18 @@ export default async function ClientePerfilPage() {
 
   const p = (profile ?? {}) as { full_name?: string | null; phone?: string | null };
 
-  const [orders, points] = await Promise.all([getMyOrders(), getMyPoints()]);
+  const [orders, points, contact] = await Promise.all([
+    getMyOrders(),
+    getMyPoints(),
+    getMyOperatorContact(),
+  ]);
+
+  const bizDigits = contact.phone?.replace(/\D/g, "") || "";
+  const bizWa = bizDigits
+    ? `https://wa.me/${bizDigits}?text=${encodeURIComponent(
+        `Hola${contact.businessName ? ` ${contact.businessName}` : ""}, tengo una consulta.`
+      )}`
+    : null;
 
   // Mini-stats: envíos entregados y total que llegó a la familia.
   const delivered = orders.filter((o) => {
@@ -110,6 +131,61 @@ export default async function ClientePerfilPage() {
 
       <SavedBeneficiaries />
 
+      {/* Ayuda y contacto */}
+      <section>
+        <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <HelpCircle className="h-4 w-4" /> Ayuda
+        </h2>
+
+        {bizWa && (
+          <a
+            href={bizWa}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-2 flex items-center gap-3 rounded-2xl border border-income/25 bg-income/5 p-4 transition active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-income/10 text-income">
+              <MessageCircle className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-foreground">
+                Escribir al negocio
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {contact.businessName
+                  ? `Dudas o ayuda con ${contact.businessName}`
+                  : "Dudas o ayuda con tu envío"}{" "}
+                · WhatsApp
+              </p>
+            </div>
+          </a>
+        )}
+
+        <Card className="p-4">
+          <p className="mb-3 text-sm font-bold text-foreground">Cómo funciona</p>
+          <div className="space-y-3">
+            <HowStep
+              n={1}
+              icon={Send}
+              title="Pides tu remesa"
+              desc="Eliges el monto y quién recibe en Cuba."
+            />
+            <HowStep
+              n={2}
+              icon={Check}
+              title="El negocio la acepta"
+              desc="Confirma el envío y empieza el reparto."
+            />
+            <HowStep
+              n={3}
+              icon={PartyPopper}
+              title="Llega a tu familia"
+              desc="Sigues cada paso y ganas puntos con cada envío."
+            />
+          </div>
+        </Card>
+      </section>
+
       <form action="/auth/signout" method="post">
         <button
           type="submit"
@@ -141,5 +217,32 @@ function MiniStat({
       </p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
     </Card>
+  );
+}
+
+function HowStep({
+  n,
+  icon: Icon,
+  title,
+  desc,
+}: {
+  n: number;
+  icon: typeof Send;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+          {n}
+        </span>
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{desc}</p>
+      </div>
+    </div>
   );
 }
