@@ -221,35 +221,76 @@ export async function getRemittance(id: string): Promise<Remittance | null> {
   return r;
 }
 
-// Clientes y beneficiarios son del negocio: los comparten el operador y sus
-// repartidores. Solo las remesas son por repartidor (deliverer_id).
+// Clientes y beneficiarios son del negocio, pero un repartidor solo ve los que
+// tiene EN COMÚN con su operador: los que aparecen en sus propias remesas
+// (deliverer_id). Nunca ve los clientes/beneficiarios que trabajó otro
+// repartidor. El operador ve todos los del negocio.
+type AgendaScope = { clientIds: Set<string>; beneficiaryIds: Set<string> };
+
+async function getRepartidorAgendaScope(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ctx: SessionContext
+): Promise<AgendaScope | null> {
+  // Operador (o contexto sin usuario) ve toda la agenda del negocio.
+  if (ctx.isOperador || !ctx.userId) return null;
+  let q = supabase
+    .from("remittances")
+    .select("client_id, beneficiary_id")
+    .eq("deliverer_id", ctx.userId);
+  if (ctx.tenantId) q = q.eq("operator_id", ctx.tenantId);
+  const { data } = await q;
+  const clientIds = new Set<string>();
+  const beneficiaryIds = new Set<string>();
+  for (const row of (data as
+    | { client_id: string | null; beneficiary_id: string | null }[]
+    | null) ?? []) {
+    if (row.client_id) clientIds.add(row.client_id);
+    if (row.beneficiary_id) beneficiaryIds.add(row.beneficiary_id);
+  }
+  return { clientIds, beneficiaryIds };
+}
+
 export async function getClients(): Promise<Client[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   let q = supabase.from("clients").select("*").order("name", { ascending: true });
   if (ctx.tenantId) q = q.eq("operator_id", ctx.tenantId);
   const { data } = await q;
-  return (data as Client[]) ?? [];
+  let list = (data as Client[]) ?? [];
+  const scope = await getRepartidorAgendaScope(supabase, ctx);
+  if (scope) list = list.filter((c) => scope.clientIds.has(c.id));
+  return list;
 }
 
 export async function getClient(id: string): Promise<Client | null> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("clients")
     .select("*")
     .eq("id", id)
     .single();
-  return (data as Client) ?? null;
+  const c = (data as Client) ?? null;
+  if (!c) return null;
+  // El repartidor no puede abrir un cliente que no tiene en común.
+  const scope = await getRepartidorAgendaScope(supabase, ctx);
+  if (scope && !scope.clientIds.has(c.id)) return null;
+  return c;
 }
 
 export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const { data } = await supabase
     .from("beneficiaries")
     .select("*")
     .eq("id", id)
     .single();
-  return (data as Beneficiary) ?? null;
+  const b = (data as Beneficiary) ?? null;
+  if (!b) return null;
+  const scope = await getRepartidorAgendaScope(supabase, ctx);
+  if (scope && !scope.beneficiaryIds.has(b.id)) return null;
+  return b;
 }
 
 export async function getBeneficiaries(): Promise<Beneficiary[]> {
@@ -261,7 +302,10 @@ export async function getBeneficiaries(): Promise<Beneficiary[]> {
     .order("name", { ascending: true });
   if (ctx.tenantId) q = q.eq("operator_id", ctx.tenantId);
   const { data } = await q;
-  return (data as Beneficiary[]) ?? [];
+  let list = (data as Beneficiary[]) ?? [];
+  const scope = await getRepartidorAgendaScope(supabase, ctx);
+  if (scope) list = list.filter((b) => scope.beneficiaryIds.has(b.id));
+  return list;
 }
 
 export async function getExchangeRates(): Promise<ExchangeRate[]> {
