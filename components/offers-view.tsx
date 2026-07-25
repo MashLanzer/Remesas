@@ -68,7 +68,7 @@ export function OffersView({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={banner.image_url}
-                alt=""
+                alt={banner.title || "Oferta"}
                 className="h-40 w-full object-cover"
               />
             ) : null}
@@ -114,7 +114,7 @@ export function OffersView({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={o.image_url}
-                  alt=""
+                  alt={o.title || "Oferta"}
                   className="h-36 w-full object-cover"
                 />
               )}
@@ -162,7 +162,7 @@ export function OffersView({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={selected.image_url}
-                alt=""
+                alt={selected.title || "Oferta"}
                 className="w-full rounded-2xl object-cover"
               />
             )}

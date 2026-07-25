@@ -424,7 +424,7 @@ export function OffersManager({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={o.image_url}
-                      alt=""
+                      alt={o.title || "Oferta"}
                       className="h-10 w-10 shrink-0 rounded-2xl object-cover"
                     />
                   ) : (
@@ -539,7 +539,7 @@ export function OffersManager({
             <Card className="overflow-hidden p-0">
               {preview.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview.image_url} alt="" className="h-40 w-full object-cover" />
+                <img src={preview.image_url} alt={preview.title || "Oferta"} className="h-40 w-full object-cover" />
               )}
               <div className="flex gap-3 p-3.5">
                 {!preview.image_url && (

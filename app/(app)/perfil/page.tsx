@@ -123,7 +123,7 @@ export default async function PerfilPage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
-                alt=""
+                alt="Foto de perfil"
                 className="h-14 w-14 shrink-0 rounded-full object-cover"
               />
             ) : (
@@ -147,7 +147,7 @@ export default async function PerfilPage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarUrl}
-              alt=""
+              alt="Foto de perfil"
               className="h-20 w-20 shrink-0 rounded-full object-cover"
             />
           ) : (

@@ -83,7 +83,7 @@ export default async function ClientePerfilPage() {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={p.avatar_url}
-            alt=""
+            alt="Foto de perfil"
             className="h-20 w-20 shrink-0 rounded-full object-cover"
           />
         ) : (
