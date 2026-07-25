@@ -1,14 +1,21 @@
-import { getClients, getBeneficiaries, getRemittances } from "@/lib/data";
+import { Users } from "lucide-react";
+import {
+  getClients,
+  getBeneficiaries,
+  getRemittances,
+  getSessionContext,
+} from "@/lib/data";
 import { AgendaView, type ContactStat } from "@/components/agenda-view";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function AgendaPage() {
-  const [clients, beneficiaries, remittances] = await Promise.all([
+  const [clients, beneficiaries, remittances, ctx] = await Promise.all([
     getClients(),
     getBeneficiaries(),
     getRemittances(),
+    getSessionContext(),
   ]);
 
   const clientStats: Record<string, ContactStat> = {};
@@ -38,7 +45,15 @@ export default async function AgendaPage() {
 
   return (
     <div>
-      <PageHeader title="Agenda" subtitle="Clientes y beneficiarios" />
+      <PageHeader
+        title="Agenda"
+        subtitle={
+          ctx.isOperador
+            ? "Clientes y beneficiarios"
+            : "Tus clientes y beneficiarios"
+        }
+        icon={ctx.isOperador ? undefined : Users}
+      />
       <AgendaView
         clients={clients}
         beneficiaries={beneficiaries}

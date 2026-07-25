@@ -29,6 +29,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
+import { IlluContacts } from "@/components/illustrations";
 import {
   createClientRecord,
   createBeneficiary,
@@ -582,6 +583,9 @@ export function AgendaView({
       {tab === "clientes" ? (
         fClients.length === 0 ? (
           <EmptyState
+            illustration={
+              term || filter !== "todos" ? undefined : <IlluContacts />
+            }
             title={term || filter !== "todos" ? "Sin resultados" : "Sin clientes"}
             description={
               term || filter !== "todos"
@@ -622,6 +626,9 @@ export function AgendaView({
         )
       ) : fBeneficiaries.length === 0 ? (
         <EmptyState
+          illustration={
+            term || filter !== "todos" ? undefined : <IlluContacts />
+          }
           title={term || filter !== "todos" ? "Sin resultados" : "Sin beneficiarios"}
           description={
             term || filter !== "todos"

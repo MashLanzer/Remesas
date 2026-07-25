@@ -61,3 +61,23 @@ export function IlluStore() {
     </svg>
   );
 }
+
+export function IlluContacts() {
+  return (
+    <svg viewBox="0 0 120 96" className="h-24 w-28" fill="none" aria-hidden>
+      <ellipse cx="60" cy="86" rx="40" ry="6" className="fill-muted" />
+      {/* Persona de atrás */}
+      <circle cx="78" cy="42" r="11" className="fill-primary/15" />
+      <path
+        d="M60 80c0-11 8-19 18-19s18 8 18 19z"
+        className="fill-primary/15"
+      />
+      {/* Persona de frente */}
+      <circle cx="46" cy="38" r="13" className="fill-primary/25" />
+      <path
+        d="M24 82c0-13 10-22 22-22s22 9 22 22z"
+        className="fill-primary/25"
+      />
+    </svg>
+  );
+}
