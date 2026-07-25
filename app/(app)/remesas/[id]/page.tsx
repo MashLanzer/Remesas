@@ -9,6 +9,7 @@ import {
   Phone,
   MapPin,
   StickyNote,
+  AlertTriangle,
 } from "lucide-react";
 import { getRemittance, getSessionContext, getBusinessSettings } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +19,7 @@ import { RemittanceActions } from "@/components/remittance-actions";
 import { RemittanceStepper } from "@/components/remittance-stepper";
 import { DeliverSheet } from "@/components/deliver-sheet";
 import { EnRouteToggle } from "@/components/en-route-toggle";
+import { IncidentButton } from "@/components/incident-button";
 import { CopyBeneficiary } from "@/components/copy-beneficiary";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
@@ -99,6 +101,21 @@ export default async function RemesaDetailPage({
       </div>
 
       {!ctx.isOperador && <RemittanceStepper status={r.status} />}
+
+      {r.status === "pendiente" && r.last_incident && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-warning/25 bg-warning/5 p-3.5">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-warning">
+              Último intento fallido
+              {r.incident_count && r.incident_count > 1
+                ? ` · ${r.incident_count} intentos`
+                : ""}
+            </p>
+            <p className="mt-0.5 text-sm text-foreground">{r.last_incident}</p>
+          </div>
+        </div>
+      )}
 
       {/* Contacto rápido con el beneficiario */}
       {ctx.isOperador ? (
@@ -354,6 +371,9 @@ export default async function RemesaDetailPage({
           amountUsd={usd(r.amount_usd)}
           delivered={`${localAmount(r.local_amount)} ${r.delivery_currency}`}
         />
+      )}
+      {!ctx.isOperador && r.status === "pendiente" && (
+        <IncidentButton id={r.id} />
       )}
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

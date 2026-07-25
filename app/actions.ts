@@ -1393,6 +1393,40 @@ export async function updatePersonalGoal(value: number | null) {
   revalidatePath("/");
 }
 
+// El repartidor registra un intento fallido de entrega (incidencia). La remesa
+// sigue pendiente para reintentar. Tolerante si las columnas no existen (0036).
+export async function logDeliveryIncident(id: string, reason: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  const r = reason.trim();
+  if (!r) return;
+  const { data: cur } = await supabase
+    .from("remittances")
+    .select("incident_count")
+    .eq("id", id)
+    .maybeSingle();
+  const count =
+    Number((cur as { incident_count?: number } | null)?.incident_count ?? 0) || 0;
+  await supabase
+    .from("remittances")
+    .update({
+      last_incident: r,
+      incident_at: new Date().toISOString(),
+      incident_count: count + 1,
+      en_route_at: null, // ya no está "en camino" tras un intento fallido
+    })
+    .eq("id", id);
+  await logActivity("remesa.incidencia", {
+    entityType: "remesa",
+    entityId: id,
+    details: { reason: r },
+  });
+  revalidatePath("/remesas");
+  revalidatePath(`/remesas/${id}`);
+  revalidatePath("/");
+}
+
 // El repartidor marca (o desmarca) que salió a entregar una remesa pendiente.
 // Solo escribe una marca de tiempo; no cambia el estado. Tolerante si la
 // columna en_route_at aún no existe (migración 0031).
