@@ -76,6 +76,31 @@ export function DeliverSheet({
             </p>
           </div>
 
+          {/* Recibido por (opcional) */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                Recibido por
+              </label>
+              <input
+                name="received_by_name"
+                placeholder="Nombre"
+                className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">
+                Carné (CI)
+              </label>
+              <input
+                name="received_by_id"
+                inputMode="numeric"
+                placeholder="Opcional"
+                className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none"
+              />
+            </div>
+          </div>
+
           {/* Foto de comprobante (opcional) */}
           <div>
             <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-4 transition active:scale-[0.99]">

@@ -293,6 +293,20 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
+      {(r.received_by_name || r.received_by_id) && (
+        <Card className="mb-4 space-y-2.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Recibido por
+          </p>
+          {r.received_by_name && (
+            <Row label="Nombre" value={r.received_by_name} />
+          )}
+          {r.received_by_id && (
+            <Row label="Carné (CI)" value={r.received_by_id} />
+          )}
+        </Card>
+      )}
+
       {r.delivery_proof_url && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

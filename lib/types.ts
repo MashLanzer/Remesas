@@ -287,6 +287,8 @@ export interface Remittance {
   receipt_url: string | null;
   delivery_proof_url?: string | null;
   en_route_at?: string | null; // el repartidor marcó "en camino"
+  received_by_name?: string | null; // quién recibió la entrega
+  received_by_id?: string | null; // carné (CI) de quien recibió
   notes: string | null;
   created_by: string | null;
   created_at: string;

@@ -1319,6 +1319,18 @@ export async function deliverRemittance(formData: FormData) {
   const id = str(formData.get("id"));
   if (!id) return;
   await handleDeliveryProof(supabase, formData, id);
+  // "Recibido por" (tolerante si las columnas no existen — migración 0035).
+  const receivedByName = str(formData.get("received_by_name"));
+  const receivedById = str(formData.get("received_by_id"));
+  if (receivedByName || receivedById) {
+    await supabase
+      .from("remittances")
+      .update({
+        received_by_name: receivedByName,
+        received_by_id: receivedById,
+      })
+      .eq("id", id);
+  }
   await updateRemittanceStatus(id, "entregado");
 }
 
