@@ -52,6 +52,7 @@ export default async function DashboardPage() {
       pendingOrders={pendingOrders.length}
       monthlyGoal={monthlyGoal}
       personalGoal={personalGoal}
+      brand={settings.business_name || "Giro"}
       rates={rates}
     />
   );

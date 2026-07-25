@@ -20,6 +20,7 @@ import {
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
 import { RepartidorGoal } from "@/components/repartidor-goal";
+import { DayCloseShare } from "@/components/day-close-share";
 import { usd, formatDate, localAmount, cn } from "@/lib/utils";
 import type {
   Remittance,
@@ -116,6 +117,7 @@ export function DashboardView({
   pendingOrders = 0,
   monthlyGoal = 0,
   personalGoal = 0,
+  brand = "Giro",
   rates = [],
 }: {
   remittances: Remittance[];
@@ -125,6 +127,7 @@ export function DashboardView({
   pendingOrders?: number;
   monthlyGoal?: number;
   personalGoal?: number;
+  brand?: string;
   rates?: ExchangeRate[];
 }) {
   const isRep = !isOperador;
@@ -220,6 +223,26 @@ export function DashboardView({
     !isRep && monthlyGoal > 0
       ? Math.min((monthProfit / monthlyGoal) * 100, 100)
       : null;
+
+  // Cierre del día del repartidor: remesas ya entregadas/liquidadas con fecha hoy.
+  const dayClose = useMemo(() => {
+    const t = new Date();
+    const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(t.getDate()).padStart(2, "0")}`;
+    const todays = remittances.filter(
+      (r) => r.date === todayStr && r.status !== "pendiente"
+    );
+    return {
+      count: todays.length,
+      earned: todays.reduce((s, r) => s + Number(r.partner_share), 0),
+      delivered: todays.reduce(
+        (s, r) => s + Math.max(0, Number(r.amount_usd) - Number(r.commission)),
+        0
+      ),
+    };
+  }, [remittances]);
 
   // Ganancia del repartidor este mes (su parte), para su meta personal.
   const repMonthShare = useMemo(() => {
@@ -590,6 +613,22 @@ export function DashboardView({
       {/* Meta personal del repartidor */}
       {isRep && (
         <RepartidorGoal monthShare={repMonthShare} goal={personalGoal} />
+      )}
+
+      {/* Cierre del día del repartidor (si hoy entregó algo) */}
+      {isRep && dayClose.count > 0 && (
+        <DayCloseShare
+          brand={brand}
+          name={name}
+          dateLabel={new Date().toLocaleDateString("es-ES", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+          count={dayClose.count}
+          earned={dayClose.earned}
+          delivered={dayClose.delivered}
+        />
       )}
 
       {/* Últimas remesas */}
