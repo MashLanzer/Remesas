@@ -226,25 +226,38 @@ export function DashboardView({
       ? Math.min((monthProfit / monthlyGoal) * 100, 100)
       : null;
 
-  // Cierre del día del repartidor: remesas ya entregadas/liquidadas con fecha hoy.
-  const dayClose = useMemo(() => {
+  // Cierre por periodo (hoy / semana / mes): remesas ya entregadas/liquidadas.
+  const closes = useMemo(() => {
     const t = new Date();
-    const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(
+    const ymd = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+    const todayStr = ymd(t);
+    const weekAgo = new Date(t);
+    weekAgo.setDate(weekAgo.getDate() - 6);
+    const weekStr = ymd(weekAgo);
+    const monthStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(
       2,
       "0"
-    )}-${String(t.getDate()).padStart(2, "0")}`;
-    const todays = remittances.filter(
-      (r) => r.date === todayStr && r.status !== "pendiente"
-    );
-    return {
-      count: todays.length,
-      earned: todays.reduce((s, r) => s + Number(r.partner_share), 0),
-      delivered: todays.reduce(
+    )}`;
+
+    const summarize = (rs: Remittance[]) => ({
+      count: rs.length,
+      earned: rs.reduce((s, r) => s + Number(r.partner_share), 0),
+      delivered: rs.reduce(
         (s, r) => s + Math.max(0, Number(r.amount_usd) - Number(r.commission)),
         0
       ),
+    });
+    const done = remittances.filter((r) => r.status !== "pendiente");
+    return {
+      day: summarize(done.filter((r) => r.date === todayStr)),
+      week: summarize(done.filter((r) => r.date >= weekStr)),
+      month: summarize(done.filter((r) => r.date.startsWith(monthStr))),
     };
   }, [remittances]);
+  const dayClose = closes.day;
 
   // Ganancia del repartidor este mes (su parte), para su meta personal.
   const repMonthShare = useMemo(() => {
@@ -633,19 +646,38 @@ export function DashboardView({
         <RepartidorGoal monthShare={repMonthShare} goal={personalGoal} />
       )}
 
-      {/* Cierre del día del repartidor (si hoy entregó algo) */}
-      {isRep && dayClose.count > 0 && (
+      {/* Cierre del repartidor: hoy / semana / mes (si algo se entregó) */}
+      {isRep && closes.month.count > 0 && (
         <DayCloseShare
           brand={brand}
           name={name}
-          dateLabel={new Date().toLocaleDateString("es-ES", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })}
-          count={dayClose.count}
-          earned={dayClose.earned}
-          delivered={dayClose.delivered}
+          periods={[
+            {
+              key: "day",
+              label: "Hoy",
+              dateLabel: new Date().toLocaleDateString("es-ES", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              }),
+              ...closes.day,
+            },
+            {
+              key: "week",
+              label: "Semana",
+              dateLabel: "Últimos 7 días",
+              ...closes.week,
+            },
+            {
+              key: "month",
+              label: "Mes",
+              dateLabel: new Date().toLocaleDateString("es-ES", {
+                month: "long",
+                year: "numeric",
+              }),
+              ...closes.month,
+            },
+          ]}
         />
       )}
 

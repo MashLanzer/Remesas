@@ -16,31 +16,39 @@ import { shareNodeAsImage } from "@/lib/share-image";
 import { useDialog } from "@/components/confirm";
 import { usd } from "@/lib/utils";
 
-// Cierre del día del repartidor: resumen compartible (texto o imagen recibo).
-export function DayCloseShare({
-  brand,
-  name,
-  dateLabel,
-  count,
-  earned,
-  delivered,
-}: {
-  brand: string;
-  name: string | null;
+type Period = {
+  key: string;
+  label: string;
   dateLabel: string;
   count: number;
   earned: number;
   delivered: number;
+};
+
+// Cierre del repartidor por periodo (hoy/semana/mes): resumen compartible.
+export function DayCloseShare({
+  brand,
+  name,
+  periods,
+}: {
+  brand: string;
+  name: string | null;
+  periods: Period[];
 }) {
   const { notify } = useDialog();
   const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [periodKey, setPeriodKey] = useState(periods[0]?.key);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  const p = periods.find((x) => x.key === periodKey) ?? periods[0];
+  const { label, dateLabel, count, earned, delivered } = p;
+  const heading = label === "Hoy" ? "Cierre del día" : `Cierre · ${label}`;
+
   const text = [
-    `Cierre del día · ${brand}`,
+    `${heading} · ${brand}`,
     dateLabel,
     ``,
     `Remesas entregadas: ${count}`,
@@ -101,17 +109,39 @@ export function DayCloseShare({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">
-            Cierre del día
+            Cierre del repartidor
           </p>
           <p className="truncate text-xs text-muted-foreground">
-            {count} {count === 1 ? "entrega" : "entregas"} · ganaste{" "}
-            {usd(earned)}
+            Hoy: {periods[0].count}{" "}
+            {periods[0].count === 1 ? "entrega" : "entregas"} · ganaste{" "}
+            {usd(periods[0].earned)}
           </p>
         </div>
         <Share2 className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
 
-      <Sheet open={open} onClose={close} title="Cierre del día">
+      <Sheet open={open} onClose={close} title="Cierre del repartidor">
+        {/* Selector de periodo */}
+        {!imgUrl && periods.length > 1 && (
+          <div className="mb-3 flex gap-2">
+            {periods.map((x) => (
+              <button
+                key={x.key}
+                type="button"
+                onClick={() => setPeriodKey(x.key)}
+                className={
+                  "flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition " +
+                  (x.key === periodKey
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border bg-card text-muted-foreground")
+                }
+              >
+                {x.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Tarjeta (estilo recibo) */}
         <div
           ref={cardRef}
@@ -132,7 +162,7 @@ export function DayCloseShare({
                 </span>
               </div>
               <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
-                Cierre del día
+                {heading}
               </span>
             </div>
 
