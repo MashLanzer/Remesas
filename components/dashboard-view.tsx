@@ -16,6 +16,7 @@ import {
   TrendingDown,
   Target,
   RefreshCw,
+  ChevronRight,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
@@ -338,6 +339,29 @@ export function DashboardView({
             />
           )}
         </Card>
+      )}
+
+      {/* Aviso de pedidos nuevos por aceptar (repartidor) */}
+      {isRep && pendingOrders > 0 && (
+        <Link href="/pedidos" className="block">
+          <div className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 transition active:scale-[0.99]">
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Inbox className="h-5 w-5" />
+              <span className="absolute -right-0.5 -top-0.5 h-3 w-3 animate-pulse rounded-full bg-primary ring-2 ring-background" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-foreground">
+                {pendingOrders} {pendingOrders === 1 ? "pedido nuevo" : "pedidos nuevos"} por aceptar
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Toca para revisarlos y empezar el reparto.
+              </p>
+            </div>
+            <span className="shrink-0 text-primary">
+              <ChevronRight className="h-5 w-5" />
+            </span>
+          </div>
+        </Link>
       )}
 
       {/* Para entregar hoy: el trabajo del repartidor, arriba y accionable */}
