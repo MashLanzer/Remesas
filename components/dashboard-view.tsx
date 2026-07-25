@@ -285,6 +285,53 @@ export function DashboardView({
         </Card>
       )}
 
+      {/* Para entregar hoy: el trabajo del repartidor, arriba y accionable */}
+      {isRep && pending.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center justify-between px-1">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-warning/10 text-warning">
+                <Truck className="h-4 w-4" />
+              </span>
+              Para entregar
+            </h2>
+            {pending.length > 3 && (
+              <Link
+                href="/remesas?estado=pendiente"
+                className="text-xs font-semibold text-primary"
+              >
+                Ver todas ({pending.length})
+              </Link>
+            )}
+          </div>
+          <div className="space-y-2">
+            {pending.slice(0, 3).map((r) => (
+              <Link key={r.id} href={`/remesas/${r.id}`} className="block">
+                <Card className="flex items-center gap-3 border-warning/20 bg-warning/5 p-3.5 transition active:scale-[0.99]">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
+                    <Truck className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {r.beneficiary?.name || r.client?.name || "Remesa"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {r.beneficiary?.province
+                        ? `${r.beneficiary.province} · `
+                        : ""}
+                      {formatDate(r.date)}
+                    </p>
+                  </div>
+                  <span className="tabular shrink-0 text-sm font-bold text-foreground">
+                    {usd(r.amount_usd)}
+                  </span>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Selector de período */}
       <div className="flex gap-2">
         {periods.map((p) => (
