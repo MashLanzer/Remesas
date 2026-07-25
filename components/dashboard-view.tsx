@@ -369,30 +369,61 @@ export function DashboardView({
       </div>
 
       {/* Acciones rápidas (cuadros) */}
-      <div
-        className={cn(
-          "grid gap-2",
-          actions.length >= 4 ? "grid-cols-4" : "grid-cols-2"
-        )}
-      >
-        {actions.map((a) => {
-          const Icon = a.icon;
-          return (
-            <Link
-              key={a.href}
-              href={a.href}
-              className="flex flex-col items-center gap-1.5 text-center"
-            >
-              <span className="flex aspect-square w-full items-center justify-center rounded-2xl border border-border bg-card text-primary transition active:scale-95">
-                <Icon className="h-6 w-6" />
-              </span>
-              <span className="text-[11px] font-medium leading-tight text-muted-foreground">
-                {a.label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+      {isRep ? (
+        <div className="grid grid-cols-2 gap-3">
+          {actions.map((a, i) => {
+            const Icon = a.icon;
+            const tone =
+              i === 0
+                ? "bg-primary/10 text-primary"
+                : "bg-info/10 text-info";
+            return (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition active:scale-[0.98]"
+              >
+                <span
+                  className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+                    tone
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="text-sm font-semibold text-foreground">
+                  {a.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <div
+          className={cn(
+            "grid gap-2",
+            actions.length >= 4 ? "grid-cols-4" : "grid-cols-2"
+          )}
+        >
+          {actions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="flex flex-col items-center gap-1.5 text-center"
+              >
+                <span className="flex aspect-square w-full items-center justify-center rounded-2xl border border-border bg-card text-primary transition active:scale-95">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <span className="text-[11px] font-medium leading-tight text-muted-foreground">
+                  {a.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* Tasas del día: tira compacta tocable hacia Tasas */}
       {activeRates.length > 0 && (
