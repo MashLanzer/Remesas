@@ -23,8 +23,8 @@
     --business: 263 80% 58%;
     --destructive: 0 78% 55%;
 
-    --hero-from: 150 68% 45%;
-    --hero-to: 168 58% 30%;
+    --hero-from: var(--brand-hue, 150) 68% 45%;
+    --hero-to: var(--brand-hue, 150) 58% 30%;
   }
 
   .dark {
@@ -47,8 +47,8 @@
     --business: 263 80% 70%;
     --destructive: 0 72% 58%;
 
-    --hero-from: 150 66% 42%;
-    --hero-to: 166 52% 20%;
+    --hero-from: var(--brand-hue, 150) 66% 42%;
+    --hero-to: var(--brand-hue, 150) 52% 20%;
   }
 }
 

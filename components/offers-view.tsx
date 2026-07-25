@@ -63,7 +63,7 @@ export function OffersView({
           onClick={() => open(banner)}
           className="block w-full text-left"
         >
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 text-white shadow-lg transition active:scale-[0.99]">
+          <div className="hero-gradient relative overflow-hidden rounded-3xl text-white shadow-lg transition active:scale-[0.99]">
             {banner.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

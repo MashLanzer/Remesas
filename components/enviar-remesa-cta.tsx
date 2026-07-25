@@ -35,7 +35,7 @@ export function EnviarRemesaCta({
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-base font-bold shadow-lg transition active:scale-[0.98]",
           variant === "hero"
-            ? "bg-white text-emerald-700 shadow-black/10"
+            ? "bg-white text-primary shadow-black/10"
             : "bg-primary text-primary-foreground shadow-primary/30"
         )}
       >

@@ -157,7 +157,7 @@ export default async function ClienteHome() {
   return (
     <div className="space-y-6">
       {/* Hero: saludo + puntos + tasa del día + enviar + calculadora */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-800 p-5 text-white shadow-xl shadow-primary/20">
+      <div className="hero-gradient relative overflow-hidden rounded-3xl p-5 text-white shadow-xl shadow-primary/20">
         <div
           className="pointer-events-none absolute -right-8 -top-12 h-36 w-36 rounded-full bg-white/10 blur-2xl"
           aria-hidden
@@ -200,7 +200,7 @@ export default async function ClienteHome() {
                     className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold backdrop-blur"
                   >
                     1 USD = {localAmount(Number(r.rate))} {r.currency}
-                    {t === "up" && <span className="text-emerald-200">▲</span>}
+                    {t === "up" && <span className="text-white/90">▲</span>}
                     {t === "down" && <span className="text-rose-200">▼</span>}
                   </span>
                 );

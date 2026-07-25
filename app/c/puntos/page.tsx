@@ -43,10 +43,10 @@ export default async function PuntosPage() {
 
   return (
     <div>
-      <PageHeader title="Mis puntos" />
+      <PageHeader title="Mis puntos" icon={Star} />
 
       {/* Saldo */}
-      <div className="mb-4 rounded-3xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 p-5 text-white shadow-xl">
+      <div className="hero-gradient mb-4 rounded-3xl p-5 text-white shadow-xl">
         <p className="flex items-center gap-1.5 text-sm font-medium text-white/75">
           <Star className="h-4 w-4" /> Tienes
         </p>

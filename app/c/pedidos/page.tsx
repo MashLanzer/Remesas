@@ -52,7 +52,7 @@ export default async function MisPedidosPage() {
   if (orders.length === 0) {
     return (
       <div>
-        <PageHeader title="Mis pedidos" />
+        <PageHeader title="Mis pedidos" icon={Send} />
         <div className="flex flex-col items-center pt-4 text-center">
           <IlluOrders />
           <h2 className="mt-4 text-lg font-bold text-foreground">
@@ -151,7 +151,11 @@ export default async function MisPedidosPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Mis pedidos" subtitle="Sigue el estado de tus envíos" />
+      <PageHeader
+        title="Mis pedidos"
+        subtitle="Sigue el estado de tus envíos"
+        icon={Send}
+      />
 
       {/* Envío en curso destacado */}
       {featuredActive && (
