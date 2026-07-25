@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
+import { RemittanceStepper } from "@/components/remittance-stepper";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import { SmartImage } from "@/components/smart-image";
@@ -84,6 +85,8 @@ export default async function RemesaDetailPage({
         </div>
         <Badge tone={statusTone[r.status]}>{r.status}</Badge>
       </div>
+
+      {!ctx.isOperador && <RemittanceStepper status={r.status} />}
 
       {r.beneficiary?.phone && (
         <a
