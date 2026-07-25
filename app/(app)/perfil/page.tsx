@@ -23,6 +23,7 @@ import { ShareCard } from "@/components/share-card";
 import { PaymentMethods } from "@/components/payment-methods";
 import { SmartImage } from "@/components/smart-image";
 import { CoverageSelector } from "@/components/coverage-selector";
+import { ExportMyDeliveries } from "@/components/export-my-deliveries";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -217,6 +218,11 @@ export default async function PerfilPage() {
 
       {/* Zona de cobertura (repartidor) */}
       {!isOperador && <CoverageSelector initial={coverage} />}
+
+      {/* Exportar mis entregas (repartidor) */}
+      {!isOperador && remittances.length > 0 && (
+        <ExportMyDeliveries remittances={remittances} />
+      )}
 
       {/* Galería de comprobantes de entrega (repartidor) */}
       {!isOperador && proofs.length > 0 && (
