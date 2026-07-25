@@ -242,15 +242,29 @@ export function DashboardView({
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        {greetWord}
-        {firstName && (
-          <>
-            , <span className="font-semibold text-foreground">{firstName}</span>
-          </>
-        )}{" "}
-        👋
-      </p>
+      <div>
+        <p className="text-sm text-muted-foreground">
+          {greetWord}
+          {firstName && (
+            <>
+              ,{" "}
+              <span className="font-semibold text-foreground">{firstName}</span>
+            </>
+          )}{" "}
+          👋
+        </p>
+        {isRep && (
+          <p className="mt-0.5 text-sm font-medium text-foreground">
+            {pending.length > 0
+              ? `Tienes ${pending.length} ${
+                  pending.length === 1
+                    ? "entrega pendiente"
+                    : "entregas pendientes"
+                }.`
+              : "Estás al día, sin entregas pendientes. 🎉"}
+          </p>
+        )}
+      </div>
 
       {/* Resumen "Tu día": una línea accionable que reúne lo pendiente */}
       {hasDaySummary && (
