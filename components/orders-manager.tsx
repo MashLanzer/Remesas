@@ -19,6 +19,7 @@ import {
   Share2,
   Bell,
   CheckSquare,
+  Coins,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
@@ -30,8 +31,8 @@ import {
   cancelAcceptedOrder,
   restoreOrderToPending,
 } from "@/app/actions";
-import { usd, formatDate, cn } from "@/lib/utils";
-import type { Order } from "@/lib/types";
+import { usd, localAmount, formatDate, cn } from "@/lib/utils";
+import type { Order, ExchangeRate } from "@/lib/types";
 import { useDialog } from "@/components/confirm";
 
 const STALE_HOURS = 12;
@@ -70,9 +71,11 @@ function durationLabel(fromIso: string, toIso: string): string | null {
 export function OrdersManager({
   orders,
   repartidores = [],
+  rates = [],
 }: {
   orders: Order[];
   repartidores?: Rep[];
+  rates?: ExchangeRate[];
 }) {
   const router = useRouter();
   const { confirm, notify } = useDialog();
@@ -85,6 +88,18 @@ export function OrdersManager({
   );
   const acceptorName = (id: string | null) =>
     id ? repMap.get(id) ?? "Operador" : "—";
+
+  const ratesByCurrency = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const r of rates) m[r.currency] = Number(r.rate);
+    return m;
+  }, [rates]);
+  function receivesLabel(o: Order): string | null {
+    if (!o.delivery_currency || o.delivery_currency === "USD") return null;
+    const rate = ratesByCurrency[o.delivery_currency];
+    if (!rate || rate <= 0) return null;
+    return `${localAmount(Number(o.amount_usd) * rate)} ${o.delivery_currency}`;
+  }
 
   // "Ahora" se fija tras montar para evitar desajustes de hidratación.
   const [now, setNow] = useState<number | null>(null);
@@ -413,6 +428,12 @@ export function OrdersManager({
             {o.beneficiary_name || "—"}
             {o.province ? ` · ${o.province}` : ""}
           </p>
+          {receivesLabel(o) && (
+            <p className="flex items-center gap-2 font-semibold text-income">
+              <Coins className="h-3.5 w-3.5" />
+              Entregas {receivesLabel(o)}
+            </p>
+          )}
           {o.beneficiary_phone && (
             <p className="flex items-center gap-2 text-muted-foreground">
               <Phone className="h-3.5 w-3.5" />

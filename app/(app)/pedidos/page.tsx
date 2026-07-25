@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { Inbox } from "lucide-react";
-import { getOrders, getRepartidores, getSessionContext } from "@/lib/data";
+import {
+  getOrders,
+  getRepartidores,
+  getExchangeRates,
+  getSessionContext,
+} from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { OrdersManager } from "@/components/orders-manager";
 
@@ -12,9 +17,10 @@ export default async function PedidosPage() {
   if (ctx.isCliente || (!ctx.isOperador && ctx.role !== "repartidor")) {
     redirect("/");
   }
-  const [orders, repartidores] = await Promise.all([
+  const [orders, repartidores, rates] = await Promise.all([
     getOrders(),
     ctx.isOperador ? getRepartidores() : Promise.resolve([]),
+    getExchangeRates(),
   ]);
 
   return (
@@ -26,6 +32,7 @@ export default async function PedidosPage() {
       />
       <OrdersManager
         orders={orders}
+        rates={rates}
         repartidores={repartidores.map((r) => ({
           id: r.id,
           name: r.full_name || "Repartidor",
