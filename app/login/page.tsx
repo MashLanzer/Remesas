@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { flushSync } from "react-dom";
+import { AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PaperPlane } from "@/components/paper-plane";
 import { WelcomeScreen } from "@/components/welcome-screen";
@@ -13,6 +14,25 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [welcome, setWelcome] = useState(true);
+
+  // Muestra el error que devuelve el callback de Google (?error=...). Sin esto,
+  // un login fallido dejaba al usuario en una pantalla muda.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (!err) return;
+    const msg =
+      err === "nocode"
+        ? "No se pudo completar el acceso con Google. Inténtalo de nuevo."
+        : "Hubo un problema al iniciar sesión. Inténtalo de nuevo.";
+    setError(msg);
+    setWelcome(false); // salta la bienvenida para que se vea el aviso
+    // Limpia el parámetro de la URL para que no reaparezca al recargar.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
 
   // En el APK, escucha el "deep link" de vuelta desde la pestaña de Google
   // y completa la sesión.
@@ -147,7 +167,10 @@ export default function LoginPage() {
           </button>
 
           {error && (
-            <p className="mt-4 text-center text-sm text-destructive">{error}</p>
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-destructive/25 bg-destructive/5 p-3 text-left">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
           )}
         </div>
 
