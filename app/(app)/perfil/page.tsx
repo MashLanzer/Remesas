@@ -1,4 +1,12 @@
-import { LogOut } from "lucide-react";
+import {
+  LogOut,
+  Wallet,
+  CalendarDays,
+  Send,
+  BarChart3,
+  Clock,
+  type LucideIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getRemittances,
@@ -36,6 +44,11 @@ export default async function PerfilPage() {
   const initial = displayName.charAt(0).toUpperCase();
   const avatarUrl = (p.avatar_url as string) || null;
   const businessName = settings.business_name || null;
+  // Color propio del avatar, derivado del nombre (mismo criterio que el cliente).
+  const seed = displayName
+    .split("")
+    .reduce((a, c) => a + c.charCodeAt(0), 0);
+  const hue = seed % 360;
 
   const myProfit = remittances.reduce((s, r) => s + share(r), 0);
   const count = remittances.length;
@@ -60,37 +73,78 @@ export default async function PerfilPage() {
       <PageHeader title="Perfil" />
 
       {/* Cabecera */}
-      <Card>
-        <div className="flex items-center gap-3">
+      {isOperador ? (
+        <Card>
+          <div className="flex items-center gap-3">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-14 w-14 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+                {initial}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-foreground">
+                {(p.full_name as string) || "Sin nombre"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user?.email}
+              </p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <div className="flex flex-col items-center pt-1 text-center">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarUrl}
               alt=""
-              className="h-14 w-14 shrink-0 rounded-full object-cover"
+              className="h-20 w-20 shrink-0 rounded-full object-cover"
             />
           ) : (
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
+            <span
+              style={{
+                background: `hsl(${hue} 60% 50% / 0.16)`,
+                color: `hsl(${hue} 55% 45%)`,
+              }}
+              className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-extrabold"
+            >
               {initial}
             </span>
           )}
-          <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-foreground">
-              {(p.full_name as string) || "Sin nombre"}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
-          </div>
+          <h2 className="mt-3 text-xl font-bold text-foreground">
+            {(p.full_name as string) || "Sin nombre"}
+          </h2>
+          {user?.email && (
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          )}
         </div>
-      </Card>
+      )}
 
       {/* Mini-estadísticas */}
-      <div className="grid grid-cols-3 gap-3">
-        <Stat label="Has ganado" value={usd(myProfit)} />
-        <Stat label="Este mes" value={usd(monthProfit)} />
-        <Stat label="Remesas" value={String(count)} />
-        <Stat label="Promedio" value={usd(avgTicket)} />
-        <Stat label="Desde" value={since ? formatDate(since) : "—"} />
-      </div>
+      {isOperador ? (
+        <div className="grid grid-cols-3 gap-3">
+          <Stat label="Has ganado" value={usd(myProfit)} />
+          <Stat label="Este mes" value={usd(monthProfit)} />
+          <Stat label="Remesas" value={String(count)} />
+          <Stat label="Promedio" value={usd(avgTicket)} />
+          <Stat label="Desde" value={since ? formatDate(since) : "—"} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          <StatTile icon={Wallet} tone="income" label="Has ganado" value={usd(myProfit)} />
+          <StatTile icon={CalendarDays} tone="primary" label="Este mes" value={usd(monthProfit)} />
+          <StatTile icon={Send} tone="info" label="Remesas" value={String(count)} />
+          <StatTile icon={BarChart3} tone="primary" label="Promedio" value={usd(avgTicket)} />
+          <StatTile icon={Clock} tone="info" label="Desde" value={since ? formatDate(since) : "—"} />
+        </div>
+      )}
 
       {/* Tarjeta y datos de cobro */}
       <section className="space-y-2">
@@ -215,6 +269,40 @@ function Stat({ label, value }: { label: string; value: string }) {
     <Card className="p-3 text-center">
       <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
       <p className="tabular mt-0.5 text-sm font-bold text-foreground">{value}</p>
+    </Card>
+  );
+}
+
+function StatTile({
+  icon: Icon,
+  tone,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  tone: "income" | "primary" | "info";
+  label: string;
+  value: string;
+}) {
+  const toneCls =
+    tone === "income"
+      ? "bg-income/10 text-income"
+      : tone === "info"
+      ? "bg-info/10 text-info"
+      : "bg-primary/10 text-primary";
+  return (
+    <Card className="flex flex-col items-center gap-1 p-3 text-center">
+      <span
+        className={
+          "flex h-9 w-9 items-center justify-center rounded-full " + toneCls
+        }
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <p className="tabular truncate text-sm font-bold text-foreground">
+        {value}
+      </p>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
     </Card>
   );
 }
