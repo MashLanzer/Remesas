@@ -1523,6 +1523,21 @@ export async function logDeliveryIncident(id: string, reason: string) {
   revalidatePath("/");
 }
 
+// El repartidor programa (o quita) un recordatorio de entrega para una remesa.
+// Tolerante si la columna reminder_at no existe (migración 0041).
+export async function setDeliveryReminder(id: string, iso: string | null) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  await supabase
+    .from("remittances")
+    .update({ reminder_at: iso })
+    .eq("id", id);
+  revalidatePath("/remesas");
+  revalidatePath(`/remesas/${id}`);
+  revalidatePath("/");
+}
+
 // El repartidor marca (o desmarca) que salió a entregar una remesa pendiente.
 // Solo escribe una marca de tiempo; no cambia el estado. Tolerante si la
 // columna en_route_at aún no existe (migración 0031).

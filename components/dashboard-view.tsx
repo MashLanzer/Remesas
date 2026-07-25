@@ -17,6 +17,7 @@ import {
   Target,
   RefreshCw,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
@@ -430,6 +431,15 @@ export function DashboardView({
                       {!r.en_route_at && isStale(r) && (
                         <span className="shrink-0 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-destructive">
                           Atrasada
+                        </span>
+                      )}
+                      {r.reminder_at && (
+                        <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+                          <Bell className="h-2.5 w-2.5" />
+                          {new Date(r.reminder_at).toLocaleTimeString("es-ES", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       )}
                     </p>

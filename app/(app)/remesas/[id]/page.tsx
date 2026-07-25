@@ -22,6 +22,7 @@ import { DeliverSheet } from "@/components/deliver-sheet";
 import { EnRouteToggle } from "@/components/en-route-toggle";
 import { IncidentButton } from "@/components/incident-button";
 import { ReturnDeliveryButton } from "@/components/return-delivery-button";
+import { ReminderButton } from "@/components/reminder-button";
 import { CopyBeneficiary } from "@/components/copy-beneficiary";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ShareTrackButton } from "@/components/share-track-button";
@@ -432,6 +433,9 @@ export default async function RemesaDetailPage({
           amountUsd={usd(r.amount_usd)}
           delivered={`${localAmount(r.local_amount)} ${r.delivery_currency}`}
         />
+      )}
+      {!ctx.isOperador && r.status === "pendiente" && (
+        <ReminderButton id={r.id} reminderAt={r.reminder_at ?? null} />
       )}
       {!ctx.isOperador && r.status === "pendiente" && (
         <IncidentButton id={r.id} />

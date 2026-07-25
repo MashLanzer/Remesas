@@ -314,6 +314,7 @@ export interface Remittance {
   last_incident?: string | null; // motivo del último intento fallido
   incident_at?: string | null; // cuándo fue el último intento fallido
   incident_count?: number | null; // cuántos intentos fallidos van
+  reminder_at?: string | null; // recordatorio programado por el repartidor
   notes: string | null;
   created_by: string | null;
   created_at: string;
