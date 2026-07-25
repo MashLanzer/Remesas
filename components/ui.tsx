@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 // Select con lista estilizada (hoja) en lugar del desplegable nativo.
 export { Select } from "@/components/select";
@@ -208,20 +209,29 @@ export function PageHeader({
   title,
   subtitle,
   action,
+  icon: Icon,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  icon?: LucideIcon;
 }) {
   return (
     <div className="mb-5 flex items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Icon className="h-6 w-6" />
+          </span>
         )}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
       </div>
       {action}
     </div>

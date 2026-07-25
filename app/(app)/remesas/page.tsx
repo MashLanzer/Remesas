@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Send } from "lucide-react";
 import { getRemittances, getSessionContext } from "@/lib/data";
 import { LinkButton, PageHeader } from "@/components/ui";
 import { RemesasList } from "@/components/remesas-list";
@@ -21,6 +21,7 @@ export default async function RemesasPage({
       <PageHeader
         title="Remesas"
         subtitle={`${all.length} en total`}
+        icon={ctx.isOperador ? undefined : Send}
         action={
           <LinkButton href="/remesas/nueva">
             <Plus className="h-4 w-4" /> Nueva
