@@ -10,6 +10,7 @@ import {
 } from "@/lib/data";
 import { BottomNav } from "@/components/nav";
 import { TopBar } from "@/components/top-bar";
+import { RepartidorOnboarding } from "@/components/repartidor-onboarding";
 
 export default async function AppLayout({
   children,
@@ -58,6 +59,7 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      {!ctx.isOperador && ctx.role === "repartidor" && <RepartidorOnboarding />}
       <TopBar
         email={user.email}
         alertCount={alertCount}
