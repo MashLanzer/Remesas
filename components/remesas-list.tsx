@@ -71,7 +71,9 @@ export function RemesasList({
 }) {
   const [estado, setEstado] = useState(initialEstado);
   const [q, setQ] = useState(initialQuery);
-  const [sort, setSort] = useState<"fecha" | "monto" | "ganancia">("fecha");
+  const [sort, setSort] = useState<
+    "fecha" | "monto" | "ganancia" | "provincia"
+  >("fecha");
   const [showDates, setShowDates] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -120,6 +122,14 @@ export function RemesasList({
       if (sort === "monto") return Number(b.amount_usd) - Number(a.amount_usd);
       if (sort === "ganancia")
         return Number(b.total_profit) - Number(a.total_profit);
+      if (sort === "provincia") {
+        const pa = a.beneficiary?.province || "￿"; // sin provincia al final
+        const pb = b.beneficiary?.province || "￿";
+        return (
+          pa.localeCompare(pb) ||
+          b.date.localeCompare(a.date)
+        );
+      }
       return (
         b.date.localeCompare(a.date) ||
         (b.created_at || "").localeCompare(a.created_at || "")
@@ -140,17 +150,29 @@ export function RemesasList({
     return Object.entries(m);
   }, [list]);
 
-  // Agrupar por fecha solo cuando el orden es por fecha.
+  // Agrupar por fecha (orden por fecha) o por provincia (orden por provincia).
   const groups = useMemo(() => {
-    if (sort !== "fecha") return [{ label: "", items: list }];
-    const out: { label: string; items: Remittance[] }[] = [];
-    for (const r of list) {
-      const label = dateLabel(r.date);
-      const last = out[out.length - 1];
-      if (last && last.label === label) last.items.push(r);
-      else out.push({ label, items: [r] });
+    if (sort === "fecha") {
+      const out: { label: string; items: Remittance[] }[] = [];
+      for (const r of list) {
+        const label = dateLabel(r.date);
+        const last = out[out.length - 1];
+        if (last && last.label === label) last.items.push(r);
+        else out.push({ label, items: [r] });
+      }
+      return out;
     }
-    return out;
+    if (sort === "provincia") {
+      const out: { label: string; items: Remittance[] }[] = [];
+      for (const r of list) {
+        const label = r.beneficiary?.province || "Sin provincia";
+        const last = out[out.length - 1];
+        if (last && last.label === label) last.items.push(r);
+        else out.push({ label, items: [r] });
+      }
+      return out;
+    }
+    return [{ label: "", items: list }];
   }, [list, sort]);
 
   function presetToday() {
@@ -290,6 +312,7 @@ export function RemesasList({
             <option value="fecha">Más recientes</option>
             <option value="monto">Mayor monto</option>
             <option value="ganancia">Mayor ganancia</option>
+            {!isOperador && <option value="provincia">Por provincia</option>}
           </Select>
         </div>
         <button
