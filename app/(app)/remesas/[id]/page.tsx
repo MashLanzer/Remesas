@@ -17,6 +17,7 @@ import { RemittanceActions } from "@/components/remittance-actions";
 import { RemittanceStepper } from "@/components/remittance-stepper";
 import { DeliverSheet } from "@/components/deliver-sheet";
 import { EnRouteToggle } from "@/components/en-route-toggle";
+import { CopyBeneficiary } from "@/components/copy-beneficiary";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import { SmartImage } from "@/components/smart-image";
@@ -184,6 +185,17 @@ export default async function RemesaDetailPage({
             <Users className="h-3.5 w-3.5" /> Ver remesas de{" "}
             {r.beneficiary.name}
           </Link>
+        )}
+        {!ctx.isOperador && r.beneficiary?.name && (
+          <CopyBeneficiary
+            text={[
+              r.beneficiary.name,
+              r.beneficiary.phone || null,
+              r.beneficiary.province || null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          />
         )}
       </Card>
 
