@@ -68,14 +68,23 @@ function durationLabel(fromIso: string, toIso: string): string | null {
   return `${d} día${d > 1 ? "s" : ""}`;
 }
 
+type EarnConfig = {
+  threshold: number;
+  percent: number;
+  flat: number;
+  split: number;
+};
+
 export function OrdersManager({
   orders,
   repartidores = [],
   rates = [],
+  earn,
 }: {
   orders: Order[];
   repartidores?: Rep[];
   rates?: ExchangeRate[];
+  earn?: EarnConfig;
 }) {
   const router = useRouter();
   const { confirm, notify } = useDialog();
@@ -99,6 +108,20 @@ export function OrdersManager({
     const rate = ratesByCurrency[o.delivery_currency];
     if (!rate || rate <= 0) return null;
     return `${localAmount(Number(o.amount_usd) * rate)} ${o.delivery_currency}`;
+  }
+
+  // Ganancia estimada del repartidor si acepta este pedido (misma fórmula que
+  // al aceptar: comisión + su % de reparto). Sin puntos/descuentos → "~".
+  function earnEstimate(o: Order): number | null {
+    if (!earn) return null;
+    const amount = Number(o.amount_usd) || 0;
+    if (amount <= 0) return null;
+    const commission =
+      amount >= earn.threshold
+        ? Math.round(((amount * earn.percent) / 100) * 100) / 100
+        : earn.flat;
+    const partnerShare = commission * (1 - earn.split / 100);
+    return Math.round(partnerShare * 100) / 100;
   }
 
   // "Ahora" se fija tras montar para evitar desajustes de hidratación.
@@ -405,7 +428,14 @@ export function OrdersManager({
               {stale ? " · sin responder" : ""}
             </p>
           </div>
-          <OrderStatusBadge order={o} />
+          <div className="flex flex-col items-end gap-1">
+            <OrderStatusBadge order={o} />
+            {earnEstimate(o) != null && earnEstimate(o)! > 0 && (
+              <span className="flex items-center gap-1 rounded-full bg-income/10 px-2 py-0.5 text-[11px] font-bold text-income">
+                <Coins className="h-3 w-3" /> Ganas ~{usd(earnEstimate(o)!)}
+              </span>
+            )}
+          </div>
         </div>
 
         {dupIds.has(o.id) && (
