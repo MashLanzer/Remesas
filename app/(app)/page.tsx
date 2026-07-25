@@ -30,7 +30,7 @@ export default async function DashboardPage() {
       user
         ? supabase
             .from("profiles")
-            .select("full_name, monthly_goal")
+            .select("full_name, monthly_goal, monthly_goal_count")
             .eq("id", user.id)
             .single()
         : Promise.resolve({ data: null }),
@@ -42,6 +42,10 @@ export default async function DashboardPage() {
   const personalGoal = Number(
     (profileRes.data as { monthly_goal?: number | null } | null)?.monthly_goal ?? 0
   );
+  const personalGoalCount = Number(
+    (profileRes.data as { monthly_goal_count?: number | null } | null)
+      ?.monthly_goal_count ?? 0
+  );
 
   return (
     <DashboardView
@@ -52,6 +56,7 @@ export default async function DashboardPage() {
       pendingOrders={pendingOrders.length}
       monthlyGoal={monthlyGoal}
       personalGoal={personalGoal}
+      personalGoalCount={personalGoalCount}
       brand={settings.business_name || "Giro"}
       rates={rates}
     />

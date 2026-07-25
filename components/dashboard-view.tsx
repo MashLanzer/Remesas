@@ -119,6 +119,7 @@ export function DashboardView({
   pendingOrders = 0,
   monthlyGoal = 0,
   personalGoal = 0,
+  personalGoalCount = 0,
   brand = "Giro",
   rates = [],
 }: {
@@ -129,6 +130,7 @@ export function DashboardView({
   pendingOrders?: number;
   monthlyGoal?: number;
   personalGoal?: number;
+  personalGoalCount?: number;
   brand?: string;
   rates?: ExchangeRate[];
 }) {
@@ -668,7 +670,12 @@ export function DashboardView({
 
       {/* Meta personal del repartidor */}
       {isRep && (
-        <RepartidorGoal monthShare={repMonthShare} goal={personalGoal} />
+        <RepartidorGoal
+          monthShare={repMonthShare}
+          goal={personalGoal}
+          monthDeliveries={closes.month.count}
+          goalCount={personalGoalCount}
+        />
       )}
 
       {/* Cierre del repartidor: hoy / semana / mes (si algo se entregó) */}

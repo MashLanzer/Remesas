@@ -1420,7 +1420,10 @@ export async function requestSettlement(amount: number) {
 
 // Meta personal (mensual) del repartidor, en su propio perfil. Tolerante si la
 // columna monthly_goal aún no existe (migración 0032).
-export async function updatePersonalGoal(value: number | null) {
+export async function updatePersonalGoal(
+  value: number | null,
+  count?: number | null
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -1430,6 +1433,13 @@ export async function updatePersonalGoal(value: number | null) {
     .from("profiles")
     .update({ monthly_goal: value && value > 0 ? value : null })
     .eq("id", user.id);
+  // Meta de número de entregas (tolerante — columna 0040).
+  if (count !== undefined) {
+    await supabase
+      .from("profiles")
+      .update({ monthly_goal_count: count && count > 0 ? Math.round(count) : null })
+      .eq("id", user.id);
+  }
   revalidatePath("/");
 }
 
