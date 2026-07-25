@@ -438,7 +438,7 @@ export function CuentasView({
             movements={movements}
             receipt={{
               brand: settings.business_name || "Giro",
-              name: delivererName,
+              name: delivererName ?? null,
             }}
           />
         )
