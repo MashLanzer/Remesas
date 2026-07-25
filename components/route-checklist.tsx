@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Route, Check, MapPin, ChevronRight } from "lucide-react";
+import { Route, Check, MapPin, StickyNote } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { updateRemittanceStatus } from "@/app/actions";
 import { usd, cn } from "@/lib/utils";
@@ -112,6 +112,12 @@ export function RouteChecklist({ pending }: { pending: Remittance[] }) {
                           {r.beneficiary?.address || "Sin dirección"} ·{" "}
                           {usd(r.amount_usd)}
                         </p>
+                        {r.beneficiary?.notes && !isDone && (
+                          <p className="mt-0.5 flex items-start gap-1 text-[11px] font-medium text-warning">
+                            <StickyNote className="mt-px h-3 w-3 shrink-0" />
+                            <span className="truncate">{r.beneficiary.notes}</span>
+                          </p>
+                        )}
                       </div>
                       {(r.beneficiary?.address || r.beneficiary?.province) && (
                         <a

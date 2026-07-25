@@ -8,6 +8,7 @@ import {
   Users,
   Phone,
   MapPin,
+  StickyNote,
 } from "lucide-react";
 import { getRemittance, getSessionContext, getBusinessSettings } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -170,6 +171,20 @@ export default async function RemesaDetailPage({
             )}
           </div>
         )
+      )}
+
+      {!ctx.isOperador && r.beneficiary?.notes && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-warning/25 bg-warning/5 p-3.5">
+          <StickyNote className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-warning">
+              Nota del beneficiario
+            </p>
+            <p className="mt-0.5 whitespace-pre-line text-sm text-foreground">
+              {r.beneficiary.notes}
+            </p>
+          </div>
+        </div>
       )}
 
       <Card className="mb-4 space-y-2.5">
