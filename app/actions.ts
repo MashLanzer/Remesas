@@ -1309,6 +1309,19 @@ export async function updateRemittanceStatus(id: string, status: string) {
   revalidatePath("/c");
 }
 
+// Marcar entregada con comprobante opcional (foto de la entrega). Usa el mismo
+// flujo de estado (puntos, pedido vinculado, revalidación) que el cambio de
+// estado normal, pero sube antes la foto si el repartidor la adjuntó.
+export async function deliverRemittance(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  const id = str(formData.get("id"));
+  if (!id) return;
+  await handleDeliveryProof(supabase, formData, id);
+  await updateRemittanceStatus(id, "entregado");
+}
+
 export async function deleteRemittance(id: string) {
   const supabase = await createClient();
   await logActivity("remesa.borrar", { entityType: "remesa", entityId: id });

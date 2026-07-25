@@ -7,6 +7,7 @@ import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
 import { RemittanceActions } from "@/components/remittance-actions";
 import { RemittanceStepper } from "@/components/remittance-stepper";
+import { DeliverSheet } from "@/components/deliver-sheet";
 import { ShareReceipt } from "@/components/share-receipt";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import { SmartImage } from "@/components/smart-image";
@@ -224,6 +225,17 @@ export default async function RemesaDetailPage({
           }}
         />
       </div>
+
+      {/* Repartidor: confirmación de entrega pulida cuando está pendiente */}
+      {!ctx.isOperador && r.status === "pendiente" && (
+        <DeliverSheet
+          id={r.id}
+          beneficiaryName={r.beneficiary?.name ?? null}
+          province={r.beneficiary?.province ?? null}
+          amountUsd={usd(r.amount_usd)}
+          delivered={`${localAmount(r.local_amount)} ${r.delivery_currency}`}
+        />
+      )}
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Cambiar estado
