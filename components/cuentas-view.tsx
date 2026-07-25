@@ -434,7 +434,13 @@ export function CuentasView({
         />
       ) : (
         settlements.length > 0 && (
-          <MovementsView movements={movements} />
+          <MovementsView
+            movements={movements}
+            receipt={{
+              brand: settings.business_name || "Giro",
+              name: delivererName,
+            }}
+          />
         )
       )}
 

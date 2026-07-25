@@ -5,6 +5,7 @@ import { Send, ArrowUpRight, ArrowDownLeft, Download } from "lucide-react";
 import { Card } from "@/components/ui";
 import { usd, formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { SettlementReceipt } from "@/components/settlement-receipt";
 
 export type Movement = {
   id: string;
@@ -21,7 +22,14 @@ function csvCell(v: string | number): string {
 
 type FKind = "todos" | "remesa" | "pago" | "recibo";
 
-export function MovementsView({ movements }: { movements: Movement[] }) {
+export function MovementsView({
+  movements,
+  receipt,
+}: {
+  movements: Movement[];
+  // Si se pasa, los "pago" (dinero recibido) muestran un recibo compartible.
+  receipt?: { brand: string; name: string | null };
+}) {
   const [filter, setFilter] = useState<FKind>("todos");
   const hasRecibos = movements.some((m) => m.kind === "recibo");
   const chips: { k: FKind; l: string }[] = [
@@ -132,19 +140,30 @@ export function MovementsView({ movements }: { movements: Movement[] }) {
                 <p className="text-xs text-muted-foreground">{formatDate(m.date)}</p>
               </div>
             </div>
-            <div className="text-right">
-              <span
-                className={
-                  "tabular text-sm font-bold " +
-                  (m.delta >= 0 ? "text-destructive" : "text-income")
-                }
-              >
-                {m.delta >= 0 ? "+" : "−"}
-                {usd(Math.abs(m.delta))}
-              </span>
-              <p className="tabular text-[10px] text-muted-foreground">
-                saldo {usd(runningById[m.id] ?? 0)}
-              </p>
+            <div className="flex items-center gap-1">
+              <div className="text-right">
+                <span
+                  className={
+                    "tabular text-sm font-bold " +
+                    (m.delta >= 0 ? "text-destructive" : "text-income")
+                  }
+                >
+                  {m.delta >= 0 ? "+" : "−"}
+                  {usd(Math.abs(m.delta))}
+                </span>
+                <p className="tabular text-[10px] text-muted-foreground">
+                  saldo {usd(runningById[m.id] ?? 0)}
+                </p>
+              </div>
+              {receipt && m.kind === "pago" && (
+                <SettlementReceipt
+                  brand={receipt.brand}
+                  name={receipt.name}
+                  date={m.date}
+                  amount={Math.abs(m.delta)}
+                  concept={m.label}
+                />
+              )}
             </div>
           </Card>
         ))}
