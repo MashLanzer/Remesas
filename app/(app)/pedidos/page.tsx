@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Inbox } from "lucide-react";
 import { getOrders, getRepartidores, getSessionContext } from "@/lib/data";
 import { PageHeader } from "@/components/ui";
 import { OrdersManager } from "@/components/orders-manager";
@@ -21,6 +22,7 @@ export default async function PedidosPage() {
       <PageHeader
         title="Pedidos"
         subtitle="Solicitudes de remesa de tus clientes"
+        icon={ctx.isOperador ? undefined : Inbox}
       />
       <OrdersManager
         orders={orders}

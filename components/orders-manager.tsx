@@ -21,6 +21,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
+import { IlluOrders } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import {
@@ -586,6 +587,7 @@ export function OrdersManager({
 
         {pendientes.length === 0 ? (
           <EmptyState
+            illustration={<IlluOrders />}
             title="Sin pedidos nuevos"
             description="Cuando un cliente pida una remesa, aparecerá aquí."
           />
