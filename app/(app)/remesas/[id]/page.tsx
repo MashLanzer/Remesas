@@ -1,6 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil, MessageCircle, Copy, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+  MessageCircle,
+  Copy,
+  Users,
+  Phone,
+  MapPin,
+} from "lucide-react";
 import { getRemittance, getSessionContext, getBusinessSettings } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { usd, localAmount, formatDate } from "@/lib/utils";
@@ -90,20 +98,75 @@ export default async function RemesaDetailPage({
 
       {!ctx.isOperador && <RemittanceStepper status={r.status} />}
 
-      {r.beneficiary?.phone && (
-        <a
-          href={`https://wa.me/${r.beneficiary.phone.replace(
-            /\D/g,
-            ""
-          )}?text=${encodeURIComponent(
-            `Hola, la remesa de ${usd(r.amount_usd)} está ${r.status}.`
-          )}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-income px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
-        >
-          <MessageCircle className="h-4 w-4" /> WhatsApp al beneficiario
-        </a>
+      {/* Contacto rápido con el beneficiario */}
+      {ctx.isOperador ? (
+        r.beneficiary?.phone && (
+          <a
+            href={`https://wa.me/${r.beneficiary.phone.replace(
+              /\D/g,
+              ""
+            )}?text=${encodeURIComponent(
+              `Hola, la remesa de ${usd(r.amount_usd)} está ${r.status}.`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-income px-4 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
+          >
+            <MessageCircle className="h-4 w-4" /> WhatsApp al beneficiario
+          </a>
+        )
+      ) : (
+        (r.beneficiary?.phone || r.beneficiary?.province) && (
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            {r.beneficiary?.phone ? (
+              <a
+                href={`https://wa.me/${r.beneficiary.phone.replace(
+                  /\D/g,
+                  ""
+                )}?text=${encodeURIComponent(
+                  `Hola, la remesa de ${usd(r.amount_usd)} está ${r.status}.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-income/10 py-3 text-xs font-semibold text-income transition active:scale-95"
+              >
+                <MessageCircle className="h-5 w-5" /> WhatsApp
+              </a>
+            ) : (
+              <span className="flex flex-col items-center justify-center gap-1 rounded-xl bg-muted py-3 text-xs font-semibold text-muted-foreground opacity-50">
+                <MessageCircle className="h-5 w-5" /> WhatsApp
+              </span>
+            )}
+            {r.beneficiary?.phone ? (
+              <a
+                href={`tel:${r.beneficiary.phone.replace(/[^\d+]/g, "")}`}
+                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-primary/10 py-3 text-xs font-semibold text-primary transition active:scale-95"
+              >
+                <Phone className="h-5 w-5" /> Llamar
+              </a>
+            ) : (
+              <span className="flex flex-col items-center justify-center gap-1 rounded-xl bg-muted py-3 text-xs font-semibold text-muted-foreground opacity-50">
+                <Phone className="h-5 w-5" /> Llamar
+              </span>
+            )}
+            {r.beneficiary?.province ? (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${r.beneficiary.province}, Cuba`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center gap-1 rounded-xl bg-info/10 py-3 text-xs font-semibold text-info transition active:scale-95"
+              >
+                <MapPin className="h-5 w-5" /> Mapa
+              </a>
+            ) : (
+              <span className="flex flex-col items-center justify-center gap-1 rounded-xl bg-muted py-3 text-xs font-semibold text-muted-foreground opacity-50">
+                <MapPin className="h-5 w-5" /> Mapa
+              </span>
+            )}
+          </div>
+        )
       )}
 
       <Card className="mb-4 space-y-2.5">
