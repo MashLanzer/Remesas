@@ -187,6 +187,17 @@ export function CuentasView({
         <p className="text-sm font-medium text-white/75">{balanceTitle}</p>
         <p className="tabular mt-1 text-4xl font-extrabold">{usd(Math.abs(balance))}</p>
 
+        {isRep && !settled && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+              <HandCoins className="h-3.5 w-3.5" /> Generado {usd(totalOwed)}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+              <Wallet className="h-3.5 w-3.5" /> Recibido {usd(netSettled)}
+            </span>
+          </div>
+        )}
+
         {!settled && (
           <div className="mt-4">
             <div className="mb-1 flex justify-between text-xs text-white/80">
@@ -200,6 +211,12 @@ export function CuentasView({
               />
             </div>
           </div>
+        )}
+
+        {isRep && settled && (
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+            <Wallet className="h-3.5 w-3.5" /> Todo al día con el operador
+          </p>
         )}
       </div>
 
