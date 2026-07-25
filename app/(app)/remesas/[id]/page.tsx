@@ -10,6 +10,7 @@ import {
   MapPin,
   StickyNote,
   AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { getRemittance, getSessionContext, getBusinessSettings } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,7 @@ import { IncidentButton } from "@/components/incident-button";
 import { ReturnDeliveryButton } from "@/components/return-delivery-button";
 import { CopyBeneficiary } from "@/components/copy-beneficiary";
 import { ShareReceipt } from "@/components/share-receipt";
+import { ShareTrackButton } from "@/components/share-track-button";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import { SmartImage } from "@/components/smart-image";
 import type { RemittanceStatus } from "@/lib/types";
@@ -66,6 +68,18 @@ export default async function RemesaDetailPage({
   const creatorName = r.created_by ? names[r.created_by] : null;
   const delivererName = r.deliverer_id ? names[r.deliverer_id] : null;
 
+  // Pedido vinculado (si nació de la app del cliente): confirmación de la familia.
+  const supabaseOrder = await createClient();
+  const { data: linkedOrder } = await supabaseOrder
+    .from("orders")
+    .select("received_at, track_token")
+    .eq("remittance_id", r.id)
+    .maybeSingle();
+  const familyReceived = !!(linkedOrder as { received_at?: string | null } | null)
+    ?.received_at;
+  const trackToken =
+    (linkedOrder as { track_token?: string | null } | null)?.track_token ?? null;
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -102,6 +116,26 @@ export default async function RemesaDetailPage({
       </div>
 
       {!ctx.isOperador && <RemittanceStepper status={r.status} />}
+
+      {/* Confirmación de la familia (pedidos con seguimiento) */}
+      {familyReceived ? (
+        <div className="mb-4 flex items-center gap-3 rounded-2xl border border-income/25 bg-income/5 p-3.5">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-income" />
+          <p className="text-sm font-semibold text-foreground">
+            Confirmado por la familia ✓
+          </p>
+        </div>
+      ) : (
+        trackToken &&
+        (r.status === "entregado" || r.status === "liquidado") && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5">
+            <p className="min-w-0 text-sm text-muted-foreground">
+              La familia aún no confirma. Pídeles que confirmen desde el enlace.
+            </p>
+            <ShareTrackButton token={trackToken} />
+          </div>
+        )
+      )}
 
       {r.status === "pendiente" && r.last_incident && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-warning/25 bg-warning/5 p-3.5">
