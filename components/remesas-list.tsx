@@ -17,6 +17,7 @@ import {
   Truck,
 } from "lucide-react";
 import { Card, Badge, EmptyState, Select } from "@/components/ui";
+import { IlluOrders } from "@/components/illustrations";
 import { usd, formatDate, localAmount } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { updateRemittanceStatus, setClientPaid } from "@/app/actions";
@@ -400,6 +401,9 @@ export function RemesasList({
 
       {list.length === 0 ? (
         <EmptyState
+          illustration={
+            !isOperador && !q && !from && !to ? <IlluOrders /> : undefined
+          }
           title={q || from || to ? "Sin resultados" : "No hay remesas aquí"}
           description={
             q || from || to
