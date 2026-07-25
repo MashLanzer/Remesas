@@ -28,13 +28,20 @@ export default async function DashboardPage() {
       getBusinessSettings(),
       getExchangeRates(),
       user
-        ? supabase.from("profiles").select("full_name").eq("id", user.id).single()
+        ? supabase
+            .from("profiles")
+            .select("full_name, monthly_goal")
+            .eq("id", user.id)
+            .single()
         : Promise.resolve({ data: null }),
     ]);
 
   const partnerBalance = calcPartnerBalance(remittances, settlements);
   const name = profileRes.data?.full_name ?? null;
   const monthlyGoal = settings.monthly_goal ? Number(settings.monthly_goal) : 0;
+  const personalGoal = Number(
+    (profileRes.data as { monthly_goal?: number | null } | null)?.monthly_goal ?? 0
+  );
 
   return (
     <DashboardView
@@ -44,6 +51,7 @@ export default async function DashboardPage() {
       isOperador={ctx.isOperador}
       pendingOrders={pendingOrders.length}
       monthlyGoal={monthlyGoal}
+      personalGoal={personalGoal}
       rates={rates}
     />
   );

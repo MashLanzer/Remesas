@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
+import { RepartidorGoal } from "@/components/repartidor-goal";
 import { usd, formatDate, localAmount, cn } from "@/lib/utils";
 import type {
   Remittance,
@@ -114,6 +115,7 @@ export function DashboardView({
   isOperador = true,
   pendingOrders = 0,
   monthlyGoal = 0,
+  personalGoal = 0,
   rates = [],
 }: {
   remittances: Remittance[];
@@ -122,6 +124,7 @@ export function DashboardView({
   isOperador?: boolean;
   pendingOrders?: number;
   monthlyGoal?: number;
+  personalGoal?: number;
   rates?: ExchangeRate[];
 }) {
   const isRep = !isOperador;
@@ -217,6 +220,20 @@ export function DashboardView({
     !isRep && monthlyGoal > 0
       ? Math.min((monthProfit / monthlyGoal) * 100, 100)
       : null;
+
+  // Ganancia del repartidor este mes (su parte), para su meta personal.
+  const repMonthShare = useMemo(() => {
+    const now = new Date();
+    return remittances
+      .filter((r) => {
+        const d = new Date(r.date + "T00:00:00");
+        return (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth()
+        );
+      })
+      .reduce((s, r) => s + Number(r.partner_share), 0);
+  }, [remittances]);
 
   // Pendientes: siempre global (sin filtrar por período).
   const pending = remittances.filter((r) => r.status === "pendiente");
@@ -568,6 +585,11 @@ export function DashboardView({
             <p className="mt-0.5 text-xs text-muted-foreground">saldo actual</p>
           </Card>
         </div>
+      )}
+
+      {/* Meta personal del repartidor */}
+      {isRep && (
+        <RepartidorGoal monthShare={repMonthShare} goal={personalGoal} />
       )}
 
       {/* Últimas remesas */}

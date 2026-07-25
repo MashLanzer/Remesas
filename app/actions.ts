@@ -1322,6 +1322,21 @@ export async function deliverRemittance(formData: FormData) {
   await updateRemittanceStatus(id, "entregado");
 }
 
+// Meta personal (mensual) del repartidor, en su propio perfil. Tolerante si la
+// columna monthly_goal aún no existe (migración 0032).
+export async function updatePersonalGoal(value: number | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("profiles")
+    .update({ monthly_goal: value && value > 0 ? value : null })
+    .eq("id", user.id);
+  revalidatePath("/");
+}
+
 // El repartidor marca (o desmarca) que salió a entregar una remesa pendiente.
 // Solo escribe una marca de tiempo; no cambia el estado. Tolerante si la
 // columna en_route_at aún no existe (migración 0031).
