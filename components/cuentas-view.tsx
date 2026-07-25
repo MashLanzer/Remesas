@@ -14,7 +14,9 @@ import { SettlementView } from "@/components/settlement-view";
 import { MovementsView, type Movement } from "@/components/movements-view";
 import { ShareStatement } from "@/components/share-statement";
 import { SettleRequestButton } from "@/components/settle-request-button";
+import { DeliveryExpenses } from "@/components/delivery-expenses";
 import type { BusinessSettings, Remittance, Settlement } from "@/lib/types";
+import type { DeliveryExpense } from "@/lib/data";
 
 export function CuentasView({
   remittances,
@@ -28,6 +30,7 @@ export function CuentasView({
   clientDebts = [],
   operatorPhone = null,
   operatorName = null,
+  expenses = [],
 }: {
   remittances: Remittance[];
   settlements: Settlement[];
@@ -40,6 +43,7 @@ export function CuentasView({
   clientDebts?: { name: string; phone: string | null; owed: number }[];
   operatorPhone?: string | null;
   operatorName?: string | null;
+  expenses?: DeliveryExpense[];
 }) {
   const isRep = perspective === "repartidor";
   const partnerName = settings.partner_name?.trim() || null;
@@ -277,6 +281,11 @@ export function CuentasView({
             </p>
           </Card>
         </div>
+      )}
+
+      {/* Gastos de reparto y ganancia neta (repartidor) */}
+      {isRep && (
+        <DeliveryExpenses expenses={expenses} earned={partnerProfit} />
       )}
 
       {/* Cobrado reciente (solo operador) */}

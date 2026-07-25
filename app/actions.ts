@@ -1322,6 +1322,38 @@ export async function deliverRemittance(formData: FormData) {
   await updateRemittanceStatus(id, "entregado");
 }
 
+// Gastos de reparto del repartidor (transporte, etc.), para su ganancia neta.
+export async function addDeliveryExpense(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.isOperador || !ctx.userId) return;
+  const amount = num(formData.get("amount"));
+  if (!amount || amount <= 0) return;
+  const tid = await currentTenantId();
+  if (!tid) return;
+  await supabase.from("delivery_expenses").insert({
+    operator_id: tid,
+    deliverer_id: ctx.userId,
+    amount,
+    note: str(formData.get("note")),
+  });
+  revalidatePath("/finanzas");
+  revalidatePath("/");
+}
+
+export async function deleteDeliveryExpense(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return;
+  await supabase
+    .from("delivery_expenses")
+    .delete()
+    .eq("id", id)
+    .eq("deliverer_id", ctx.userId);
+  revalidatePath("/finanzas");
+  revalidatePath("/");
+}
+
 // El repartidor avisa al operador que su saldo está listo para liquidar. Queda
 // registrado en la actividad del negocio (el operador lo ve en /actividad).
 export async function requestSettlement(amount: number) {

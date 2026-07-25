@@ -423,6 +423,31 @@ export async function getAlertCount(): Promise<number> {
   return total;
 }
 
+export interface DeliveryExpense {
+  id: string;
+  operator_id: string | null;
+  deliverer_id: string | null;
+  date: string;
+  amount: number;
+  note: string | null;
+  created_at: string;
+}
+
+// Gastos de reparto del repartidor actual (tolerante si la tabla no existe).
+export async function getMyDeliveryExpenses(): Promise<DeliveryExpense[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.isOperador || !ctx.userId) return [];
+  const { data, error } = await supabase
+    .from("delivery_expenses")
+    .select("*")
+    .eq("deliverer_id", ctx.userId)
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data as DeliveryExpense[]) ?? [];
+}
+
 export async function getSettlements(): Promise<Settlement[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();

@@ -5,6 +5,7 @@ import {
   getRepartidores,
   getSessionContext,
   getMyOperatorContact,
+  getMyDeliveryExpenses,
 } from "@/lib/data";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd } from "@/lib/utils";
@@ -41,6 +42,7 @@ export default async function FinanzasPage({
   const operatorContact = isOperador
     ? { businessName: null, phone: null }
     : await getMyOperatorContact();
+  const expenses = isOperador ? [] : await getMyDeliveryExpenses();
 
   // El operador puede ver el combinado o filtrar por repartidor.
   const cuentasRem = rep
@@ -94,6 +96,7 @@ export default async function FinanzasPage({
         clientDebts={isOperador ? clientDebts : []}
         operatorPhone={operatorContact.phone}
         operatorName={operatorContact.businessName}
+        expenses={expenses}
       />
     </div>
   );
