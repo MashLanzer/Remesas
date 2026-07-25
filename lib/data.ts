@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
@@ -29,8 +30,11 @@ export interface SessionContext {
 
 // Contexto del usuario actual. Tolerante: si las columnas multi-negocio no
 // existen todavía (sin migrar), cae al comportamiento de un solo negocio.
-export async function getSessionContext(): Promise<SessionContext> {
-  const supabase = await createClient();
+// Memoizado por petición (React cache): aunque se llame decenas de veces en una
+// carga, solo valida la sesión y consulta el perfil una vez.
+export const getSessionContext = cache(
+  async (): Promise<SessionContext> => {
+    const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -96,16 +100,17 @@ export async function getSessionContext(): Promise<SessionContext> {
       : null
     : null;
 
-  return {
-    userId: user.id,
-    role,
-    isOperador,
-    isCliente,
-    tenantId,
-    memberStatus,
-    needsOnboarding,
-  };
-}
+    return {
+      userId: user.id,
+      role,
+      isOperador,
+      isCliente,
+      tenantId,
+      memberStatus,
+      needsOnboarding,
+    };
+  }
+);
 
 export async function getRepartidores(): Promise<Profile[]> {
   const supabase = await createClient();
