@@ -112,7 +112,7 @@ export async function getRepartidores(): Promise<Profile[]> {
   const ctx = await getSessionContext();
   let q = supabase
     .from("profiles")
-    .select("id, full_name, role, phone, member_status")
+    .select("id, full_name, role, phone, member_status, coverage_provinces")
     .eq("role", "repartidor")
     .order("full_name", { ascending: true });
   if (ctx.tenantId) q = q.eq("operator_id", ctx.tenantId);

@@ -1393,6 +1393,23 @@ export async function updatePersonalGoal(value: number | null) {
   revalidatePath("/");
 }
 
+// El repartidor guarda su zona de cobertura (provincias, separadas por comas).
+// Tolerante si la columna coverage_provinces no existe (migración 0037).
+export async function updateCoverage(provinces: string[]) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  const csv = provinces.map((p) => p.trim()).filter(Boolean).join(", ");
+  await supabase
+    .from("profiles")
+    .update({ coverage_provinces: csv || null })
+    .eq("id", user.id);
+  revalidatePath("/perfil");
+  revalidatePath("/pedidos");
+}
+
 // El repartidor devuelve una remesa que no puede entregar: se quita como
 // repartidor asignado (queda sin asignar) para que el operador la reasigne.
 export async function returnRemittanceToOperator(id: string, reason?: string) {

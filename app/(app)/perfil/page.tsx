@@ -22,6 +22,7 @@ import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
 import { ShareCard } from "@/components/share-card";
 import { PaymentMethods } from "@/components/payment-methods";
 import { SmartImage } from "@/components/smart-image";
+import { CoverageSelector } from "@/components/coverage-selector";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -102,6 +103,12 @@ export default async function PerfilPage() {
     ).padStart(2, "0")}`;
   })();
   const thisWeek = delivered.filter((r) => r.date >= weekAgoStr).length;
+
+  // Zona de cobertura (provincias) del repartidor.
+  const coverage = ((p.coverage_provinces as string) || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   return (
     <div className="space-y-6">
@@ -207,6 +214,9 @@ export default async function PerfilPage() {
           </div>
         </section>
       )}
+
+      {/* Zona de cobertura (repartidor) */}
+      {!isOperador && <CoverageSelector initial={coverage} />}
 
       {/* Galería de comprobantes de entrega (repartidor) */}
       {!isOperador && proofs.length > 0 && (

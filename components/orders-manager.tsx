@@ -45,7 +45,7 @@ const QUICK_REASONS = [
   "No disponible ahora",
 ];
 
-type Rep = { id: string; name: string };
+type Rep = { id: string; name: string; coverage?: string[] };
 
 function agoLabel(iso: string, now: number): string {
   const diff = now - new Date(iso).getTime();
@@ -822,12 +822,30 @@ export function OrdersManager({
                   className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
                 >
                   <option value="">Sin asignar (lo llevo yo)</option>
-                  {repartidores.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
+                  {[...repartidores]
+                    .sort((a, b) => {
+                      const pv = accepting.province;
+                      const ca = pv && a.coverage?.includes(pv) ? 1 : 0;
+                      const cb = pv && b.coverage?.includes(pv) ? 1 : 0;
+                      return cb - ca;
+                    })
+                    .map((r) => {
+                      const covers =
+                        accepting.province &&
+                        r.coverage?.includes(accepting.province);
+                      return (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                          {covers ? ` · cubre ${accepting.province}` : ""}
+                        </option>
+                      );
+                    })}
                 </select>
+                {accepting.province && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Provincia del pedido: {accepting.province}
+                  </p>
+                )}
               </div>
             )}
 

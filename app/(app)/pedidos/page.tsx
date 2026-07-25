@@ -63,6 +63,11 @@ export default async function PedidosPage() {
         repartidores={repartidores.map((r) => ({
           id: r.id,
           name: r.full_name || "Repartidor",
+          coverage: ((r as { coverage_provinces?: string | null })
+            .coverage_provinces || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
         }))}
       />
     </div>

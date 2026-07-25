@@ -211,6 +211,26 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
 export const DELIVERY_CURRENCIES = ["CUP", "USD", "MLC", "EUR"] as const;
 export type DeliveryCurrency = (typeof DELIVERY_CURRENCIES)[number];
 
+// Provincias de Cuba, para la zona de cobertura del repartidor.
+export const CUBA_PROVINCES = [
+  "Pinar del Río",
+  "Artemisa",
+  "La Habana",
+  "Mayabeque",
+  "Matanzas",
+  "Cienfuegos",
+  "Villa Clara",
+  "Sancti Spíritus",
+  "Ciego de Ávila",
+  "Camagüey",
+  "Las Tunas",
+  "Holguín",
+  "Granma",
+  "Santiago de Cuba",
+  "Guantánamo",
+  "Isla de la Juventud",
+] as const;
+
 export interface Profile {
   id: string;
   email?: string;
