@@ -560,6 +560,13 @@ function RemesaCard({
             ? `Ganancia ${usd(r.total_profit)} · Tu parte ${usd(r.my_share)}`
             : `Tu parte ${usd(r.partner_share)}`}
         </p>
+        {!isOperador && (
+          <MiniStepper
+            stage={
+              r.status === "liquidado" ? 3 : r.status === "entregado" ? 2 : 1
+            }
+          />
+        )}
         {hasActions && (
           <div className="mt-2 flex gap-2">
             {showCobrar &&
@@ -596,6 +603,50 @@ function RemesaCard({
         )}
       </div>
     </Card>
+  );
+}
+
+function MiniStepper({ stage }: { stage: 1 | 2 | 3 }) {
+  const steps = ["Pendiente", "Entregado", "Liquidado"];
+  return (
+    <div className="mt-2 flex items-center">
+      {steps.map((label, i) => {
+        const done = i < stage;
+        const active = i === stage - 1;
+        return (
+          <div key={label} className="flex flex-1 items-center">
+            <div className="flex flex-col items-center">
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  done
+                    ? active
+                      ? "bg-primary ring-2 ring-primary/30"
+                      : "bg-primary"
+                    : "bg-muted"
+                )}
+              />
+              <span
+                className={cn(
+                  "mt-1 text-[9px] font-medium",
+                  done ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {label}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <span
+                className={cn(
+                  "mx-1 h-0.5 flex-1 rounded-full",
+                  i < stage - 1 ? "bg-primary/50" : "bg-muted"
+                )}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
