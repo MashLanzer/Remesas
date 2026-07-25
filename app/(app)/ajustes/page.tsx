@@ -10,6 +10,8 @@ import {
   getBeneficiaries,
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
+import { getMigrationHealth } from "@/lib/migration-health";
+import { MigrationHealthCard } from "@/components/migration-health-card";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ExportRemittances } from "@/components/export-remittances";
@@ -28,7 +30,7 @@ const APP_VERSION = "1.0.0";
 
 export default async function AjustesPage() {
   const ctx = await getSessionContext();
-  const [remittances, settings, team, activity, clients, beneficiaries] =
+  const [remittances, settings, team, activity, clients, beneficiaries, health] =
     await Promise.all([
       getRemittances(),
       getBusinessSettings(),
@@ -38,11 +40,15 @@ export default async function AjustesPage() {
       getActivityLog(150),
       getClients(),
       getBeneficiaries(),
+      getMigrationHealth(),
     ]);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Ajustes" icon={Settings} />
+
+      {/* Aviso de migraciones pendientes (solo operador) */}
+      <MigrationHealthCard missing={health.missing} />
 
       {/* Cuenta */}
       <section>
