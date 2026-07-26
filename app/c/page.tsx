@@ -5,9 +5,6 @@ import {
   Gift,
   ChevronRight,
   Heart,
-  Zap,
-  ShieldCheck,
-  MapPin,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -404,27 +401,6 @@ export default async function ClienteHome() {
           </div>
         </section>
       )}
-
-      {/* Por qué Giro (siempre visible) */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { Icon: Zap, label: "Rápido" },
-          { Icon: ShieldCheck, label: "Seguro" },
-          { Icon: MapPin, label: "Seguimiento" },
-        ].map(({ Icon, label }) => (
-          <div
-            key={label}
-            className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card p-3 text-center"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Icon className="h-5 w-5" />
-            </span>
-            <span className="text-[11px] font-semibold text-foreground">
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
 
       {/* Primeros pasos (cliente nuevo, sin pedidos) */}
       {recentOrders.length === 0 && (
