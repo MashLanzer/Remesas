@@ -480,6 +480,39 @@ export async function getMyReferral(): Promise<{
   };
 }
 
+// === Anuncios del operador ===
+import type { Announcement } from "@/lib/types";
+
+// Anuncios activos del negocio del usuario (para el inicio del cliente).
+export async function getActiveAnnouncements(): Promise<Announcement[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  if (error) return [];
+  return (data as Announcement[]) ?? [];
+}
+
+// Todos los anuncios del operador (para gestionarlos).
+export async function getAnnouncements(): Promise<Announcement[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return [];
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data as Announcement[]) ?? [];
+}
+
 // === Reseñas (⭐) ===
 export type ReviewItem = {
   rating: number;

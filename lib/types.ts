@@ -208,6 +208,16 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   "Otro",
 ];
 
+export interface Announcement {
+  id: string;
+  operator_id: string | null;
+  title: string;
+  body: string | null;
+  emoji: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export const DELIVERY_CURRENCIES = ["CUP", "USD", "MLC", "EUR"] as const;
 export type DeliveryCurrency = (typeof DELIVERY_CURRENCIES)[number];
 

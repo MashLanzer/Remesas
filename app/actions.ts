@@ -154,6 +154,44 @@ export async function becomeCliente() {
   redirect("/c");
 }
 
+// ===== Anuncios del operador =====
+
+export async function createAnnouncement(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  const title = str(formData.get("title"));
+  if (!title) return;
+  await supabase.from("announcements").insert({
+    operator_id: ctx.tenantId,
+    title,
+    body: str(formData.get("body")),
+    emoji: str(formData.get("emoji")),
+    active: true,
+  });
+  await logActivity("anuncio.crear", { entityType: "anuncio", entityLabel: title });
+  revalidatePath("/ajustes");
+  revalidatePath("/c", "layout");
+}
+
+export async function toggleAnnouncement(id: string, active: boolean) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador) return;
+  await supabase.from("announcements").update({ active }).eq("id", id);
+  revalidatePath("/ajustes");
+  revalidatePath("/c", "layout");
+}
+
+export async function deleteAnnouncement(id: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador) return;
+  await supabase.from("announcements").delete().eq("id", id);
+  revalidatePath("/ajustes");
+  revalidatePath("/c", "layout");
+}
+
 // El cliente califica un envío suyo ya entregado (verificado por RPC 0044).
 export async function submitReview(
   orderId: string,

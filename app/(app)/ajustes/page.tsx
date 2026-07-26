@@ -12,8 +12,9 @@ import {
 import { Card, PageHeader } from "@/components/ui";
 import { getMigrationHealth } from "@/lib/migration-health";
 import { MigrationHealthCard } from "@/components/migration-health-card";
-import { getOperatorReviewStats } from "@/lib/data";
+import { getOperatorReviewStats, getAnnouncements } from "@/lib/data";
 import { OperatorReviewsCard } from "@/components/operator-reviews-card";
+import { AnnouncementsManager } from "@/components/announcements-manager";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ExportRemittances } from "@/components/export-remittances";
@@ -44,7 +45,9 @@ export default async function AjustesPage() {
       getBeneficiaries(),
       getMigrationHealth(),
     ]);
-  const reviewStats = ctx.isOperador ? await getOperatorReviewStats() : null;
+  const [reviewStats, announcements] = ctx.isOperador
+    ? await Promise.all([getOperatorReviewStats(), getAnnouncements()])
+    : [null, []];
 
   return (
     <div className="space-y-6">
@@ -52,6 +55,14 @@ export default async function AjustesPage() {
 
       {/* Aviso de migraciones pendientes (solo operador) */}
       <MigrationHealthCard missing={health.missing} />
+
+      {/* Anuncios a clientes (solo operador) */}
+      {ctx.isOperador && (
+        <section>
+          <SectionTitle>Anuncios a clientes</SectionTitle>
+          <AnnouncementsManager items={announcements} />
+        </section>
+      )}
 
       {/* Reputación del negocio (solo operador) */}
       {ctx.isOperador && reviewStats && (

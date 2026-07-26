@@ -19,8 +19,10 @@ import {
   getMyPoints,
   getMyBeneficiaries,
   getMyReferral,
+  getActiveAnnouncements,
 } from "@/lib/data";
 import { ReferralCard } from "@/components/referral-card";
+import { AnnouncementsBanner } from "@/components/announcements-banner";
 import { Card } from "@/components/ui";
 import { localAmount, packageReceives, usd } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
@@ -67,7 +69,10 @@ export default async function ClienteHome() {
     getMyBeneficiaries(),
     getRateHistory(),
   ]);
-  const referral = await getMyReferral();
+  const [referral, announcements] = await Promise.all([
+    getMyReferral(),
+    getActiveAnnouncements(),
+  ]);
   // Envío en curso destacado (el más reciente pendiente / en reparto).
   const activeList = orders.filter((o) => {
     const d = orderDisplay(o);
@@ -227,6 +232,9 @@ export default async function ClienteHome() {
           </div>
         </div>
       </div>
+
+      {/* Anuncios del negocio */}
+      <AnnouncementsBanner items={announcements} />
 
       {/* Calculadora (fuera del hero, más discreta) */}
       <CalculadoraSheet rates={rates} variant="plain" />
