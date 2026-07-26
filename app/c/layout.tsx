@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { MessageCircle, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getSessionContext,
@@ -85,6 +86,14 @@ export default async function ClienteLayout({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
+            <Link
+              href="/c/opiniones"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-amber-400 transition hover:bg-amber-400/10"
+              aria-label="Opiniones"
+              title="Opiniones"
+            >
+              <Star className="h-5 w-5" />
+            </Link>
             {bizWa && (
               <a
                 href={bizWa}
