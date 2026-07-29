@@ -13,6 +13,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Opt = { value: string; label: string; disabled?: boolean };
+type Item = { kind: "opt"; opt: Opt } | { kind: "group"; label: string };
 
 // Aplana el contenido de un <option> a texto, aunque sea varias partes
 // (p. ej. {nombre}{ · provincia}) o esté anidado.
@@ -26,20 +27,34 @@ function nodeText(node: ReactNode): string {
   return "";
 }
 
-function parseOptions(children: ReactNode): Opt[] {
-  const out: Opt[] = [];
+// Recorre <option>, <optgroup> (con encabezado) y contenedores (Fragment, arrays)
+// de forma recursiva, para no perder opciones agrupadas.
+function collectItems(children: ReactNode, out: Item[]) {
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) return;
-    if (child.type !== "option") return;
     const props = child.props as {
       value?: string | number;
       children?: ReactNode;
       disabled?: boolean;
+      label?: string;
     };
-    const value = props.value != null ? String(props.value) : "";
-    const label = nodeText(props.children).trim() || value;
-    out.push({ value, label, disabled: props.disabled });
+    if (child.type === "option") {
+      const value = props.value != null ? String(props.value) : "";
+      const label = nodeText(props.children).trim() || value;
+      out.push({ kind: "opt", opt: { value, label, disabled: props.disabled } });
+    } else if (child.type === "optgroup") {
+      if (props.label) out.push({ kind: "group", label: props.label });
+      collectItems(props.children, out);
+    } else {
+      // Fragment u otro contenedor: baja a sus hijos.
+      collectItems(props.children, out);
+    }
   });
+}
+
+function parseItems(children: ReactNode): Item[] {
+  const out: Item[] = [];
+  collectItems(children, out);
   return out;
 }
 
@@ -65,7 +80,11 @@ export function Select({
   disabled?: boolean;
   title?: string;
 }) {
-  const options = useMemo(() => parseOptions(children), [children]);
+  const items = useMemo(() => parseItems(children), [children]);
+  const options = useMemo(
+    () => items.flatMap((it) => (it.kind === "opt" ? [it.opt] : [])),
+    [items]
+  );
   const isControlled = value !== undefined;
   const [internal, setInternal] = useState(defaultValue ?? "");
   const current = isControlled ? (value as string) : internal;
@@ -122,25 +141,34 @@ export function Select({
                 {title}
               </p>
               <div className="space-y-0.5">
-                {options.map((o) => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    disabled={o.disabled}
-                    onClick={() => choose(o.value)}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-sm transition active:scale-[0.99] disabled:opacity-40",
-                      o.value === current
-                        ? "bg-primary/10 font-semibold text-primary"
-                        : "text-foreground hover:bg-muted"
-                    )}
-                  >
-                    <span className="truncate">{o.label}</span>
-                    {o.value === current && (
-                      <Check className="h-4 w-4 shrink-0 text-primary" />
-                    )}
-                  </button>
-                ))}
+                {items.map((it, i) =>
+                  it.kind === "group" ? (
+                    <p
+                      key={`g-${i}`}
+                      className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
+                    >
+                      {it.label}
+                    </p>
+                  ) : (
+                    <button
+                      key={`${it.opt.value}-${i}`}
+                      type="button"
+                      disabled={it.opt.disabled}
+                      onClick={() => choose(it.opt.value)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-sm transition active:scale-[0.99] disabled:opacity-40",
+                        it.opt.value === current
+                          ? "bg-primary/10 font-semibold text-primary"
+                          : "text-foreground hover:bg-muted"
+                      )}
+                    >
+                      <span className="truncate">{it.opt.label}</span>
+                      {it.opt.value === current && (
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                      )}
+                    </button>
+                  )
+                )}
               </div>
             </div>
           </div>,
