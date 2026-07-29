@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #12b866;
+  --brand-light: #2fe08a;
+  --bg: #050a08;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: #e9f5ef;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Lenis: evita el scroll-behavior nativo peleando con el suave. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+/* El canvas 3D vive fijo detrás de todo el contenido. */
+.webgl {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  outline: none;
+  touch-action: pan-y; /* deja hacer scroll con el dedo sobre el canvas */
+}
+
+/* Utilidad: texto con degradado de marca. */
+.text-grad {
+  background: linear-gradient(90deg, var(--brand-light), var(--brand));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Reveal base (GSAP anima desde aquí). */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  will-change: transform, opacity;
+}
+
+/* Respeta a quien pide menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
