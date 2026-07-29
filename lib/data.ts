@@ -255,6 +255,22 @@ async function getRepartidorAgendaScope(
   return { clientIds, beneficiaryIds };
 }
 
+// ¿Es visible para el repartidor una entrada de agenda? Lo es si: la creó el
+// negocio (created_by nulo/legacy o = operador), la creó él mismo, o aparece en
+// sus remesas. Solo se ocultan las que creó OTRO repartidor.
+function visibleToRep(
+  createdBy: string | null | undefined,
+  inMine: boolean,
+  ctx: SessionContext
+): boolean {
+  return (
+    createdBy == null ||
+    createdBy === ctx.tenantId ||
+    createdBy === ctx.userId ||
+    inMine
+  );
+}
+
 export async function getClients(): Promise<Client[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
@@ -263,7 +279,10 @@ export async function getClients(): Promise<Client[]> {
   const { data } = await q;
   let list = (data as Client[]) ?? [];
   const scope = await getRepartidorAgendaScope(supabase, ctx);
-  if (scope) list = list.filter((c) => scope.clientIds.has(c.id));
+  if (scope)
+    list = list.filter((c) =>
+      visibleToRep(c.created_by, scope.clientIds.has(c.id), ctx)
+    );
   return list;
 }
 
@@ -277,9 +296,10 @@ export async function getClient(id: string): Promise<Client | null> {
     .single();
   const c = (data as Client) ?? null;
   if (!c) return null;
-  // El repartidor no puede abrir un cliente que no tiene en común.
+  // El repartidor no puede abrir un cliente que creó otro repartidor.
   const scope = await getRepartidorAgendaScope(supabase, ctx);
-  if (scope && !scope.clientIds.has(c.id)) return null;
+  if (scope && !visibleToRep(c.created_by, scope.clientIds.has(c.id), ctx))
+    return null;
   return c;
 }
 
@@ -294,7 +314,8 @@ export async function getBeneficiary(id: string): Promise<Beneficiary | null> {
   const b = (data as Beneficiary) ?? null;
   if (!b) return null;
   const scope = await getRepartidorAgendaScope(supabase, ctx);
-  if (scope && !scope.beneficiaryIds.has(b.id)) return null;
+  if (scope && !visibleToRep(b.created_by, scope.beneficiaryIds.has(b.id), ctx))
+    return null;
   return b;
 }
 
@@ -309,7 +330,10 @@ export async function getBeneficiaries(): Promise<Beneficiary[]> {
   const { data } = await q;
   let list = (data as Beneficiary[]) ?? [];
   const scope = await getRepartidorAgendaScope(supabase, ctx);
-  if (scope) list = list.filter((b) => scope.beneficiaryIds.has(b.id));
+  if (scope)
+    list = list.filter((b) =>
+      visibleToRep(b.created_by, scope.beneficiaryIds.has(b.id), ctx)
+    );
   return list;
 }
 

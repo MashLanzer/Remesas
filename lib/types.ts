@@ -260,6 +260,7 @@ export interface Client {
   country: string | null;
   notes: string | null;
   user_id?: string | null; // cuenta real del cliente (si pidió desde su app)
+  created_by?: string | null; // quién lo creó (para aislar la agenda por repartidor)
   pinned?: boolean;
   created_at: string;
 }
@@ -275,6 +276,7 @@ export interface Beneficiary {
   id_card: string | null;
   notes: string | null;
   client_id: string | null;
+  created_by?: string | null; // quién lo creó (para aislar la agenda por repartidor)
   pinned?: boolean;
   created_at: string;
 }

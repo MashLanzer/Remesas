@@ -35,6 +35,7 @@ const COLUMN_CHECKS: ColCheck[] = [
   { table: "profiles", column: "monthly_goal_count", feature: "Meta de número de entregas", migration: "0040" },
   { table: "remittances", column: "reminder_at", feature: "Recordatorio de entrega", migration: "0041" },
   { table: "profiles", column: "referral_code", feature: "Programa de referidos", migration: "0043" },
+  { table: "beneficiaries", column: "created_by", feature: "Aislar agenda del repartidor por autor", migration: "0046" },
 ];
 
 type TableCheck = { table: string; probe: string; feature: string; migration: string };

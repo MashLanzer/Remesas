@@ -1698,8 +1698,21 @@ export async function cancelAcceptedOrder(id: string) {
 
 // ============ CLIENTES ============
 
+// Marca quién creó una entrada de agenda (para aislar la agenda por repartidor).
+// Tolerante: si la columna created_by aún no existe (migración 0046), no hace nada.
+async function stampCreator(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  table: "clients" | "beneficiaries",
+  id: string | null | undefined,
+  userId: string | null | undefined
+) {
+  if (!id || !userId) return;
+  await supabase.from(table).update({ created_by: userId }).eq("id", id);
+}
+
 export async function createClientRecord(formData: FormData) {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const id = str(formData.get("id"));
   const values = {
     name: str(formData.get("name")) ?? "Sin nombre",
@@ -1712,9 +1725,12 @@ export async function createClientRecord(formData: FormData) {
     revalidatePath(`/agenda/cliente/${id}`);
   } else {
     const tid = await currentTenantId();
-    await supabase
+    const { data } = await supabase
       .from("clients")
-      .insert({ ...values, ...(tid ? { operator_id: tid } : {}) });
+      .insert({ ...values, ...(tid ? { operator_id: tid } : {}) })
+      .select("id")
+      .single();
+    await stampCreator(supabase, "clients", (data as { id?: string } | null)?.id, ctx.userId);
     await logActivity("cliente.crear", {
       entityType: "cliente",
       entityLabel: values.name,
@@ -1727,6 +1743,7 @@ export async function createClientRecord(formData: FormData) {
 // un solo paso. Los beneficiarios vacíos se ignoran.
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const tid = await currentTenantId();
   const clientName = str(formData.get("name")) ?? "Sin nombre";
 
@@ -1743,6 +1760,7 @@ export async function createContact(formData: FormData) {
     .single();
 
   const clientId = client?.id ?? null;
+  await stampCreator(supabase, "clients", clientId, ctx.userId);
 
   const names = formData.getAll("benef_name");
   const phones = formData.getAll("benef_phone");
@@ -1764,6 +1782,13 @@ export async function createContact(formData: FormData) {
 
   if (rows.length > 0) {
     await supabase.from("beneficiaries").insert(rows);
+    // Marca al creador de todos los beneficiarios recién creados de este cliente.
+    if (clientId && ctx.userId) {
+      await supabase
+        .from("beneficiaries")
+        .update({ created_by: ctx.userId })
+        .eq("client_id", clientId);
+    }
   }
 
   await logActivity("contacto.crear", {
@@ -1787,6 +1812,7 @@ export async function deleteClientRecord(id: string) {
 
 export async function createBeneficiary(formData: FormData) {
   const supabase = await createClient();
+  const ctx = await getSessionContext();
   const id = str(formData.get("id"));
   const values = {
     name: str(formData.get("name")) ?? "Sin nombre",
@@ -1810,6 +1836,7 @@ export async function createBeneficiary(formData: FormData) {
       .select("id")
       .single();
     targetId = data?.id ?? null;
+    await stampCreator(supabase, "beneficiaries", targetId, ctx.userId);
   }
 
   // Método de entrega preferido y dirección, aparte (tolerante si las columnas
@@ -1863,6 +1890,7 @@ export async function quickAddClient(name: string, phone?: string | null) {
     })
     .select("id, name")
     .single();
+  await stampCreator(supabase, "clients", (data as { id?: string } | null)?.id, ctx.userId);
   revalidatePath("/agenda");
   return (data as { id: string; name: string } | null) ?? null;
 }
@@ -1888,6 +1916,7 @@ export async function quickAddBeneficiary(input: {
     })
     .select("id, name, province, client_id")
     .single();
+  await stampCreator(supabase, "beneficiaries", (data as { id?: string } | null)?.id, ctx.userId);
   revalidatePath("/agenda");
   return (
     (data as {
