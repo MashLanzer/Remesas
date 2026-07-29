@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Giro — Tus envíos a Cuba, siempre a mano</title>
+    <meta
+      name="description"
+      content="Envía remesas a Cuba de forma rápida, segura y con seguimiento en vivo. Descarga Giro para Android o instálala en tu iPhone."
+    />
+    <meta name="theme-color" content="#0a1310" />
+
+    <!-- Vista previa al compartir (WhatsApp, redes) -->
+    <meta property="og:title" content="Giro — Envíos a Cuba" />
+    <meta
+      property="og:description"
+      content="Rápido, seguro y con seguimiento en vivo. Descárgala aquí."
+    />
+    <meta property="og:type" content="website" />
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2312b866'/%3E%3Cpath d='M96 372l320-137L96 140v107l228 30-228 30z' fill='white'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ===== EDITA AQUÍ TUS ENLACES ===== */
+      /* (también se aplican por JS abajo, para que sea fácil cambiarlos) */
+      :root {
+        --bg: #0a1310;
+        --bg-soft: #0f1a15;
+        --card: #111d18;
+        --border: #1e2c26;
+        --fg: #e6f2ec;
+        --muted: #8aa89b;
+        --primary: #12b866;
+        --primary-2: #2fe08a;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+      }
+      a { color: inherit; text-decoration: none; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 10px;
+        border-radius: 16px; padding: 14px 22px; font-weight: 700; font-size: 15px;
+        transition: transform .15s ease, opacity .15s ease; cursor: pointer;
+        border: none;
+      }
+      .btn:active { transform: scale(.97); }
+      .btn-primary { background: var(--primary); color: #04140d; box-shadow: 0 10px 30px -8px rgba(18,184,102,.5); }
+      .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+      .chip { display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; background: rgba(255,255,255,.06); font-size:13px; font-weight:600; color: var(--muted); }
+      .muted { color: var(--muted); }
+
+      /* Nav */
+      nav { position: sticky; top: 0; z-index: 20; background: rgba(10,19,16,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+      .nav-inner { display:flex; align-items:center; justify-content:space-between; padding: 14px 0; }
+      .logo { display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; }
+      .logo-badge { width:36px; height:36px; border-radius:11px; background: linear-gradient(135deg, var(--primary-2), var(--primary)); display:grid; place-items:center; }
+
+      /* Hero */
+      .hero { position: relative; overflow: hidden; padding: 64px 0 40px; }
+      .hero::before { content:""; position:absolute; inset:0; background: radial-gradient(120% 90% at 100% 0%, rgba(47,224,138,.16), transparent 55%); pointer-events:none; }
+      .hero-grid { display:grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items:center; position:relative; }
+      h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.05; font-weight: 800; letter-spacing:-.02em; }
+      h1 .grad { background: linear-gradient(90deg, var(--primary-2), var(--primary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .lead { margin-top: 18px; font-size: 18px; color: var(--muted); max-width: 520px; }
+      .cta-row { margin-top: 28px; display:flex; flex-wrap:wrap; gap: 12px; }
+      .cta-note { margin-top: 14px; font-size: 13px; color: var(--muted); }
+
+      /* Phone mockup */
+      .phone { justify-self:center; width: 260px; aspect-ratio: 9/19; border-radius: 38px; padding: 12px; background: #05100b; border: 1px solid var(--border); box-shadow: 0 40px 80px -20px rgba(0,0,0,.6); }
+      .phone-screen { height:100%; border-radius: 28px; overflow:hidden; background: linear-gradient(160deg, var(--primary-2), var(--primary) 45%, #0c6b3f); display:flex; flex-direction:column; }
+      .ph-top { padding: 22px 18px 0; color:#fff; }
+      .ph-title { font-weight:800; font-size:20px; }
+      .ph-balance { margin-top: 18px; background: rgba(255,255,255,.15); border-radius:18px; padding:14px; }
+      .ph-balance small { opacity:.8; font-size:11px; }
+      .ph-balance b { display:block; font-size:26px; margin-top:2px; }
+      .ph-body { margin-top:auto; background: var(--bg); border-radius: 26px 26px 0 0; padding:16px; flex:1; margin-top:18px; }
+      .ph-line { height:52px; border-radius:14px; background: var(--card); border:1px solid var(--border); margin-bottom:10px; }
+
+      /* Sections */
+      section { padding: 56px 0; }
+      .sec-title { font-size: clamp(24px, 4vw, 34px); font-weight: 800; letter-spacing:-.02em; text-align:center; }
+      .sec-sub { text-align:center; color: var(--muted); margin-top:10px; }
+      .grid-3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-top:36px; }
+      .card { background: var(--card); border:1px solid var(--border); border-radius: 20px; padding: 24px; }
+      .card .ico { width:46px; height:46px; border-radius:14px; background: rgba(18,184,102,.12); color: var(--primary-2); display:grid; place-items:center; margin-bottom:14px; }
+      .card h3 { font-size:17px; font-weight:700; }
+      .card p { color: var(--muted); margin-top:6px; font-size:14px; }
+      .step-n { width:28px;height:28px;border-radius:999px;background:var(--primary);color:#04140d;font-weight:800;display:grid;place-items:center;font-size:14px; }
+
+      /* Final CTA */
+      .final { text-align:center; background: linear-gradient(160deg, rgba(18,184,102,.14), transparent); border:1px solid var(--border); border-radius: 28px; padding: 48px 24px; }
+
+      footer { border-top:1px solid var(--border); padding: 28px 0; color: var(--muted); font-size:13px; text-align:center; }
+
+      /* Modal iOS */
+      .modal { position: fixed; inset:0; z-index:50; display:none; place-items:center; background: rgba(0,0,0,.65); padding:20px; }
+      .modal.open { display:grid; }
+      .modal-card { background: var(--card); border:1px solid var(--border); border-radius:24px; padding:24px; max-width:400px; width:100%; }
+      .modal-card h3 { font-size:20px; font-weight:800; }
+      .ios-step { display:flex; gap:12px; align-items:flex-start; margin-top:16px; }
+      .ios-step .n { flex:none; width:26px;height:26px;border-radius:999px;background:rgba(18,184,102,.15);color:var(--primary-2);font-weight:800;display:grid;place-items:center;font-size:13px; }
+
+      @media (max-width: 760px) {
+        .hero-grid { grid-template-columns: 1fr; }
+        .phone { display:none; }
+        .grid-3 { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap nav-inner">
+        <div class="logo">
+          <span class="logo-badge">
+            <svg width="18" height="18" viewBox="0 0 512 512"><path d="M96 372l320-137L96 140v107l228 30-228 30z" fill="#04140d"/></svg>
+          </span>
+          Giro
+        </div>
+        <a class="btn btn-primary" href="#descargar">Descargar</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="chip">✈️ Envíos a Cuba</span>
+          <h1 style="margin-top:16px">Tus envíos a Cuba,<br /><span class="grad">siempre a mano.</span></h1>
+          <p class="lead">
+            Manda remesas rápido, seguro y con seguimiento en vivo hasta tu
+            familia. Descarga la app y envía en un toque.
+          </p>
+          <div class="cta-row">
+            <a id="btn-android" class="btn btn-primary" href="#" target="_blank" rel="noopener">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18a.5.5 0 00-.86-.5l-1.87 3.23a11.2 11.2 0 00-9.42 0L5.42 5.8a.5.5 0 00-.86.5L6.4 9.48A10.7 10.7 0 001 18.5h22a10.7 10.7 0 00-5.4-9.02zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/></svg>
+              Descargar para Android
+            </a>
+            <button class="btn btn-ghost" onclick="openIos()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.36 12.9c0-2.3 1.88-3.4 1.96-3.46a4.2 4.2 0 00-3.3-1.79c-1.4-.14-2.74.82-3.45.82-.71 0-1.81-.8-2.98-.78a4.4 4.4 0 00-3.7 2.25c-1.6 2.76-.41 6.84 1.13 9.08.76 1.1 1.66 2.33 2.84 2.29 1.14-.05 1.57-.74 2.95-.74s1.77.74 2.98.71c1.23-.02 2.01-1.12 2.76-2.22a9.2 9.2 0 001.25-2.57c-.03-.01-2.4-.92-2.4-3.64zM14.2 5.36a4.02 4.02 0 00.93-2.9 4.1 4.1 0 00-2.66 1.38 3.82 3.82 0 00-.95 2.79 3.4 3.4 0 002.68-1.27z"/></svg>
+              Instalar en iPhone
+            </button>
+          </div>
+          <p class="cta-note">Gratis · Android e iPhone · Sin complicaciones</p>
+        </div>
+
+        <div class="phone" aria-hidden="true">
+          <div class="phone-screen">
+            <div class="ph-top">
+              <div class="ph-title">Hola 👋</div>
+              <div class="ph-balance">
+                <small>Tasa de hoy · 1 USD</small>
+                <b>440 CUP</b>
+              </div>
+            </div>
+            <div class="ph-body">
+              <div class="ph-line"></div>
+              <div class="ph-line"></div>
+              <div class="ph-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Confianza -->
+    <section>
+      <div class="wrap">
+        <div class="grid-3">
+          <div class="card">
+            <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+            <h3>Rápido</h3>
+            <p>Envía en segundos. Elige monto y beneficiario y listo.</p>
+          </div>
+          <div class="card">
+            <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+            <h3>Seguro</h3>
+            <p>Tu envío protegido, con comprobante de cada entrega.</p>
+          </div>
+          <div class="card">
+            <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+            <h3>Seguimiento</h3>
+            <p>Sigue cada paso en vivo, hasta que llega a tu familia.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cómo funciona -->
+    <section style="background: var(--bg-soft);">
+      <div class="wrap">
+        <h2 class="sec-title">Cómo funciona</h2>
+        <p class="sec-sub">Tres pasos y tu familia recibe.</p>
+        <div class="grid-3">
+          <div class="card">
+            <div class="step-n">1</div>
+            <h3 style="margin-top:12px">Pide tu remesa</h3>
+            <p>Elige el monto y quién recibe en Cuba.</p>
+          </div>
+          <div class="card">
+            <div class="step-n">2</div>
+            <h3 style="margin-top:12px">El negocio la acepta</h3>
+            <p>Confirma el envío y empieza el reparto.</p>
+          </div>
+          <div class="card">
+            <div class="step-n">3</div>
+            <h3 style="margin-top:12px">Llega a tu familia</h3>
+            <p>Sigues cada paso y ganas puntos con cada envío.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Descargar -->
+    <section id="descargar">
+      <div class="wrap">
+        <div class="final">
+          <h2 class="sec-title">Descarga Giro</h2>
+          <p class="sec-sub">Disponible para Android y iPhone.</p>
+          <div class="cta-row" style="justify-content:center; margin-top:24px;">
+            <a id="btn-android-2" class="btn btn-primary" href="#" target="_blank" rel="noopener">Descargar para Android</a>
+            <button class="btn btn-ghost" onclick="openIos()">Instalar en iPhone</button>
+          </div>
+          <p class="cta-note" style="margin-top:18px;">
+            ¿Prefieres usarla en el navegador?
+            <a id="link-web" href="#" style="color:var(--primary-2); font-weight:700;">Abrir la app web</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        Giro · Tus envíos a Cuba, siempre a mano · © <span id="year"></span>
+      </div>
+    </footer>
+
+    <!-- Modal instalar en iPhone (PWA) -->
+    <div class="modal" id="ios-modal" onclick="closeIos(event)">
+      <div class="modal-card" onclick="event.stopPropagation()">
+        <h3>Instalar en iPhone</h3>
+        <p class="muted" style="margin-top:6px; font-size:14px;">
+          En iPhone la app se instala desde Safari en 3 pasos:
+        </p>
+        <div class="ios-step"><span class="n">1</span><span>Abre <b><a id="ios-weblink" href="#" style="color:var(--primary-2)">la app web</a></b> en <b>Safari</b>.</span></div>
+        <div class="ios-step"><span class="n">2</span><span>Toca <b>Compartir</b> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle"><path d="M12 3v12M8 7l4-4 4 4M4 13v6a2 2 0 002 2h12a2 2 0 002-2v-6"/></svg> (el cuadro con la flecha hacia arriba).</span></div>
+        <div class="ios-step"><span class="n">3</span><span>Elige <b>“Añadir a pantalla de inicio”</b>. ¡Listo, queda como app!</span></div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:22px;" onclick="closeIos()">Entendido</button>
+      </div>
+    </div>
+
+    <script>
+      /* ================= CONFIGURA AQUÍ ================= */
+      // 1) APK de Android: enlace directo al último release de GitHub.
+      //    (Requiere que el repositorio/release sea PÚBLICO. Si es privado,
+      //     sube el Giro.apk a otro hosting y pon esa URL aquí.)
+      const ANDROID_APK_URL =
+        "https://github.com/MashLanzer/Remesas/releases/latest/download/Giro.apk";
+      // 2) URL de tu app web (donde está desplegada la app real).
+      const WEB_APP_URL = "https://TU-APP.vercel.app";
+      /* ================================================= */
+
+      document.getElementById("btn-android").href = ANDROID_APK_URL;
+      document.getElementById("btn-android-2").href = ANDROID_APK_URL;
+      document.getElementById("link-web").href = WEB_APP_URL;
+      document.getElementById("ios-weblink").href = WEB_APP_URL;
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      function openIos() { document.getElementById("ios-modal").classList.add("open"); }
+      function closeIos(e) { document.getElementById("ios-modal").classList.remove("open"); }
+    </script>
+  </body>
+</html>
