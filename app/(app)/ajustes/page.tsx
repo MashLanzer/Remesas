@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { User, ChevronRight, Settings } from "lucide-react";
+import { User, ChevronRight, Settings, ShieldCheck } from "lucide-react";
+import { isSuperAdmin } from "@/lib/admin";
 import {
   getRemittances,
   getBusinessSettings,
@@ -48,10 +49,33 @@ export default async function AjustesPage() {
   const [reviewStats, announcements] = ctx.isOperador
     ? await Promise.all([getOperatorReviewStats(), getAnnouncements()])
     : [null, []];
+  const superAdmin = await isSuperAdmin();
 
   return (
     <div className="space-y-6">
       <PageHeader title="Ajustes" icon={Settings} />
+
+      {/* Panel de super-admin (solo el dueño lo ve) */}
+      {superAdmin && (
+        <Link href="/admin" className="block">
+          <Card className="flex items-center justify-between border-primary/25 bg-primary/5 transition active:scale-[0.99]">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Panel de super-admin
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Vista global de todos los negocios y usuarios
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </Card>
+        </Link>
+      )}
 
       {/* Aviso de migraciones pendientes (solo operador) */}
       <MigrationHealthCard missing={health.missing} />

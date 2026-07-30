@@ -2303,3 +2303,37 @@ export async function updateProfile(formData: FormData) {
   revalidatePath("/perfil");
   revalidatePath("/ajustes");
 }
+
+// ============ SUPER-ADMIN (solo el dueño) ============
+// Doble candado: comprobamos el correo aquí (servidor) y, además, cada RPC
+// vuelve a comprobar is_superadmin() en la base. Si no eres el dueño, ni la
+// pantalla ni los datos responden.
+
+async function assertSuperAdmin(): Promise<boolean> {
+  const { isSuperAdmin } = await import("@/lib/admin");
+  return isSuperAdmin();
+}
+
+export async function adminSetRole(formData: FormData) {
+  if (!(await assertSuperAdmin())) return;
+  const userId = String(formData.get("user_id") || "");
+  const roleRaw = String(formData.get("role") || "");
+  if (!userId) return;
+  const role = roleRaw === "" ? null : roleRaw;
+  const supabase = await createClient();
+  await supabase.rpc("admin_set_role", { p_user: userId, p_role: role });
+  revalidatePath("/admin");
+}
+
+export async function adminSetMemberStatus(formData: FormData) {
+  if (!(await assertSuperAdmin())) return;
+  const userId = String(formData.get("user_id") || "");
+  const status = String(formData.get("status") || "");
+  if (!userId || !status) return;
+  const supabase = await createClient();
+  await supabase.rpc("admin_set_member_status", {
+    p_user: userId,
+    p_status: status,
+  });
+  revalidatePath("/admin");
+}
