@@ -9,6 +9,7 @@ import {
   MapPin,
   Truck,
   Star,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +30,11 @@ import { ExportMyDeliveries } from "@/components/export-my-deliveries";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+// Enlace privado del dueño: la landing pública de la app. Solo se muestra a
+// esta cuenta para tenerlo siempre a mano.
+const OWNER_EMAIL = "brayanibarra0105@gmail.com";
+const LANDING_URL = "https://landing-3d-tau.vercel.app";
 
 export default async function PerfilPage() {
   const supabase = await createClient();
@@ -171,6 +177,31 @@ export default async function PerfilPage() {
             <p className="text-sm text-muted-foreground">{user.email}</p>
           )}
         </div>
+      )}
+
+      {/* Enlace a la landing pública — solo visible para el dueño */}
+      {user?.email === OWNER_EMAIL && (
+        <a
+          href={LANDING_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-3.5 transition active:scale-[0.98]"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Globe className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-foreground">
+              Web pública de la app
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {LANDING_URL.replace("https://", "")}
+            </span>
+          </span>
+          <span className="text-[10px] font-medium text-muted-foreground">
+            Solo tú ves esto
+          </span>
+        </a>
       )}
 
       {/* Mini-estadísticas */}
