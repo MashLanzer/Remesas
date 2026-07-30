@@ -9,9 +9,11 @@
 }
 
 html,
-body {
+body,
+#root {
   margin: 0;
   padding: 0;
+  min-height: 100%;
   background: var(--bg);
   color: #e9f5ef;
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -27,13 +29,25 @@ html.lenis body {
   scroll-behavior: auto !important;
 }
 
-/* El canvas 3D vive fijo detrás de todo el contenido. */
+/* El canvas 3D vive fijo detrás de todo el contenido, ocupando TODA la
+   ventana. Fijamos vw/vh explícitos: si solo confiamos en inset:0, el
+   contenedor de R3F puede colapsar a los 150px por defecto del <canvas>. */
 .webgl {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 0;
   outline: none;
   touch-action: pan-y; /* deja hacer scroll con el dedo sobre el canvas */
+}
+
+/* Sombra sutil en títulos/párrafos del overlay: garantiza legibilidad cuando
+   el teléfono 3D queda justo detrás del texto (secciones centradas). */
+#page h1,
+#page h2,
+#page p {
+  text-shadow: 0 2px 24px rgba(5, 10, 8, 0.75), 0 1px 3px rgba(5, 10, 8, 0.6);
 }
 
 /* Utilidad: texto con degradado de marca. */

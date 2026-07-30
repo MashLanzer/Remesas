@@ -25,16 +25,16 @@ export type Keyframe = {
 const D = Math.PI / 180;
 
 export const KEYFRAMES: Keyframe[] = [
-  // 1) Hero — de frente, ligeramente inclinado.
-  { p: 0.0, cam: [0, 0, 6.2], phonePos: [0, -0.1, 0], phoneRot: [8 * D, -18 * D, 2 * D], screen: 0, light: 1.0 },
-  // 2) Rota mostrando la pantalla principal; cámara se acerca.
-  { p: 0.24, cam: [0.4, 0.1, 5.2], phonePos: [-0.2, 0, 0], phoneRot: [4 * D, 26 * D, -3 * D], screen: 1, light: 1.2 },
-  // 3) Gira de lado; otra pantalla + UI flotante alrededor.
-  { p: 0.48, cam: [-0.6, 0.2, 4.8], phonePos: [0.5, 0.05, 0.2], phoneRot: [6 * D, -55 * D, 4 * D], screen: 2, light: 1.5 },
-  // 4) Zoom cercano a una feature; luces intensas.
-  { p: 0.72, cam: [0.1, -0.15, 3.4], phonePos: [-0.15, 0.1, 0.4], phoneRot: [2 * D, 14 * D, -2 * D], screen: 3, light: 2.1 },
-  // 5) Final heroico, de frente.
-  { p: 1.0, cam: [0, 0, 5.6], phonePos: [0, -0.05, 0], phoneRot: [6 * D, -6 * D, 0], screen: 4, light: 1.3 },
+  // 1) Hero — desplazado a la derecha para no tapar el texto de la izquierda.
+  { p: 0.0, cam: [0, 0, 6.2], phonePos: [1.9, -0.05, 0], phoneRot: [8 * D, -20 * D, 2 * D], screen: 0, light: 1.0 },
+  // 2) Texto a la derecha → teléfono a la izquierda. Cámara se acerca.
+  { p: 0.24, cam: [0, 0.05, 5.4], phonePos: [-1.8, 0, 0], phoneRot: [4 * D, 24 * D, -3 * D], screen: 1, light: 1.2 },
+  // 3) Texto a la izquierda → teléfono a la derecha, girado de lado.
+  { p: 0.48, cam: [0, 0.1, 5.0], phonePos: [1.7, 0.05, 0.2], phoneRot: [6 * D, -46 * D, 4 * D], screen: 2, light: 1.5 },
+  // 4) Sección centrada: zoom cercano de frente, teléfono detrás del texto.
+  { p: 0.72, cam: [0, 0, 4.2], phonePos: [0, 0.05, 0.2], phoneRot: [2 * D, 10 * D, -1 * D], screen: 3, light: 2.1 },
+  // 5) Final: teléfono a la derecha para dejar el CTA centrado sobre fondo limpio.
+  { p: 1.0, cam: [0, 0, 6.0], phonePos: [2.5, 0.1, 0], phoneRot: [6 * D, -16 * D, 0], screen: 4, light: 1.25 },
 ];
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;

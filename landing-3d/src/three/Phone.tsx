@@ -88,7 +88,10 @@ export function Phone() {
     if (screenMat.current) {
       const tex = textures[s.screen] ?? textures[0];
       if (screenMat.current.map !== tex) {
+        // Actualizar map Y emissiveMap: si solo cambiamos map, el emissiveMap
+        // queda fijo en la 1ª pantalla y se transparenta sobre las demás.
         screenMat.current.map = tex;
+        screenMat.current.emissiveMap = tex;
         screenMat.current.needsUpdate = true;
       }
     }

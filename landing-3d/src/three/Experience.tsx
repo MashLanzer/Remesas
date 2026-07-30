@@ -50,6 +50,7 @@ export function Experience({ quality }: { quality: "high" | "low" }) {
   return (
     <Canvas
       className="webgl"
+      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
       dpr={high ? [1, 2] : [1, 1.4]}
       gl={{
         antialias: high,
