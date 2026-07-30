@@ -76,7 +76,42 @@ export type AdminData = {
   clients: AdminClient[];
 };
 
+export type AdminRemesa = {
+  id: string;
+  date: string;
+  amount_usd: number;
+  status: string;
+};
+
+export type AdminUserDetail = {
+  user: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    role: string | null;
+    member_status: string | null;
+    operator_id: string | null;
+    created_at: string;
+    phone: string | null;
+    business_name: string | null;
+  } | null;
+  remesas_count: number;
+  remesas_volume: number;
+  remesas: AdminRemesa[];
+};
+
 const RPC_MISSING = new Set(["42883", "PGRST202"]);
+
+export async function getAdminUserDetail(
+  id: string
+): Promise<AdminUserDetail | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_user_detail", {
+    p_user: id,
+  });
+  if (error) return null;
+  return (data as AdminUserDetail) ?? null;
+}
 
 export async function getAdminData(): Promise<AdminData> {
   const supabase = await createClient();

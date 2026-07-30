@@ -2337,3 +2337,18 @@ export async function adminSetMemberStatus(formData: FormData) {
   });
   revalidatePath("/admin");
 }
+
+export async function adminBroadcast(formData: FormData) {
+  if (!(await assertSuperAdmin())) return;
+  const title = String(formData.get("title") || "").trim();
+  const body = String(formData.get("body") || "").trim();
+  const emoji = String(formData.get("emoji") || "").trim();
+  if (!title) return;
+  const supabase = await createClient();
+  await supabase.rpc("admin_broadcast", {
+    p_title: title,
+    p_body: body || null,
+    p_emoji: emoji || null,
+  });
+  revalidatePath("/admin");
+}

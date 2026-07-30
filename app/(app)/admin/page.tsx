@@ -14,6 +14,7 @@ import {
 import { PageHeader, Card } from "@/components/ui";
 import { isSuperAdmin, getAdminData } from "@/lib/admin";
 import { AdminBrowser } from "@/components/admin-browser";
+import { AdminBroadcast } from "@/components/admin-broadcast";
 import { usd } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,12 @@ export default async function AdminPage() {
             </Card>
           ))}
         </div>
+      </section>
+
+      {/* Anuncio global a todos los clientes */}
+      <section className="space-y-2">
+        <SectionTitle>Anuncio global</SectionTitle>
+        <AdminBroadcast businesses={data.businesses.length} />
       </section>
 
       {/* Usuarios y clientes (con búsqueda y acciones) */}

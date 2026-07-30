@@ -50,6 +50,12 @@ const RPC_CHECKS: RpcCheck[] = [
   { fn: "my_operator_contact", feature: "WhatsApp del negocio (cliente)", migration: "0028" },
   { fn: "package_popularity", feature: "Orden por popularidad (Tienda)", migration: "0030" },
   { fn: "admin_metrics", feature: "Panel de super-admin", migration: "0047" },
+  {
+    fn: "admin_user_detail",
+    args: { p_user: "00000000-0000-0000-0000-000000000000" },
+    feature: "Anuncio global y detalle de usuario (admin)",
+    migration: "0048",
+  },
 ];
 
 const sqlHint = (m: string) =>
