@@ -6,6 +6,8 @@ import {
   getBusinessSettings,
   getExchangeRates,
 } from "@/lib/data";
+import Link from "next/link";
+import { Route, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
 import { DashboardView } from "@/components/dashboard-view";
@@ -47,18 +49,50 @@ export default async function DashboardPage() {
       ?.monthly_goal_count ?? 0
   );
 
+  // Ruta de hoy: solo repartidor con entregas pendientes.
+  const pendientes = remittances.filter((r) => r.status === "pendiente");
+  const provincias = new Set(
+    pendientes
+      .map((r) => r.beneficiary?.province?.trim())
+      .filter(Boolean) as string[]
+  );
+
   return (
-    <DashboardView
-      remittances={remittances}
-      partnerBalance={partnerBalance}
-      name={name}
-      isOperador={ctx.isOperador}
-      pendingOrders={pendingOrders.length}
-      monthlyGoal={monthlyGoal}
-      personalGoal={personalGoal}
-      personalGoalCount={personalGoalCount}
-      brand={settings.business_name || "Giro"}
-      rates={rates}
-    />
+    <>
+      {!ctx.isOperador && pendientes.length > 0 && (
+        <Link href="/ruta" className="mb-4 block">
+          <div className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-3.5 transition active:scale-[0.99]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Route className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                Ruta de hoy
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {pendientes.length} entrega{pendientes.length === 1 ? "" : "s"}
+                {provincias.size > 0 &&
+                  ` · ${provincias.size} provincia${
+                    provincias.size === 1 ? "" : "s"
+                  }`}
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </Link>
+      )}
+      <DashboardView
+        remittances={remittances}
+        partnerBalance={partnerBalance}
+        name={name}
+        isOperador={ctx.isOperador}
+        pendingOrders={pendingOrders.length}
+        monthlyGoal={monthlyGoal}
+        personalGoal={personalGoal}
+        personalGoalCount={personalGoalCount}
+        brand={settings.business_name || "Giro"}
+        rates={rates}
+      />
+    </>
   );
 }
