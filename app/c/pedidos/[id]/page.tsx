@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMyOrder,
@@ -9,6 +9,7 @@ import {
   getMyBeneficiaries,
   getMyOperatorContact,
   getMyReviewMap,
+  getDeliveryCode,
 } from "@/lib/data";
 import { ReviewForm } from "@/components/review-form";
 import { Card, PageHeader } from "@/components/ui";
@@ -47,6 +48,9 @@ export default async function MiPedidoDetallePage({
 
   const display = orderDisplay(order);
   const isDelivered = display === "entregado" || display === "recibido";
+  const deliveryCode = order.remittance_id
+    ? await getDeliveryCode(order.remittance_id)
+    : null;
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -101,6 +105,28 @@ export default async function MiPedidoDetallePage({
           received_at={order.received_at}
         />
       </Card>
+
+      {/* Código de entrega: dáselo a tu familia (solo mientras no está entregada) */}
+      {!isDelivered &&
+        deliveryCode &&
+        !deliveryCode.verified_at &&
+        !deliveryCode.no_code_reason && (
+          <Card className="border-primary/25 bg-primary/5 text-center">
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <KeyRound className="h-4 w-4" />
+              <p className="text-xs font-semibold uppercase tracking-wide">
+                Código de entrega
+              </p>
+            </div>
+            <p className="mt-1 font-mono text-3xl font-extrabold tracking-[0.35em] text-foreground">
+              {deliveryCode.code}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pásaselo a tu familiar. El repartidor lo pedirá al entregar el
+              dinero.
+            </p>
+          </Card>
+        )}
 
       {/* Datos */}
       <Card className="space-y-2.5">

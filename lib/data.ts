@@ -226,6 +226,28 @@ export async function getRemittance(id: string): Promise<Remittance | null> {
   return r;
 }
 
+// Código de entrega (OTP) de una remesa. La RLS de delivery_codes solo deja
+// leerlo al operador y al remitente (created_by) — NUNCA al repartidor, así que
+// para él devuelve null. Tolerante si la migración 0049 no está corrida.
+export type DeliveryCodeInfo = {
+  code: string;
+  verified_at: string | null;
+  no_code_reason: string | null;
+};
+
+export async function getDeliveryCode(
+  remittanceId: string
+): Promise<DeliveryCodeInfo | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("delivery_codes")
+    .select("code, verified_at, no_code_reason")
+    .eq("remittance_id", remittanceId)
+    .maybeSingle();
+  if (error) return null;
+  return (data as DeliveryCodeInfo) ?? null;
+}
+
 // Clientes y beneficiarios son del negocio, pero un repartidor solo ve los que
 // tiene EN COMÚN con su operador: los que aparecen en sus propias remesas
 // (deliverer_id). Nunca ve los clientes/beneficiarios que trabajó otro

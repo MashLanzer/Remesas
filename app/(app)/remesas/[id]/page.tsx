@@ -11,8 +11,14 @@ import {
   StickyNote,
   AlertTriangle,
   CheckCircle2,
+  KeyRound,
 } from "lucide-react";
-import { getRemittance, getSessionContext, getBusinessSettings } from "@/lib/data";
+import {
+  getRemittance,
+  getSessionContext,
+  getBusinessSettings,
+  getDeliveryCode,
+} from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { usd, localAmount, formatDate } from "@/lib/utils";
 import { Card, Badge } from "@/components/ui";
@@ -50,9 +56,10 @@ export default async function RemesaDetailPage({
   const r = await getRemittance(id);
   if (!r) notFound();
 
-  const [ctx, settings] = await Promise.all([
+  const [ctx, settings, deliveryCode] = await Promise.all([
     getSessionContext(),
     getBusinessSettings(),
+    getDeliveryCode(r.id),
   ]);
   const ids = [r.created_by, r.deliverer_id].filter(Boolean) as string[];
   const names: Record<string, string> = {};
@@ -399,6 +406,38 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
+      {/* Código de entrega (OTP) — visible para operador/remitente, no para el
+          repartidor (la RLS devuelve null si es repartidor). */}
+      {deliveryCode && (
+        <Card className="mb-4 border-primary/25 bg-primary/5">
+          <div className="flex items-center gap-2 text-primary">
+            <KeyRound className="h-4 w-4" />
+            <p className="text-xs font-semibold uppercase tracking-wide">
+              Código de entrega
+            </p>
+          </div>
+          {deliveryCode.verified_at ? (
+            <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-income">
+              <CheckCircle2 className="h-4 w-4" /> Verificado en la entrega
+            </p>
+          ) : deliveryCode.no_code_reason ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Entregada sin código — motivo: {deliveryCode.no_code_reason}
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 font-mono text-3xl font-extrabold tracking-[0.35em] text-foreground">
+                {deliveryCode.code}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Compártelo con el cliente para que se lo dé a su familia. El
+                repartidor lo pedirá al entregar.
+              </p>
+            </>
+          )}
+        </Card>
+      )}
+
       <div className="mb-4">
         <ShareReceipt
           autoOpen={share === "1"}
@@ -414,6 +453,13 @@ export default async function RemesaDetailPage({
             status: r.status,
             refNumber: r.id.slice(0, 8).toUpperCase(),
             rate: `${localAmount(r.exchange_rate)} ${r.delivery_currency}/USD`,
+            deliveryCode:
+              r.status === "pendiente" &&
+              deliveryCode &&
+              !deliveryCode.verified_at &&
+              !deliveryCode.no_code_reason
+                ? deliveryCode.code
+                : null,
           }}
         />
       </div>

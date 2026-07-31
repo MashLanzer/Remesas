@@ -56,6 +56,15 @@ const RPC_CHECKS: RpcCheck[] = [
     feature: "Anuncio global y detalle de usuario (admin)",
     migration: "0048",
   },
+  {
+    fn: "verify_delivery_code",
+    args: {
+      p_remittance: "00000000-0000-0000-0000-000000000000",
+      p_code: "0000",
+    },
+    feature: "Código de entrega (OTP)",
+    migration: "0049",
+  },
 ];
 
 const sqlHint = (m: string) =>

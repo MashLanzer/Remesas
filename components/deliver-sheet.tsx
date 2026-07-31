@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Camera, User, MapPin, IdCard } from "lucide-react";
+import { Check, Camera, User, MapPin, IdCard, KeyRound, AlertCircle } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui";
 import { SignaturePad } from "@/components/signature-pad";
@@ -26,6 +26,8 @@ export function DeliverSheet({
   const [fileName, setFileName] = useState<string | null>(null);
   const [idPhotoName, setIdPhotoName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [noCode, setNoCode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <>
@@ -41,9 +43,17 @@ export function DeliverSheet({
         <form
           action={async (fd) => {
             setSubmitting(true);
+            setError(null);
             fd.set("id", id);
-            await deliverRemittance(fd);
-            setOpen(false);
+            fd.set("no_code", noCode ? "1" : "0");
+            const res = await deliverRemittance(fd);
+            setSubmitting(false);
+            if (res?.ok) {
+              setOpen(false);
+              setNoCode(false);
+            } else {
+              setError(res?.error ?? "No se pudo confirmar la entrega.");
+            }
           }}
           className="space-y-4"
         >
@@ -77,6 +87,63 @@ export function DeliverSheet({
               Equivale a {amountUsd} enviados.
             </p>
           </div>
+
+          {/* Código de entrega (OTP) */}
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <KeyRound className="h-4 w-4 text-primary" /> Código de entrega
+            </label>
+            {noCode ? (
+              <div className="mt-2 space-y-2">
+                <input
+                  name="no_code_reason"
+                  placeholder="Motivo (ej. el familiar no tenía el código)"
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNoCode(false);
+                    setError(null);
+                  }}
+                  className="text-xs font-medium text-primary"
+                >
+                  ← Prefiero pedir el código
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <input
+                  name="delivery_code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={4}
+                  placeholder="0000"
+                  className="w-full rounded-xl border border-input bg-background px-3 py-3 text-center text-2xl font-bold tracking-[0.5em] text-foreground outline-none focus:border-primary"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Pídele a quien recibe los 4 dígitos que le pasó el remitente.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNoCode(true);
+                    setError(null);
+                  }}
+                  className="text-xs font-medium text-muted-foreground underline underline-offset-2"
+                >
+                  Entregar sin código
+                </button>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Recibido por (opcional) */}
           <div className="grid grid-cols-2 gap-2">

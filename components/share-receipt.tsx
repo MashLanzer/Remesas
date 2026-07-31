@@ -26,6 +26,7 @@ export type ReceiptData = {
   phone?: string | null;
   refNumber?: string | null; // nº de comprobante (traza)
   rate?: string | null; // tasa aplicada
+  deliveryCode?: string | null; // código OTP para dárselo al familiar
 };
 
 export function ShareReceipt({
@@ -124,6 +125,21 @@ export function ShareReceipt({
                 Envío de {data.amountUsd}
               </p>
             </div>
+
+            {/* Código de entrega para el familiar */}
+            {data.deliveryCode && (
+              <div className="mt-4 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
+                <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/70">
+                  Código de entrega
+                </p>
+                <p className="font-mono text-2xl font-extrabold tracking-[0.35em]">
+                  {data.deliveryCode}
+                </p>
+                <p className="mt-0.5 text-[11px] text-white/70">
+                  Dáselo a quien recibe el dinero.
+                </p>
+              </div>
+            )}
 
             {/* Detalles */}
             <div className="mt-4 space-y-1.5 border-t border-white/20 pt-3">

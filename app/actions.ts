@@ -1409,12 +1409,55 @@ async function handleSignature(
     .eq("id", id);
 }
 
-export async function deliverRemittance(formData: FormData) {
+export async function deliverRemittance(
+  formData: FormData
+): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
-  if (!isStaff(ctx)) return;
+  if (!isStaff(ctx)) return { ok: false, error: "No autorizado." };
   const id = str(formData.get("id"));
-  if (!id) return;
+  if (!id) return { ok: false, error: "Falta la remesa." };
+
+  // --- Código de entrega (OTP) ---
+  const noCode = str(formData.get("no_code")) === "1";
+  if (noCode) {
+    const reason = str(formData.get("no_code_reason"));
+    await supabase.rpc("deliver_without_code", {
+      p_remittance: id,
+      p_reason: reason,
+    });
+    await logActivity("remesa.entrega_sin_codigo", {
+      entityType: "remesa",
+      entityId: id,
+      details: { reason },
+    });
+  } else {
+    const code = str(formData.get("delivery_code"));
+    const { data: okCode, error } = await supabase.rpc("verify_delivery_code", {
+      p_remittance: id,
+      p_code: code,
+    });
+    if (error) {
+      const msg = error.message || "";
+      if (msg.includes("intentos")) {
+        return {
+          ok: false,
+          error:
+            "Demasiados intentos. Usa 'Entregar sin código' si es necesario.",
+        };
+      }
+      // Si la función aún no existe (migración 0049 sin correr), no bloquear.
+      if (error.code !== "42883" && error.code !== "PGRST202") {
+        return { ok: false, error: "No se pudo verificar el código." };
+      }
+    } else if (okCode === false) {
+      return {
+        ok: false,
+        error: "Código incorrecto. Verifícalo con el remitente.",
+      };
+    }
+  }
+
   await handleDeliveryProof(supabase, formData, id);
   await handleSignature(supabase, formData, id);
   // Foto del carné de quien recibe (tolerante — columna 0039).
@@ -1446,6 +1489,7 @@ export async function deliverRemittance(formData: FormData) {
       .eq("id", id);
   }
   await updateRemittanceStatus(id, "entregado");
+  return { ok: true };
 }
 
 // Gastos de reparto del repartidor (transporte, etc.), para su ganancia neta.
