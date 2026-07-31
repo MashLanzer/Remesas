@@ -19,7 +19,7 @@ type ColCheck = {
 };
 
 const COLUMN_CHECKS: ColCheck[] = [
-  { table: "remittances", column: "reject_reason", feature: "Motivo de rechazo de pedidos", migration: "0024" },
+  { table: "orders", column: "reject_reason", feature: "Motivo de rechazo de pedidos", migration: "0024" },
   { table: "offers", column: "featured", feature: "Ofertas destacadas / vistas", migration: "0025" },
   { table: "remittances", column: "delivery_proof_url", feature: "Foto de comprobante de entrega", migration: "0026" },
   { table: "profiles", column: "avatar_url", feature: "Foto de perfil", migration: "0027" },
