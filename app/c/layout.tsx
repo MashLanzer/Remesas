@@ -8,8 +8,10 @@ import {
   getMyPoints,
   getMyBeneficiaries,
   getMyOperatorContact,
+  getMyNotifications,
 } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
+import { NotificationBell } from "@/components/notification-bell";
 import { ClienteNav } from "@/components/cliente-nav";
 import { ClienteProfileMenu } from "@/components/cliente-profile-menu";
 import { ClienteOnboarding } from "@/components/cliente-onboarding";
@@ -34,7 +36,7 @@ export default async function ClienteLayout({
   if (!ctx.isCliente) redirect("/");
 
   // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
-  const [rates, points, cfgRes, beneficiaries, profileRes, contact] =
+  const [rates, points, cfgRes, beneficiaries, profileRes, contact, notifs] =
     await Promise.all([
       getExchangeRates(),
       getMyPoints(),
@@ -46,6 +48,7 @@ export default async function ClienteLayout({
         .eq("id", user.id)
         .single(),
       getMyOperatorContact(),
+      getMyNotifications(),
     ]);
   const fullName = (profileRes.data?.full_name as string | null) ?? null;
   const avatarUrl = (profileRes.data?.avatar_url as string | null) ?? null;
@@ -86,6 +89,7 @@ export default async function ClienteLayout({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
+            <NotificationBell items={notifs.items} unread={notifs.unread} />
             <Link
               href="/c/opiniones"
               className="flex h-9 w-9 items-center justify-center rounded-full text-amber-400 transition hover:bg-amber-400/10"

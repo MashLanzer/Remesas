@@ -790,6 +790,80 @@ export async function getMyOrders(): Promise<Order[]> {
 }
 
 // Un pedido concreto del cliente actual (para el detalle).
+// Centro de notificaciones (cliente): avisos derivados de sus propios pedidos.
+// No hay tabla de notificaciones; los eventos salen de las fechas del pedido y
+// lo "nuevo" se calcula contra profiles.notifications_seen_at.
+export type AppNotification = {
+  id: string;
+  title: string;
+  body: string;
+  url: string;
+  at: string;
+  kind: "delivered" | "accepted" | "rejected";
+};
+
+export async function getMyNotifications(): Promise<{
+  items: AppNotification[];
+  unread: number;
+}> {
+  const ctx = await getSessionContext();
+  if (!ctx.isCliente || !ctx.userId) return { items: [], unread: 0 };
+  const supabase = await createClient();
+  const [orders, profRes] = await Promise.all([
+    getMyOrders(),
+    supabase
+      .from("profiles")
+      .select("notifications_seen_at")
+      .eq("id", ctx.userId)
+      .maybeSingle(),
+  ]);
+  const seenAt =
+    (profRes.data as { notifications_seen_at?: string | null } | null)
+      ?.notifications_seen_at ?? null;
+
+  const items: AppNotification[] = [];
+  for (const o of orders) {
+    const who = o.beneficiary_name || "tu familiar";
+    const url = `/c/pedidos/${o.id}`;
+    if (o.delivered_at) {
+      items.push({
+        id: `${o.id}:delivered`,
+        title: "¡Remesa entregada! ✅",
+        body: `Tu envío de $${Number(o.amount_usd)} para ${who} fue entregado.`,
+        url,
+        at: o.delivered_at,
+        kind: "delivered",
+      });
+    }
+    if (o.status === "rechazado") {
+      items.push({
+        id: `${o.id}:rejected`,
+        title: "Pedido rechazado",
+        body: o.reject_reason
+          ? `Motivo: ${o.reject_reason}`
+          : `Tu envío para ${who} no se pudo procesar.`,
+        url,
+        at: o.accepted_at || o.created_at,
+        kind: "rejected",
+      });
+    } else if (o.accepted_at) {
+      items.push({
+        id: `${o.id}:accepted`,
+        title: "Envío aceptado 📦",
+        body: `Ya preparamos tu envío para ${who}.`,
+        url,
+        at: o.accepted_at,
+        kind: "accepted",
+      });
+    }
+  }
+  items.sort((a, b) => b.at.localeCompare(a.at));
+  const unread = seenAt
+    ? items.filter((i) => i.at > seenAt).length
+    : items.length;
+  return { items: items.slice(0, 30), unread };
+}
+
 export async function getMyOrder(id: string): Promise<Order | null> {
   const supabase = await createClient();
   const ctx = await getSessionContext();

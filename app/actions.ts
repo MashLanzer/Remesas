@@ -2396,3 +2396,17 @@ export async function adminBroadcast(formData: FormData) {
   });
   revalidatePath("/admin");
 }
+
+// Centro de notificaciones (cliente): marcar como vistas al abrir la campana.
+export async function markNotificationsSeen(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  // Tolerante si la columna aún no existe (migración 0051).
+  await supabase
+    .from("profiles")
+    .update({ notifications_seen_at: new Date().toISOString() })
+    .eq("id", user.id);
+}
