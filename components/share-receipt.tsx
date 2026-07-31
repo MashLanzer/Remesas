@@ -24,6 +24,8 @@ export type ReceiptData = {
   delivered: string;
   status: string;
   phone?: string | null;
+  refNumber?: string | null; // nº de comprobante (traza)
+  rate?: string | null; // tasa aplicada
 };
 
 export function ShareReceipt({
@@ -128,6 +130,7 @@ export function ShareReceipt({
               <RRow label="Beneficiario" value={data.beneficiaryName || "—"} />
               {data.province && <RRow label="Provincia" value={data.province} />}
               {data.clientName && <RRow label="Cliente" value={data.clientName} />}
+              {data.rate && <RRow label="Tasa" value={data.rate} />}
               <RRow label="Fecha" value={data.date} />
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-white/60">
@@ -140,10 +143,17 @@ export function ShareReceipt({
               </div>
             </div>
 
-            {data.phone && (
-              <p className="mt-4 text-center text-xs text-white/70">
-                Contacto: {data.phone}
-              </p>
+            {(data.refNumber || data.phone) && (
+              <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/20 pt-3 text-[11px] text-white/70">
+                {data.refNumber ? (
+                  <span className="font-mono tracking-wide">
+                    Nº {data.refNumber}
+                  </span>
+                ) : (
+                  <span />
+                )}
+                {data.phone && <span>Contacto: {data.phone}</span>}
+              </div>
             )}
           </div>
         </div>

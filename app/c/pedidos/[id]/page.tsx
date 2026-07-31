@@ -138,6 +138,8 @@ export default async function MiPedidoDetallePage({
             amountUsd: usd(Number(order.amount_usd)),
             delivered: `${localAmount(receives)} ${order.delivery_currency}`,
             status: "entregado",
+            refNumber: order.id.slice(0, 8).toUpperCase(),
+            rate: `${localAmount(Number(rate))} ${order.delivery_currency}/USD`,
           }}
         />
       )}

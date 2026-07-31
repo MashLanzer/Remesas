@@ -412,6 +412,8 @@ export default async function RemesaDetailPage({
             amountUsd: usd(r.amount_usd),
             delivered: `${localAmount(r.local_amount)} ${r.delivery_currency}`,
             status: r.status,
+            refNumber: r.id.slice(0, 8).toUpperCase(),
+            rate: `${localAmount(r.exchange_rate)} ${r.delivery_currency}/USD`,
           }}
         />
       </div>
