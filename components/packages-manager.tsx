@@ -43,6 +43,7 @@ type Draft = {
   highlight: string;
   emoji: string;
   description: string;
+  imageUrl?: string | null;
   // Precio fijo (0054).
   pricing_mode: "auto" | "fixed";
   fixed_send_usd: string;
@@ -161,6 +162,7 @@ export function PackagesManager({
       highlight: p.highlight || "",
       emoji: p.emoji || "",
       description: p.description || "",
+      imageUrl: p.image_url,
       pricing_mode: p.pricing_mode === "fixed" ? "fixed" : "auto",
       fixed_send_usd: p.fixed_send_usd != null ? String(p.fixed_send_usd) : "",
       fixed_receives: p.fixed_receives != null ? String(p.fixed_receives) : "",
@@ -171,7 +173,9 @@ export function PackagesManager({
     setOpen(true);
   }
   function openDuplicate(p: RemittancePackage) {
-    setDraft({ ...draftFrom(p), title: `${p.title} (copia)` });
+    // El duplicado no arrastra la foto: es un borrador nuevo sin imagen hasta
+    // que el operador suba una (createPackage solo sube si hay archivo).
+    setDraft({ ...draftFrom(p), title: `${p.title} (copia)`, imageUrl: null });
     setOpen(true);
   }
 
@@ -435,6 +439,19 @@ export function PackagesManager({
               onChange={(e) => set("description")(e.target.value)}
             />
           </Field>
+          <Field label="Foto (opcional)">
+            <input
+              type="file"
+              name="image"
+              accept="image/*"
+              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
+            />
+          </Field>
+          <p className="-mt-1 text-[11px] text-muted-foreground">
+            {draft.imageUrl
+              ? "Ya tiene foto. Sube una nueva solo si quieres cambiarla."
+              : "Una foto llama más la atención que el emoji."}
+          </p>
           <Button type="submit" className="w-full">
             {draft.id ? "Guardar cambios" : "Publicar paquete"}
           </Button>
@@ -453,9 +470,18 @@ export function PackagesManager({
             return (
               <Card key={p.id} className="space-y-2.5 p-3.5">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-xl">
-                    {p.emoji || "🎁"}
-                  </span>
+                  {p.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.image_url}
+                      alt={p.title}
+                      className="h-10 w-10 shrink-0 rounded-2xl object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-xl">
+                      {p.emoji || "🎁"}
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">
                       {p.title}
@@ -534,42 +560,54 @@ export function PackagesManager({
                 <p className="mb-3 text-xs text-muted-foreground">
                   Así se ve en la app de tus clientes.
                 </p>
-                <Card className="flex flex-col gap-2 p-4">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
-                    {preview.emoji || "🎁"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-foreground">
-                      {preview.title}
-                    </p>
-                    {q.receives != null && preview.delivery_currency !== "USD" ? (
-                      <p className="text-xs font-semibold text-income">
-                        Recibe ~{localAmount(q.receives)} {preview.delivery_currency}
-                      </p>
-                    ) : q.receives != null ? (
-                      <p className="text-xs font-semibold text-income">
-                        Recibe {usd(q.receives)}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Entrega en {preview.delivery_currency || "—"}
-                      </p>
-                    )}
-                    {preview.description && (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {preview.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-1 border-t border-border pt-2">
-                    <span className="text-sm font-bold text-foreground">
-                      Paga {usd(Number(preview.amount_usd))}
-                    </span>
-                    {preview.highlight ? (
-                      <span className="truncate rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                        {preview.highlight}
+                <Card className="overflow-hidden p-0">
+                  {preview.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={preview.image_url}
+                      alt={preview.title}
+                      className="h-40 w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="flex flex-col gap-2 p-4">
+                    {!preview.image_url && (
+                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+                        {preview.emoji || "🎁"}
                       </span>
-                    ) : null}
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-foreground">
+                        {preview.title}
+                      </p>
+                      {q.receives != null && preview.delivery_currency !== "USD" ? (
+                        <p className="text-xs font-semibold text-income">
+                          Recibe ~{localAmount(q.receives)} {preview.delivery_currency}
+                        </p>
+                      ) : q.receives != null ? (
+                        <p className="text-xs font-semibold text-income">
+                          Recibe {usd(q.receives)}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Entrega en {preview.delivery_currency || "—"}
+                        </p>
+                      )}
+                      {preview.description && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {preview.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-1 border-t border-border pt-2">
+                      <span className="text-sm font-bold text-foreground">
+                        Paga {usd(Number(preview.amount_usd))}
+                      </span>
+                      {preview.highlight ? (
+                        <span className="truncate rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                          {preview.highlight}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </Card>
               </>

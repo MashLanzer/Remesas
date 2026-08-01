@@ -62,15 +62,26 @@ export function PackagesView({
           <Card
             key={p.id}
             className={
-              "space-y-3 p-4 " +
+              "overflow-hidden p-0 " +
               (p.highlight ? "border-primary/30 ring-1 ring-primary/15" : "")
             }
           >
+            {p.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.image_url}
+                alt={p.title}
+                className="h-36 w-full object-cover"
+              />
+            )}
+            <div className="space-y-3 p-4">
             {/* Encabezado: emoji grande + título + badge */}
             <div className="flex items-start gap-3">
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-3xl">
-                {p.emoji || "🎁"}
-              </span>
+              {!p.image_url && (
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-3xl">
+                  {p.emoji || "🎁"}
+                </span>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <p className="text-base font-bold text-foreground">{p.title}</p>
@@ -124,6 +135,7 @@ export function PackagesView({
             >
               <Send className="h-4 w-4" /> Pedir este paquete
             </button>
+            </div>
           </Card>
         );
       })}

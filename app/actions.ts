@@ -417,6 +417,7 @@ export async function createPackage(formData: FormData) {
       })
       .eq("id", pkgId)
       .eq("operator_id", ctx.tenantId);
+    await uploadPackageImage(supabase, formData, pkgId);
   }
   await logActivity("paquete.crear", {
     entityType: "paquete",
@@ -451,6 +452,7 @@ export async function updatePackage(formData: FormData) {
     })
     .eq("id", id)
     .eq("operator_id", ctx.tenantId);
+  await uploadPackageImage(supabase, formData, id);
   await logActivity("paquete.editar", {
     entityType: "paquete",
     entityLabel: str(formData.get("title")) ?? "Paquete",
@@ -458,6 +460,29 @@ export async function updatePackage(formData: FormData) {
   revalidatePath("/paquetes");
   revalidatePath("/c/tienda");
   revalidatePath("/c");
+}
+
+// Sube la foto del paquete (si hay) al bucket público "receipts" (ruta
+// packages/…) y guarda la URL. Tolerante: si no hay archivo o la columna aún
+// no existe (migración 0055), no hace nada.
+async function uploadPackageImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  packageId: string
+) {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `packages/${packageId}/img-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  await supabase
+    .from("remittance_packages")
+    .update({ image_url: data.publicUrl })
+    .eq("id", packageId);
 }
 
 export async function togglePackage(id: string, active: boolean) {

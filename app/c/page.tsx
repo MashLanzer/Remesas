@@ -321,11 +321,20 @@ export default async function ClienteHome() {
               ).receives;
               return (
                 <Link key={p.id} href="/c/tienda" className="w-40 shrink-0">
-                  <Card className="flex h-full flex-col gap-2 p-4 transition active:scale-[0.98]">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
-                      {p.emoji || "🎁"}
-                    </span>
-                    <div className="min-w-0">
+                  <Card className="flex h-full flex-col gap-2 overflow-hidden p-0 transition active:scale-[0.98]">
+                    {p.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={p.image_url}
+                        alt={p.title}
+                        className="h-20 w-full object-cover"
+                      />
+                    ) : (
+                      <span className="mt-4 ml-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+                        {p.emoji || "🎁"}
+                      </span>
+                    )}
+                    <div className="min-w-0 px-4">
                       <p className="truncate text-sm font-bold text-foreground">
                         {p.title}
                       </p>
@@ -339,7 +348,7 @@ export default async function ClienteHome() {
                         </p>
                       )}
                     </div>
-                    <div className="mt-auto flex items-center justify-between gap-1 pt-1">
+                    <div className="mt-auto flex items-center justify-between gap-1 px-4 pb-4 pt-1">
                       <span className="tabular text-sm font-bold text-foreground">
                         ${Number(p.amount_usd)}
                       </span>

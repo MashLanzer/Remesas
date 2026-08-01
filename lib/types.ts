@@ -192,6 +192,8 @@ export interface RemittancePackage {
   highlight: string | null;
   active: boolean;
   sort: number;
+  // Foto opcional (0055). Si hay, reemplaza al emoji en tarjetas y tienda.
+  image_url?: string | null;
   // Precio fijo (0054). En modo 'fixed' estos números mandan sobre el cálculo.
   pricing_mode?: "auto" | "fixed" | null;
   fixed_send_usd?: number | null;
