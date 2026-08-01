@@ -1,17 +1,27 @@
 import { Gift } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getActivePackages, getExchangeRates } from "@/lib/data";
+import {
+  getActivePackages,
+  getBusinessSettings,
+  getExchangeRates,
+} from "@/lib/data";
 import { PackagesView } from "@/components/packages-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function TiendaPage() {
   const supabase = await createClient();
-  const [packages, rates, popRes] = await Promise.all([
+  const [packages, rates, settings, popRes] = await Promise.all([
     getActivePackages(),
     getExchangeRates(),
+    getBusinessSettings(),
     supabase.rpc("package_popularity"),
   ]);
+  const rules = {
+    commission_threshold: settings.commission_threshold,
+    commission_percent: settings.commission_percent,
+    commission_flat: settings.commission_flat,
+  };
 
   // Ordenar por popularidad (los más pedidos primero). Si nadie ha pedido aún,
   // se conserva el orden que el negocio definió (getActivePackages ya viene
@@ -40,7 +50,7 @@ export default async function TiendaPage() {
           </p>
         </div>
       </div>
-      <PackagesView packages={sortedPackages} rates={rates} />
+      <PackagesView packages={sortedPackages} rates={rates} rules={rules} />
     </div>
   );
 }

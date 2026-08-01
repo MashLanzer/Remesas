@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getActiveOffers,
   getActivePackages,
+  getBusinessSettings,
   getExchangeRates,
   getRateHistory,
   getMyOrders,
@@ -21,7 +22,7 @@ import {
 import { ReferralCard } from "@/components/referral-card";
 import { AnnouncementsBanner } from "@/components/announcements-banner";
 import { Card } from "@/components/ui";
-import { localAmount, packageReceives, usd } from "@/lib/utils";
+import { localAmount, packageQuote, usd } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
@@ -53,6 +54,7 @@ export default async function ClienteHome() {
     profileRes,
     beneficiaries,
     rateHistory,
+    settings,
   ] = await Promise.all([
     getActiveOffers(),
     getActivePackages(),
@@ -65,7 +67,13 @@ export default async function ClienteHome() {
       : Promise.resolve({ data: null }),
     getMyBeneficiaries(),
     getRateHistory(),
+    getBusinessSettings(),
   ]);
+  const commissionRules = {
+    commission_threshold: settings.commission_threshold,
+    commission_percent: settings.commission_percent,
+    commission_flat: settings.commission_flat,
+  };
   const [referral, announcements] = await Promise.all([
     getMyReferral(),
     getActiveAnnouncements(),
@@ -302,11 +310,12 @@ export default async function ClienteHome() {
           </div>
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
             {featuredPackages.map((p) => {
-              const receives = packageReceives(
+              const receives = packageQuote(
                 p.amount_usd,
                 p.delivery_currency,
-                rates
-              );
+                rates,
+                commissionRules
+              ).receives;
               return (
                 <Link key={p.id} href="/c/tienda" className="w-40 shrink-0">
                   <Card className="flex h-full flex-col gap-2 p-4 transition active:scale-[0.98]">

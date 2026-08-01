@@ -6,15 +6,18 @@ import { Card, Button, Field, Input, Textarea, EmptyState } from "@/components/u
 import { IlluStore } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
 import { createOrder } from "@/app/actions";
-import { usd, localAmount, packageReceives } from "@/lib/utils";
+import { usd, localAmount, packageQuote } from "@/lib/utils";
+import type { CommissionRules } from "@/lib/calc";
 import type { ExchangeRate, RemittancePackage } from "@/lib/types";
 
 export function PackagesView({
   packages,
   rates,
+  rules,
 }: {
   packages: RemittancePackage[];
   rates: ExchangeRate[];
+  rules?: CommissionRules;
 }) {
   const [selected, setSelected] = useState<RemittancePackage | null>(null);
 
@@ -29,14 +32,20 @@ export function PackagesView({
   }
 
   const selReceives = selected
-    ? packageReceives(selected.amount_usd, selected.delivery_currency, rates)
+    ? packageQuote(selected.amount_usd, selected.delivery_currency, rates, rules)
+        .receives
     : null;
 
   return (
     <div className="space-y-3">
       {packages.map((p) => {
-        const receives = packageReceives(p.amount_usd, p.delivery_currency, rates);
-        const showReceives =
+        const receives = packageQuote(
+          p.amount_usd,
+          p.delivery_currency,
+          rates,
+          rules
+        ).receives;
+        const showLocal =
           receives != null && p.delivery_currency && p.delivery_currency !== "USD";
         return (
           <Card
@@ -84,11 +93,13 @@ export function PackagesView({
                   Recibe
                 </p>
                 <p className="tabular text-lg font-extrabold text-primary">
-                  {showReceives ? (
+                  {showLocal ? (
                     <>
                       {localAmount(receives!)}{" "}
                       <span className="text-xs font-bold">{p.delivery_currency}</span>
                     </>
+                  ) : receives != null ? (
+                    usd(receives)
                   ) : (
                     usd(Number(p.amount_usd))
                   )}
@@ -125,13 +136,16 @@ export function PackagesView({
                   {usd(Number(selected.amount_usd))}
                 </span>
               </div>
-              {selReceives != null && selected.delivery_currency !== "USD" && (
+              {selReceives != null && (
                 <div className="mt-1 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    Tu familia recibe ~
+                    Tu familia recibe{" "}
+                    {selected.delivery_currency === "USD" ? "" : "~"}
                   </span>
                   <span className="tabular text-sm font-bold text-income">
-                    {localAmount(selReceives)} {selected.delivery_currency}
+                    {selected.delivery_currency === "USD"
+                      ? usd(selReceives)
+                      : `${localAmount(selReceives)} ${selected.delivery_currency}`}
                   </span>
                 </div>
               )}

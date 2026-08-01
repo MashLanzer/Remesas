@@ -11,7 +11,8 @@ import {
   type ExchangeRate,
   type RemittancePackage,
 } from "@/lib/types";
-import { usd, localAmount, packageReceives } from "@/lib/utils";
+import type { CommissionRules } from "@/lib/calc";
+import { usd, localAmount, packageQuote } from "@/lib/utils";
 import { useDialog } from "@/components/confirm";
 
 type Draft = {
@@ -35,19 +36,22 @@ const EMPTY: Draft = {
 export function PackagesManager({
   packages,
   rates,
+  rules,
 }: {
   packages: RemittancePackage[];
   rates: ExchangeRate[];
+  rules?: CommissionRules;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const { confirm } = useDialog();
 
-  const preview = packageReceives(
+  const quote = packageQuote(
     parseFloat(draft.amount_usd) || 0,
     draft.delivery_currency,
-    rates
+    rates,
+    rules
   );
 
   function openBlank() {
@@ -144,31 +148,44 @@ export function PackagesManager({
             </Field>
           </div>
 
-          {/* Vista previa en vivo: el "recibe" se calcula con la tasa actual y se
-              reacomoda solo cuando cambies la tasa. No se guarda un número fijo. */}
-          <div className="rounded-xl bg-muted p-3 text-center">
-            {preview != null && draft.delivery_currency !== "USD" ? (
-              <>
-                <p className="text-xs text-muted-foreground">
-                  A la tasa de hoy, tu cliente recibe
+          {/* Vista previa en vivo: qué PAGA el cliente y qué RECIBE la familia,
+              con la comisión ya descontada. El "recibe" se calcula con la tasa
+              actual y se reacomoda solo cuando cambie la tasa (no se guarda un
+              número fijo viejo). */}
+          <div className="rounded-xl bg-muted p-3">
+            <div className="flex items-stretch gap-2">
+              <div className="flex-1 rounded-lg bg-card px-3 py-2 text-center">
+                <p className="text-[11px] text-muted-foreground">Cliente paga</p>
+                <p className="text-base font-bold text-foreground">
+                  {usd(quote.pays)}
                 </p>
-                <p className="text-lg font-bold text-income">
-                  ~{localAmount(preview)} {draft.delivery_currency}
+              </div>
+              <div className="flex items-center text-muted-foreground">→</div>
+              <div className="flex-1 rounded-lg bg-card px-3 py-2 text-center">
+                <p className="text-[11px] text-muted-foreground">
+                  Familia recibe
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Se ajusta automáticamente cuando cambie la tasa.
-                </p>
-              </>
-            ) : draft.delivery_currency === "USD" ? (
-              <p className="text-xs text-muted-foreground">
-                Entrega en USD: recibe el mismo monto.
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Configura la tasa de {draft.delivery_currency} para ver cuánto
-                recibe.
-              </p>
-            )}
+                {quote.receives != null ? (
+                  <p className="text-base font-bold text-income">
+                    {draft.delivery_currency === "USD"
+                      ? usd(quote.receives)
+                      : `~${localAmount(quote.receives)} ${draft.delivery_currency}`}
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Falta tasa de {draft.delivery_currency}
+                  </p>
+                )}
+              </div>
+            </div>
+            <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+              {quote.commission > 0
+                ? `Comisión ${usd(quote.commission)} ya descontada · `
+                : ""}
+              {draft.delivery_currency === "USD"
+                ? "entrega directa en USD."
+                : "se ajusta solo cuando cambie la tasa."}
+            </p>
           </div>
 
           <Field label="Etiqueta / promo (opcional)">
@@ -211,11 +228,12 @@ export function PackagesManager({
       ) : (
         <div className="space-y-2">
           {packages.map((p) => {
-            const receives = packageReceives(
+            const receives = packageQuote(
               p.amount_usd,
               p.delivery_currency,
-              rates
-            );
+              rates,
+              rules
+            ).receives;
             return (
               <Card key={p.id} className="flex items-center gap-3 p-3.5">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-muted text-xl">
