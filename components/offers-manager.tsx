@@ -48,6 +48,12 @@ type Draft = {
   starts_at: string;
   ends_at: string;
   imageUrl?: string | null;
+  // Efecto automático en el precio (0053).
+  auto_apply: boolean;
+  new_clients_only: boolean;
+  discount_kind: string;
+  discount_value: string;
+  min_amount_usd: string;
 };
 
 type Tpl = { emoji: string; title: string; kind: string; description: string };
@@ -60,6 +66,11 @@ const EMPTY: Draft = {
   emoji: "",
   starts_at: "",
   ends_at: "",
+  auto_apply: false,
+  new_clients_only: true,
+  discount_kind: "comision_cero",
+  discount_value: "",
+  min_amount_usd: "",
 };
 
 const TPL_KEY = "giro_offer_templates";
@@ -180,6 +191,12 @@ export function OffersManager({
       starts_at: o.starts_at || "",
       ends_at: o.ends_at || "",
       imageUrl: o.image_url,
+      auto_apply: !!o.auto_apply,
+      new_clients_only: o.new_clients_only !== false,
+      discount_kind: o.discount_kind || "comision_cero",
+      discount_value:
+        o.discount_value != null ? String(o.discount_value) : "",
+      min_amount_usd: o.min_amount_usd ? String(o.min_amount_usd) : "",
     });
     setOpen(true);
   }
@@ -191,6 +208,12 @@ export function OffersManager({
       emoji: o.emoji || "",
       starts_at: "",
       ends_at: "",
+      auto_apply: !!o.auto_apply,
+      new_clients_only: o.new_clients_only !== false,
+      discount_kind: o.discount_kind || "comision_cero",
+      discount_value:
+        o.discount_value != null ? String(o.discount_value) : "",
+      min_amount_usd: o.min_amount_usd ? String(o.min_amount_usd) : "",
     });
     setOpen(true);
   }
@@ -342,15 +365,12 @@ export function OffersManager({
               ))}
             </Select>
           </Field>
-          <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
-            {draft.kind === "bono"
-              ? "🎁 Al cliente le aparecerá su enlace de invitación para referir amigos (el bono en puntos se paga solo al primer envío entregado)."
-              : draft.kind === "sin_comision"
-              ? "⚠️ Es solo un anuncio. NO pone la comisión en $0 automáticamente: debes ponerla tú al registrar cada remesa."
-              : draft.kind === "tasa"
-              ? "⚠️ Es solo un anuncio. NO cambia la tasa automáticamente: ajusta la tasa en Tasas o al registrar la remesa."
-              : "ℹ️ Es un anuncio informativo. No cambia precios ni el envío por sí solo; tú lo aplicas al registrar la remesa."}
-          </p>
+          {draft.kind === "bono" && (
+            <p className="rounded-xl bg-primary/10 px-3 py-2 text-[11px] leading-relaxed text-primary">
+              🎁 Al cliente le aparecerá su enlace de invitación para referir
+              amigos (el bono en puntos se paga solo al primer envío entregado).
+            </p>
+          )}
           <Field label="Descripción">
             <Textarea
               name="description"
@@ -378,6 +398,146 @@ export function OffersManager({
               />
             </Field>
           </div>
+
+          {/* Descuento automático (efecto real en el precio) */}
+          <input
+            type="hidden"
+            name="auto_apply"
+            value={draft.auto_apply ? "1" : "0"}
+          />
+          <input
+            type="hidden"
+            name="new_clients_only"
+            value={draft.new_clients_only ? "1" : "0"}
+          />
+          <div className="space-y-3 rounded-2xl border border-border p-3">
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((d) => ({ ...d, auto_apply: !d.auto_apply }))
+              }
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-foreground">
+                  Aplicar descuento automático
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  La app baja el precio sola al registrar la remesa.
+                </span>
+              </span>
+              <span
+                className={cn(
+                  "relative h-6 w-11 shrink-0 rounded-full transition",
+                  draft.auto_apply ? "bg-primary" : "bg-muted"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all",
+                    draft.auto_apply ? "left-[22px]" : "left-0.5"
+                  )}
+                />
+              </span>
+            </button>
+
+            {draft.auto_apply ? (
+              <div className="space-y-3">
+                <Field label="Efecto">
+                  <Select
+                    name="discount_kind"
+                    value={draft.discount_kind}
+                    onChange={(e) => set("discount_kind")(e.target.value)}
+                    title="Efecto de la promoción"
+                  >
+                    <option value="comision_cero">Sin comisión (gratis)</option>
+                    <option value="comision_pct">Comisión −%</option>
+                    <option value="comision_flat">Comisión −$</option>
+                    <option value="tasa_bonus">Mejor tasa (+ por USD)</option>
+                  </Select>
+                </Field>
+                {draft.discount_kind !== "comision_cero" && (
+                  <Field
+                    label={
+                      draft.discount_kind === "comision_pct"
+                        ? "% de descuento en la comisión"
+                        : draft.discount_kind === "comision_flat"
+                        ? "$ de descuento en la comisión"
+                        : "Cuánto mejora la tasa (por USD)"
+                    }
+                  >
+                    <Input
+                      type="number"
+                      name="discount_value"
+                      min="0"
+                      step="0.01"
+                      value={draft.discount_value}
+                      onChange={(e) => set("discount_value")(e.target.value)}
+                      placeholder={
+                        draft.discount_kind === "comision_pct"
+                          ? "20"
+                          : draft.discount_kind === "comision_flat"
+                          ? "1"
+                          : "2"
+                      }
+                    />
+                  </Field>
+                )}
+                <Field label="Monto mínimo del envío ($)" hint="0 = sin mínimo.">
+                  <Input
+                    type="number"
+                    name="min_amount_usd"
+                    min="0"
+                    step="1"
+                    value={draft.min_amount_usd}
+                    onChange={(e) => set("min_amount_usd")(e.target.value)}
+                    placeholder="0"
+                  />
+                </Field>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      new_clients_only: !d.new_clients_only,
+                    }))
+                  }
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                >
+                  <span className="text-sm font-medium text-foreground">
+                    Solo clientes nuevos
+                  </span>
+                  <span
+                    className={cn(
+                      "relative h-6 w-11 shrink-0 rounded-full transition",
+                      draft.new_clients_only ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all",
+                        draft.new_clients_only ? "left-[22px]" : "left-0.5"
+                      )}
+                    />
+                  </span>
+                </button>
+                <p className="rounded-xl bg-income/10 px-3 py-2 text-[11px] leading-relaxed text-income">
+                  ✅ Aplica automáticamente dentro de la ventana de fechas de
+                  arriba
+                  {draft.new_clients_only
+                    ? ", solo en el PRIMER envío de un cliente nuevo"
+                    : ""}
+                  . La comisión nunca queda negativa.
+                </p>
+              </div>
+            ) : (
+              <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                ⚠️ Apagado: la oferta es solo un cartel y NO cambia el precio. Tú
+                aplicas el descuento a mano al registrar la remesa.
+              </p>
+            )}
+          </div>
+
           <Field label="Imagen (opcional)">
             <input
               type="file"

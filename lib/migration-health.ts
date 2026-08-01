@@ -37,6 +37,7 @@ const COLUMN_CHECKS: ColCheck[] = [
   { table: "profiles", column: "referral_code", feature: "Programa de referidos", migration: "0043" },
   { table: "beneficiaries", column: "created_by", feature: "Aislar agenda del repartidor por autor", migration: "0046" },
   { table: "profiles", column: "notifications_seen_at", feature: "Centro de notificaciones (cliente)", migration: "0051" },
+  { table: "offers", column: "auto_apply", feature: "Ofertas con descuento automático", migration: "0053" },
 ];
 
 type TableCheck = { table: string; probe: string; feature: string; migration: string };

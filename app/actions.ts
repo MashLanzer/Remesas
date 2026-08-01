@@ -280,6 +280,25 @@ export async function createOffer(formData: FormData) {
       .single();
     offerId = (inserted as { id?: string } | null)?.id ?? null;
   }
+  // Efecto automático (aparte y tolerante — columnas de la 0053). Si el operador
+  // no marca "aplicar automático", queda en false (sin efecto en el precio).
+  if (offerId) {
+    const autoApply = str(formData.get("auto_apply")) === "1";
+    const dkind = str(formData.get("discount_kind"));
+    const promoPatch: Record<string, unknown> = {
+      auto_apply: autoApply,
+      new_clients_only: str(formData.get("new_clients_only")) !== "0",
+      discount_kind: autoApply ? dkind : null,
+      discount_value:
+        autoApply && dkind !== "comision_cero" ? num(formData.get("discount_value")) : 0,
+      min_amount_usd: num(formData.get("min_amount_usd")),
+    };
+    await supabase
+      .from("offers")
+      .update(promoPatch)
+      .eq("id", offerId)
+      .eq("operator_id", ctx.tenantId);
+  }
   if (offerId) await uploadOfferImage(supabase, formData, offerId);
   await logActivity(id ? "oferta.editar" : "oferta.crear", {
     entityType: "oferta",
@@ -869,6 +888,68 @@ export async function acceptOrder(
   // simultáneos no pueden gastar el saldo dos veces. El descuento está topado a
   // un % de la comisión (la casa siempre conserva la mayor parte).
   let commission = calcCommission(amountUsd, rules);
+
+  // Promoción automática (0053, tolerante). Candados: ventana de fechas, monto
+  // mínimo y, por defecto, solo clientes nuevos (su primer envío en este
+  // negocio). Se elige la promo automática más reciente que califique. La
+  // comisión nunca queda negativa. Corre ANTES del canje de puntos para que el
+  // tope del canje use la comisión ya rebajada (sin números negativos).
+  let promoRate = rate;
+  let promoTitle: string | null = null;
+  {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: promos } = await supabase
+      .from("offers")
+      .select(
+        "title, discount_kind, discount_value, min_amount_usd, new_clients_only, starts_at, ends_at"
+      )
+      .eq("operator_id", tid)
+      .eq("active", true)
+      .eq("auto_apply", true)
+      .order("created_at", { ascending: false });
+    const list =
+      (promos as Array<{
+        title: string | null;
+        discount_kind: string | null;
+        discount_value: number | null;
+        min_amount_usd: number | null;
+        new_clients_only: boolean | null;
+        starts_at: string | null;
+        ends_at: string | null;
+      }> | null) ?? [];
+    if (list.length > 0) {
+      // Cliente nuevo = sin remesas previas en este negocio.
+      let isNew = true;
+      if (clientId) {
+        const { count } = await supabase
+          .from("remittances")
+          .select("id", { count: "exact", head: true })
+          .eq("operator_id", tid)
+          .eq("client_id", clientId);
+        isNew = (count ?? 0) === 0;
+      }
+      const promo = list.find(
+        (p) =>
+          !!p.discount_kind &&
+          amountUsd >= (Number(p.min_amount_usd) || 0) &&
+          (!p.starts_at || p.starts_at <= today) &&
+          (!p.ends_at || p.ends_at >= today) &&
+          (p.new_clients_only === false || isNew)
+      );
+      if (promo) {
+        const val = Number(promo.discount_value) || 0;
+        if (promo.discount_kind === "comision_cero") commission = 0;
+        else if (promo.discount_kind === "comision_pct")
+          commission = round2(Math.max(0, commission - (commission * val) / 100));
+        else if (promo.discount_kind === "comision_flat")
+          commission = round2(Math.max(0, commission - val));
+        else if (promo.discount_kind === "tasa_bonus")
+          promoRate = round2(rate + val);
+        promoTitle = promo.title ?? null;
+      }
+    }
+  }
+
   let pointsUsed = 0;
   let discount = 0;
   if (order.redeem && order.client_id && commission > 0) {
@@ -894,7 +975,7 @@ export async function acceptOrder(
   const c = computeRemittance({
     amountUsd,
     commission,
-    exchangeRate: rate,
+    exchangeRate: promoRate,
     exchangeProfit: 0,
     mySplitPercent: split,
   });
@@ -910,7 +991,11 @@ export async function acceptOrder(
   // Nota interna del personal (no visible al cliente), junto a la del cliente.
   const internalNote = opts?.note?.trim();
   const notes =
-    [order.note, internalNote ? `📝 ${internalNote}` : null]
+    [
+      order.note,
+      internalNote ? `📝 ${internalNote}` : null,
+      promoTitle ? `🎁 Promo aplicada: ${promoTitle}` : null,
+    ]
       .filter(Boolean)
       .join("\n\n") || null;
 
@@ -924,7 +1009,7 @@ export async function acceptOrder(
       commission: c.commission,
       total_received: c.totalReceived,
       delivery_currency: currency,
-      exchange_rate: rate,
+      exchange_rate: promoRate,
       local_amount: c.localAmount,
       exchange_profit: 0,
       total_profit: c.totalProfit,

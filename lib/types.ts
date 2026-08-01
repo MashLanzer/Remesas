@@ -172,6 +172,12 @@ export interface Offer {
   view_count?: number;
   starts_at: string | null;
   ends_at: string | null;
+  // Efecto automático en el precio (0053). Opcional/tolerante.
+  auto_apply?: boolean;
+  new_clients_only?: boolean;
+  discount_kind?: "comision_cero" | "comision_pct" | "comision_flat" | "tasa_bonus" | null;
+  discount_value?: number | null;
+  min_amount_usd?: number | null;
   created_at: string;
 }
 
