@@ -427,6 +427,39 @@ export async function createPackage(formData: FormData) {
   revalidatePath("/c");
 }
 
+export async function updatePackage(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.isOperador || !ctx.tenantId) return;
+  const id = str(formData.get("id"));
+  if (!id) return;
+  const amount = num(formData.get("amount_usd"));
+  if (amount <= 0) return;
+  const fixed = str(formData.get("pricing_mode")) === "fixed";
+  await supabase
+    .from("remittance_packages")
+    .update({
+      title: str(formData.get("title")) ?? "Paquete",
+      description: str(formData.get("description")),
+      emoji: str(formData.get("emoji")),
+      amount_usd: amount,
+      delivery_currency: str(formData.get("delivery_currency")),
+      highlight: str(formData.get("highlight")),
+      pricing_mode: fixed ? "fixed" : "auto",
+      fixed_send_usd: fixed ? num(formData.get("fixed_send_usd")) : null,
+      fixed_receives: fixed ? num(formData.get("fixed_receives")) : null,
+    })
+    .eq("id", id)
+    .eq("operator_id", ctx.tenantId);
+  await logActivity("paquete.editar", {
+    entityType: "paquete",
+    entityLabel: str(formData.get("title")) ?? "Paquete",
+  });
+  revalidatePath("/paquetes");
+  revalidatePath("/c/tienda");
+  revalidatePath("/c");
+}
+
 export async function togglePackage(id: string, active: boolean) {
   const supabase = await createClient();
   const ctx = await getSessionContext();
