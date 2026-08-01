@@ -18,7 +18,10 @@ const DEFAULT_RULES: CommissionRules = {
 
 /**
  * Comisión automática según las reglas del negocio (configurables):
- *  - Envío >= umbral  -> % del monto.
+ *  - Envío >= umbral  -> cobro por TRAMOS: se cobra el % de cada bloque
+ *    completo del tamaño del umbral; el resto (bloque incompleto) no cobra.
+ *    Con umbral 100 y 10% => $10 por cada $100 completo:
+ *    $110 -> $10, $150 -> $10, $200 -> $20, $250 -> $20.
  *  - Envío <  umbral  -> monto fijo.
  * El resultado es editable después en el formulario.
  */
@@ -28,8 +31,12 @@ export function calcCommission(
 ): number {
   const amount = Number(amountUsd) || 0;
   if (amount <= 0) return 0;
-  if (amount >= (Number(rules.commission_threshold) || 0)) {
-    return round2((amount * (Number(rules.commission_percent) || 0)) / 100);
+  const threshold = Number(rules.commission_threshold) || 0;
+  if (threshold > 0 && amount >= threshold) {
+    // Cobro por tramos: $10 por cada bloque completo de $100 (el resto no paga).
+    const blocks = Math.floor(amount / threshold);
+    const perBlock = (threshold * (Number(rules.commission_percent) || 0)) / 100;
+    return round2(blocks * perBlock);
   }
   return round2(Number(rules.commission_flat) || 0);
 }
