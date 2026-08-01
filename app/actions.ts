@@ -387,17 +387,37 @@ export async function createPackage(formData: FormData) {
   if (!ctx.isOperador || !ctx.tenantId) return;
   const amount = num(formData.get("amount_usd"));
   if (amount <= 0) return; // un paquete sin monto no tiene sentido
-  await supabase.from("remittance_packages").insert({
-    operator_id: ctx.tenantId,
-    title: str(formData.get("title")) ?? "Paquete",
-    description: str(formData.get("description")),
-    emoji: str(formData.get("emoji")),
-    amount_usd: amount,
-    delivery_currency: str(formData.get("delivery_currency")),
-    highlight: str(formData.get("highlight")),
-    active: true,
-    created_by: ctx.userId,
-  });
+  const { data: inserted } = await supabase
+    .from("remittance_packages")
+    .insert({
+      operator_id: ctx.tenantId,
+      title: str(formData.get("title")) ?? "Paquete",
+      description: str(formData.get("description")),
+      emoji: str(formData.get("emoji")),
+      amount_usd: amount,
+      delivery_currency: str(formData.get("delivery_currency")),
+      highlight: str(formData.get("highlight")),
+      active: true,
+      created_by: ctx.userId,
+    })
+    .select("id")
+    .single();
+  // Precio fijo (0054, aparte y tolerante). Solo si el operador eligió el modo
+  // "fijo": guarda lo que se envía en USD y lo que llega a la familia. En modo
+  // "auto" se limpian esos campos (vuelve a cobrar comisión normal).
+  const pkgId = (inserted as { id?: string } | null)?.id ?? null;
+  if (pkgId) {
+    const fixed = str(formData.get("pricing_mode")) === "fixed";
+    await supabase
+      .from("remittance_packages")
+      .update({
+        pricing_mode: fixed ? "fixed" : "auto",
+        fixed_send_usd: fixed ? num(formData.get("fixed_send_usd")) : null,
+        fixed_receives: fixed ? num(formData.get("fixed_receives")) : null,
+      })
+      .eq("id", pkgId)
+      .eq("operator_id", ctx.tenantId);
+  }
   await logActivity("paquete.crear", {
     entityType: "paquete",
     entityLabel: str(formData.get("title")) ?? "Paquete",
@@ -756,6 +776,7 @@ export async function acceptOrder(
     delivery_currency?: string | null;
     note?: string | null;
     redeem?: boolean | null;
+    package_id?: string | null;
   } | undefined) ?? null;
   if (!order) return; // perdió la carrera o ya no estaba pendiente
 
@@ -888,15 +909,49 @@ export async function acceptOrder(
   // simultáneos no pueden gastar el saldo dos veces. El descuento está topado a
   // un % de la comisión (la casa siempre conserva la mayor parte).
   let commission = calcCommission(amountUsd, rules);
+  let promoRate = rate;
+  let promoTitle: string | null = null;
+  let bonusPoints = 0;
+
+  // ¿Paquete de PRECIO FIJO (0054)? Entonces los números del paquete mandan:
+  // no se cobra comisión aparte ni se recalcula por tasa. La comisión implícita
+  // = lo que paga (amount_usd) − lo que se envía (fixed_send_usd), y la familia
+  // recibe exactamente fixed_receives. Tolerante si la 0054 no está aplicada.
+  let fixedMode = false;
+  if (order.package_id) {
+    const { data: pkg } = await supabase
+      .from("remittance_packages")
+      .select("pricing_mode, fixed_send_usd, fixed_receives")
+      .eq("id", order.package_id)
+      .eq("operator_id", tid)
+      .maybeSingle();
+    const fx = pkg as {
+      pricing_mode?: string | null;
+      fixed_send_usd?: number | null;
+      fixed_receives?: number | null;
+    } | null;
+    if (
+      fx?.pricing_mode === "fixed" &&
+      fx.fixed_send_usd != null &&
+      fx.fixed_receives != null
+    ) {
+      const sendUsd = Number(fx.fixed_send_usd) || 0;
+      const receives = Number(fx.fixed_receives) || 0;
+      if (sendUsd > 0) {
+        fixedMode = true;
+        commission = round2(amountUsd - sendUsd); // lo que te queda
+        promoRate = round2(receives / sendUsd); // tasa implícita → local = receives
+      }
+    }
+  }
 
   // Promoción automática (0053, tolerante). Candados: ventana de fechas, monto
   // mínimo y, por defecto, solo clientes nuevos (su primer envío en este
   // negocio). Se elige la promo automática más reciente que califique. La
   // comisión nunca queda negativa. Corre ANTES del canje de puntos para que el
-  // tope del canje use la comisión ya rebajada (sin números negativos).
-  let promoRate = rate;
-  let promoTitle: string | null = null;
-  {
+  // tope del canje use la comisión ya rebajada (sin números negativos). No se
+  // aplica a paquetes de precio fijo (esos ya traen su precio cerrado).
+  if (!fixedMode) {
     const today = new Date().toISOString().slice(0, 10);
     const { data: promos } = await supabase
       .from("offers")
@@ -945,6 +1000,13 @@ export async function acceptOrder(
           commission = round2(Math.max(0, commission - val));
         else if (promo.discount_kind === "tasa_bonus")
           promoRate = round2(rate + val);
+        else if (promo.discount_kind === "combo_extra")
+          // La familia recibe `val` USD extra: sale de tu margen (la comisión
+          // baja en esa cantidad, incluso a negativo si el combo es mayor).
+          commission = round2(commission - val);
+        else if (promo.discount_kind === "bono_puntos")
+          // Puntos extra al cliente: no toca el precio, se acreditan al final.
+          bonusPoints = Math.max(0, Math.round(val));
         promoTitle = promo.title ?? null;
       }
     }
@@ -952,7 +1014,7 @@ export async function acceptOrder(
 
   let pointsUsed = 0;
   let discount = 0;
-  if (order.redeem && order.client_id && commission > 0) {
+  if (!fixedMode && order.redeem && order.client_id && commission > 0) {
     const pointValue = Number(rules.point_value_usd ?? 0.05) || 0.05;
     const minPts = Math.round(Number(rules.redeem_min_points ?? 100)) || 100;
     const maxPct = Number(rules.redeem_max_pct ?? 50) || 50;
@@ -1042,6 +1104,18 @@ export async function acceptOrder(
     }
     await revertToPending();
     return;
+  }
+
+  // Bono de puntos de una promo "Bono" (0053): se acreditan al cliente al
+  // aceptar (no toca el precio). Solo si hay cuenta de cliente real.
+  if (bonusPoints > 0 && order.client_id) {
+    await supabase.from("points_ledger").insert({
+      operator_id: tid,
+      client_id: order.client_id,
+      delta: bonusPoints,
+      reason: "bono",
+      order_id: order.id,
+    });
   }
 
   // Los puntos ya se descontaron atómicamente en redeem_points; aquí solo se

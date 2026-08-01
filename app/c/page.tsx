@@ -314,7 +314,10 @@ export default async function ClienteHome() {
                 p.amount_usd,
                 p.delivery_currency,
                 rates,
-                commissionRules
+                commissionRules,
+                p.pricing_mode === "fixed"
+                  ? { send_usd: p.fixed_send_usd, receives: p.fixed_receives }
+                  : null
               ).receives;
               return (
                 <Link key={p.id} href="/c/tienda" className="w-40 shrink-0">

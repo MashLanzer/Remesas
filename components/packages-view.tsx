@@ -31,9 +31,19 @@ export function PackagesView({
     );
   }
 
+  const fx = (p: RemittancePackage) =>
+    p.pricing_mode === "fixed"
+      ? { send_usd: p.fixed_send_usd, receives: p.fixed_receives }
+      : null;
+
   const selReceives = selected
-    ? packageQuote(selected.amount_usd, selected.delivery_currency, rates, rules)
-        .receives
+    ? packageQuote(
+        selected.amount_usd,
+        selected.delivery_currency,
+        rates,
+        rules,
+        fx(selected)
+      ).receives
     : null;
 
   return (
@@ -43,7 +53,8 @@ export function PackagesView({
           p.amount_usd,
           p.delivery_currency,
           rates,
-          rules
+          rules,
+          fx(p)
         ).receives;
         const showLocal =
           receives != null && p.delivery_currency && p.delivery_currency !== "USD";

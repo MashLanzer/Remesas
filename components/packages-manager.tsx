@@ -22,6 +22,10 @@ type Draft = {
   highlight: string;
   emoji: string;
   description: string;
+  // Precio fijo (0054).
+  pricing_mode: "auto" | "fixed";
+  fixed_send_usd: string;
+  fixed_receives: string;
 };
 
 const EMPTY: Draft = {
@@ -31,6 +35,9 @@ const EMPTY: Draft = {
   highlight: "",
   emoji: "",
   description: "",
+  pricing_mode: "auto",
+  fixed_send_usd: "",
+  fixed_receives: "",
 };
 
 export function PackagesManager({
@@ -51,7 +58,13 @@ export function PackagesManager({
     parseFloat(draft.amount_usd) || 0,
     draft.delivery_currency,
     rates,
-    rules
+    rules,
+    draft.pricing_mode === "fixed"
+      ? {
+          send_usd: parseFloat(draft.fixed_send_usd) || 0,
+          receives: parseFloat(draft.fixed_receives) || 0,
+        }
+      : null
   );
 
   function openBlank() {
@@ -61,6 +74,7 @@ export function PackagesManager({
 
   function openTemplate(t: (typeof PACKAGE_TEMPLATES)[number]) {
     setDraft({
+      ...EMPTY,
       title: t.title,
       amount_usd: String(t.amount_usd),
       delivery_currency: t.delivery_currency,
@@ -73,6 +87,8 @@ export function PackagesManager({
 
   const set = (k: keyof Draft) => (v: string) =>
     setDraft((d) => ({ ...d, [k]: v }));
+
+  const isFixed = draft.pricing_mode === "fixed";
 
   return (
     <div className="space-y-4">
@@ -119,8 +135,34 @@ export function PackagesManager({
               onChange={(e) => set("title")(e.target.value)}
             />
           </Field>
+          {/* Modo de precio: automático (cobra comisión) o fijo (tú pones los
+              números y mandan, sin comisión aparte). */}
+          <input type="hidden" name="pricing_mode" value={draft.pricing_mode} />
+          <div className="grid grid-cols-2 gap-2">
+            {(["auto", "fixed"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => set("pricing_mode")(m)}
+                className={
+                  "rounded-xl border px-3 py-2 text-left transition " +
+                  (draft.pricing_mode === m
+                    ? "border-primary bg-primary/10"
+                    : "border-border")
+                }
+              >
+                <span className="block text-sm font-semibold text-foreground">
+                  {m === "auto" ? "Automático" : "Precio fijo"}
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {m === "auto" ? "Cobra comisión normal" : "Tú pones los números"}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Monto (USD)">
+            <Field label={isFixed ? "Cliente paga (USD)" : "Monto (USD)"}>
               <Input
                 type="number"
                 name="amount_usd"
@@ -147,6 +189,36 @@ export function PackagesManager({
               </Select>
             </Field>
           </div>
+
+          {isFixed && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Se envía (USD)" hint="Lo que realmente mandas.">
+                <Input
+                  type="number"
+                  name="fixed_send_usd"
+                  min="0"
+                  step="0.01"
+                  placeholder="95.00"
+                  value={draft.fixed_send_usd}
+                  onChange={(e) => set("fixed_send_usd")(e.target.value)}
+                />
+              </Field>
+              <Field
+                label={`Llega a la familia (${draft.delivery_currency})`}
+                hint="El número exacto que ve el cliente."
+              >
+                <Input
+                  type="number"
+                  name="fixed_receives"
+                  min="0"
+                  step="0.01"
+                  placeholder={draft.delivery_currency === "USD" ? "95.00" : "44500"}
+                  value={draft.fixed_receives}
+                  onChange={(e) => set("fixed_receives")(e.target.value)}
+                />
+              </Field>
+            </div>
+          )}
 
           {/* Vista previa en vivo: qué PAGA el cliente y qué RECIBE la familia,
               con la comisión ya descontada. El "recibe" se calcula con la tasa
@@ -179,12 +251,17 @@ export function PackagesManager({
               </div>
             </div>
             <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
-              {quote.commission > 0
-                ? `Comisión ${usd(quote.commission)} ya descontada · `
-                : ""}
-              {draft.delivery_currency === "USD"
-                ? "entrega directa en USD."
-                : "se ajusta solo cuando cambie la tasa."}
+              {isFixed
+                ? `Precio fijo · tu ganancia ${usd(quote.commission)} · no cambia con la tasa.`
+                : `${
+                    quote.commission > 0
+                      ? `Comisión ${usd(quote.commission)} ya descontada · `
+                      : ""
+                  }${
+                    draft.delivery_currency === "USD"
+                      ? "entrega directa en USD."
+                      : "se ajusta solo cuando cambie la tasa."
+                  }`}
             </p>
           </div>
 
@@ -232,7 +309,10 @@ export function PackagesManager({
               p.amount_usd,
               p.delivery_currency,
               rates,
-              rules
+              rules,
+              p.pricing_mode === "fixed"
+                ? { send_usd: p.fixed_send_usd, receives: p.fixed_receives }
+                : null
             ).receives;
             return (
               <Card key={p.id} className="flex items-center gap-3 p-3.5">

@@ -40,9 +40,20 @@ export function packageQuote(
   amountUsd: number | null | undefined,
   currency: string | null | undefined,
   rates: { currency: string; rate: number; active?: boolean }[],
-  rules?: CommissionRules
+  rules?: CommissionRules,
+  fixed?: { send_usd?: number | null; receives?: number | null } | null
 ): { pays: number; commission: number; receives: number | null } {
   const pays = Number(amountUsd) || 0;
+  // Precio fijo: los números del operador mandan (sin comisión ni tasa). La
+  // comisión implícita es lo que paga menos lo que se envía.
+  if (fixed && fixed.send_usd != null && fixed.receives != null) {
+    const sendUsd = Number(fixed.send_usd) || 0;
+    return {
+      pays,
+      commission: Math.round((pays - sendUsd) * 100) / 100,
+      receives: Number(fixed.receives) || 0,
+    };
+  }
   const commission = rules ? calcCommission(pays, rules) : 0;
   const deliveredUsd = Math.max(0, pays - commission);
   if (!currency) return { pays, commission, receives: null };

@@ -192,6 +192,10 @@ export interface RemittancePackage {
   highlight: string | null;
   active: boolean;
   sort: number;
+  // Precio fijo (0054). En modo 'fixed' estos números mandan sobre el cálculo.
+  pricing_mode?: "auto" | "fixed" | null;
+  fixed_send_usd?: number | null;
+  fixed_receives?: number | null;
   created_at: string;
 }
 

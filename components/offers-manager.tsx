@@ -75,6 +75,15 @@ const EMPTY: Draft = {
 
 const TPL_KEY = "giro_offer_templates";
 
+// Efecto automático que se pre-carga según el Tipo de promoción. Los tipos que
+// no aparecen (express, anuncio) quedan como cartel informativo, sin efecto.
+const KIND_EFFECT: Record<string, { kind: string }> = {
+  tasa: { kind: "tasa_bonus" },
+  sin_comision: { kind: "comision_cero" },
+  bono: { kind: "bono_puntos" },
+  combo: { kind: "combo_extra" },
+};
+
 function fmt(d: string): string {
   return new Date(d + "T00:00:00").toLocaleDateString("es-ES", {
     day: "numeric",
@@ -221,6 +230,20 @@ export function OffersManager({
   const set = (k: keyof Draft) => (v: string) =>
     setDraft((d) => ({ ...d, [k]: v }));
 
+  // Al elegir el Tipo, se pre-configura el efecto automático que le corresponde
+  // (el operador lo puede cambiar después). Los tipos informativos (express,
+  // anuncio) apagan el efecto: son solo cartel.
+  function setKind(k: string) {
+    const eff = KIND_EFFECT[k];
+    setDraft((d) => ({
+      ...d,
+      kind: k,
+      ...(eff
+        ? { auto_apply: true, discount_kind: eff.kind }
+        : { auto_apply: false }),
+    }));
+  }
+
   function openShare(o: Offer) {
     setImgUrl(null);
     setSharing(o);
@@ -355,7 +378,7 @@ export function OffersManager({
             <Select
               name="kind"
               value={draft.kind}
-              onChange={(e) => set("kind")(e.target.value)}
+              onChange={(e) => setKind(e.target.value)}
               title="Tipo de promoción"
             >
               {OFFER_KINDS.map((k) => (
@@ -454,6 +477,8 @@ export function OffersManager({
                     <option value="comision_pct">Comisión −%</option>
                     <option value="comision_flat">Comisión −$</option>
                     <option value="tasa_bonus">Mejor tasa (+ por USD)</option>
+                    <option value="bono_puntos">Bono en puntos (al cliente)</option>
+                    <option value="combo_extra">Combo: USD extra a la familia</option>
                   </Select>
                 </Field>
                 {draft.discount_kind !== "comision_cero" && (
@@ -463,6 +488,10 @@ export function OffersManager({
                         ? "% de descuento en la comisión"
                         : draft.discount_kind === "comision_flat"
                         ? "$ de descuento en la comisión"
+                        : draft.discount_kind === "bono_puntos"
+                        ? "Puntos de bono para el cliente"
+                        : draft.discount_kind === "combo_extra"
+                        ? "USD extra que recibe la familia"
                         : "Cuánto mejora la tasa (por USD)"
                     }
                   >
@@ -470,12 +499,16 @@ export function OffersManager({
                       type="number"
                       name="discount_value"
                       min="0"
-                      step="0.01"
+                      step={draft.discount_kind === "bono_puntos" ? "1" : "0.01"}
                       value={draft.discount_value}
                       onChange={(e) => set("discount_value")(e.target.value)}
                       placeholder={
                         draft.discount_kind === "comision_pct"
                           ? "20"
+                          : draft.discount_kind === "combo_extra"
+                          ? "5"
+                          : draft.discount_kind === "bono_puntos"
+                          ? "50"
                           : draft.discount_kind === "comision_flat"
                           ? "1"
                           : "2"
@@ -527,7 +560,12 @@ export function OffersManager({
                   {draft.new_clients_only
                     ? ", solo en el PRIMER envío de un cliente nuevo"
                     : ""}
-                  . La comisión nunca queda negativa.
+                  .{" "}
+                  {draft.discount_kind === "bono_puntos"
+                    ? "Los puntos se acreditan al cliente al aceptar el pedido."
+                    : draft.discount_kind === "combo_extra"
+                    ? "El USD extra a la familia sale de tu margen."
+                    : "La comisión nunca queda negativa."}
                 </p>
               </div>
             ) : (

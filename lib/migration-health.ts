@@ -38,6 +38,7 @@ const COLUMN_CHECKS: ColCheck[] = [
   { table: "beneficiaries", column: "created_by", feature: "Aislar agenda del repartidor por autor", migration: "0046" },
   { table: "profiles", column: "notifications_seen_at", feature: "Centro de notificaciones (cliente)", migration: "0051" },
   { table: "offers", column: "auto_apply", feature: "Ofertas con descuento automático", migration: "0053" },
+  { table: "remittance_packages", column: "pricing_mode", feature: "Paquetes con precio fijo", migration: "0054" },
 ];
 
 type TableCheck = { table: string; probe: string; feature: string; migration: string };
