@@ -201,7 +201,10 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
             Puntos de fidelidad (clientes)
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Puntos por $1" hint="Al entregar la remesa.">
+            <Field
+              label="Puntos por $1"
+              hint="Al entregar. Ej: 0.2 → 1 punto por cada $5."
+            >
               <Input
                 type="number"
                 name="points_per_usd"
@@ -210,9 +213,9 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
                 defaultValue={
                   settings.points_per_usd != null
                     ? String(settings.points_per_usd)
-                    : "1"
+                    : "0.2"
                 }
-                placeholder="1"
+                placeholder="0.2"
               />
             </Field>
             <Field label="Valor de 1 punto ($)" hint="Ej: 0.05 → 100 pts = $5.">
@@ -264,6 +267,29 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
               />
             </Field>
           </div>
+          <Field
+            label="Bono por referido (puntos)"
+            hint="Puntos para el que invita y para el amigo, al primer envío entregado. Se paga a los dos."
+          >
+            <Input
+              type="number"
+              name="referral_points"
+              min="0"
+              step="1"
+              defaultValue={
+                settings.referral_points != null
+                  ? String(settings.referral_points)
+                  : "50"
+              }
+              placeholder="50"
+            />
+          </Field>
+          <p className="rounded-xl bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+            💡 Con margen ajustado, devuelve poco por dólar. Ejemplo: 0.2 pts/$1
+            y valor $0.05 = das ~1% del envío en puntos, y el tope del{" "}
+            {settings.redeem_max_pct ?? 50}% de la comisión te protege por
+            pedido. Baja estos valores si un envío te deja en pérdida.
+          </p>
 
           <Button type="submit" className="w-full">
             Guardar configuración

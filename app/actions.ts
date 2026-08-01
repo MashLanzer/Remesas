@@ -1346,7 +1346,7 @@ export async function updateRemittanceStatus(id: string, status: string) {
         .select("points_per_usd")
         .eq("operator_id", o.operator_id)
         .maybeSingle();
-      const perUsd = Number((bs as { points_per_usd?: number } | null)?.points_per_usd ?? 1) || 0;
+      const perUsd = Number((bs as { points_per_usd?: number } | null)?.points_per_usd ?? 0.2) || 0;
       const pts = Math.floor(Number(o.amount_usd) * perUsd);
       if (pts > 0) {
         await supabase.from("points_ledger").insert({
@@ -2297,6 +2297,14 @@ export async function updateBusinessSettings(formData: FormData) {
     if (Object.keys(patch).length > 0) {
       await supabase.from("business_settings").update(patch).eq(keyField, keyVal);
     }
+  }
+  // Bono por referido (aparte, tolerante — 0043).
+  const rp = formData.get("referral_points");
+  if (rp !== null && String(rp).trim() !== "") {
+    await supabase
+      .from("business_settings")
+      .update({ referral_points: Math.round(num(rp)) })
+      .eq(keyField, keyVal);
   }
   revalidatePath("/ajustes");
   revalidatePath("/remesas/nueva");

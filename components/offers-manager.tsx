@@ -342,6 +342,15 @@ export function OffersManager({
               ))}
             </Select>
           </Field>
+          <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+            {draft.kind === "bono"
+              ? "🎁 Al cliente le aparecerá su enlace de invitación para referir amigos (el bono en puntos se paga solo al primer envío entregado)."
+              : draft.kind === "sin_comision"
+              ? "⚠️ Es solo un anuncio. NO pone la comisión en $0 automáticamente: debes ponerla tú al registrar cada remesa."
+              : draft.kind === "tasa"
+              ? "⚠️ Es solo un anuncio. NO cambia la tasa automáticamente: ajusta la tasa en Tasas o al registrar la remesa."
+              : "ℹ️ Es un anuncio informativo. No cambia precios ni el envío por sí solo; tú lo aplicas al registrar la remesa."}
+          </p>
           <Field label="Descripción">
             <Textarea
               name="description"

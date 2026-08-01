@@ -352,7 +352,15 @@ export default async function ClienteHome() {
             <span className="h-4 w-1 rounded-full bg-primary" />
             <Star className="h-4 w-4 text-primary" /> Anuncios
           </h2>
-          <OffersView offers={featuredOffers} sendProps={sendProps} />
+          <OffersView
+            offers={featuredOffers}
+            sendProps={sendProps}
+            referral={
+              referral?.code
+                ? { code: referral.code, bonus: referral.bonus }
+                : null
+            }
+          />
         </section>
       )}
 

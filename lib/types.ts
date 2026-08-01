@@ -352,6 +352,7 @@ export interface BusinessSettings {
   point_value_usd?: number | null;
   redeem_min_points?: number | null;
   redeem_max_pct?: number | null;
+  referral_points?: number | null;
   updated_at: string;
 }
 

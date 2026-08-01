@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { Star, Share2, Gift, Check } from "lucide-react";
 import { Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { recordOfferView } from "@/app/actions";
@@ -17,9 +17,27 @@ type SendProps = {
   beneficiaries: { name: string; phone: string | null; province: string | null }[];
 };
 
+type ReferralProps = { code: string | null; bonus: number };
+
 function kindMeta(o: Offer) {
   const k = OFFER_KINDS.find((x) => x.key === o.kind);
   return { emoji: o.emoji || k?.emoji || "📣", label: k?.label ?? "Anuncio" };
+}
+
+// Texto del botón de acción según el tipo de promoción.
+function ctaLabel(o: Offer): string {
+  switch (o.kind) {
+    case "tasa":
+      return "Enviar con esta tasa";
+    case "sin_comision":
+      return "Enviar sin comisión";
+    case "express":
+      return "Pedir entrega express";
+    case "combo":
+      return "Pedir este combo";
+    default:
+      return "Enviar con esta promo";
+  }
 }
 
 function fmt(d: string): string {
@@ -38,13 +56,42 @@ function validity(o: Offer): string | null {
 export function OffersView({
   offers,
   sendProps,
+  referral,
 }: {
   offers: Offer[];
   sendProps?: SendProps;
+  referral?: ReferralProps | null;
 }) {
   const [selected, setSelected] = useState<Offer | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (offers.length === 0) return null;
+
+  const refLink = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return referral?.code ? `${origin}/r/${referral.code}` : "";
+  };
+
+  async function shareReferral() {
+    const url = refLink();
+    if (!url) return;
+    const text = `Te invito a Giro para enviar remesas a Cuba. Regístrate con mi enlace y los dos ganamos ${referral?.bonus ?? 50} puntos: ${url}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Únete a Giro", text, url });
+        return;
+      }
+    } catch {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* nada */
+    }
+  }
 
   function open(o: Offer) {
     setSelected(o);
@@ -182,17 +229,42 @@ export function OffersView({
                 {validity(selected)}
               </p>
             )}
-            {sendProps && (
-              <EnviarRemesaCta
-                rates={sendProps.rates}
-                pointsBalance={sendProps.pointsBalance}
-                redeemMin={sendProps.redeemMin}
-                pointValue={sendProps.pointValue}
-                beneficiaries={sendProps.beneficiaries}
-                variant="primary"
-                label="Enviar con esta promo"
-                initial={{ note: `Promo: ${selected.title}` }}
-              />
+            {selected.kind === "bono" && referral?.code ? (
+              // Promo de referido: mostrar el enlace real de invitación.
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={shareReferral}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4" /> Enlace copiado
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-4 w-4" /> Invitar a un amigo
+                    </>
+                  )}
+                </button>
+                <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
+                  <Gift className="h-3.5 w-3.5" /> Cuando tu amigo reciba su
+                  primer envío, ganan {referral.bonus} puntos cada uno.
+                </p>
+              </div>
+            ) : (
+              sendProps && (
+                <EnviarRemesaCta
+                  rates={sendProps.rates}
+                  pointsBalance={sendProps.pointsBalance}
+                  redeemMin={sendProps.redeemMin}
+                  pointValue={sendProps.pointValue}
+                  beneficiaries={sendProps.beneficiaries}
+                  variant="primary"
+                  label={ctaLabel(selected)}
+                  initial={{ note: `Promo: ${selected.title}` }}
+                />
+              )
             )}
           </div>
         )}
