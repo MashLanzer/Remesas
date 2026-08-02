@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { computeRemittance, calcCommission, round2 } from "@/lib/calc";
+import { computeRemittance, calcCommission, round2, transferFactor } from "@/lib/calc";
 import { getSessionContext } from "@/lib/data";
 
 const YEAR = 60 * 60 * 24 * 365;
@@ -722,7 +722,14 @@ export async function createOrder(formData: FormData) {
     .single();
   const p = (prof ?? {}) as { full_name?: string | null; phone?: string | null };
 
-  await supabase.from("orders").insert({
+  // Forma de entrega (0056): solo aplica a CUP. La transferencia es la única
+  // que hay que guardar (efectivo es el valor por defecto). Se mete en el INSERT
+  // porque el cliente no puede hacer UPDATE de su pedido (RLS solo permite crear).
+  const rawMethod = str(formData.get("delivery_method"));
+  const method =
+    currency === "CUP" && rawMethod === "transferencia" ? "transferencia" : null;
+
+  const row: Record<string, unknown> = {
     operator_id: ctx.tenantId,
     client_id: ctx.userId,
     client_name: p.full_name ?? null,
@@ -736,7 +743,14 @@ export async function createOrder(formData: FormData) {
     package_id: packageId,
     redeem: formData.get("redeem") != null,
     status: "pendiente",
-  });
+  };
+  if (method) row.delivery_method = method;
+  const ins = await supabase.from("orders").insert(row);
+  // Si la columna 0056 aún no existe, reintenta sin la forma (cae a efectivo).
+  if (ins.error && method) {
+    delete row.delivery_method;
+    await supabase.from("orders").insert(row);
+  }
 
   revalidatePath("/c");
   revalidatePath("/c/pedidos");
@@ -832,6 +846,7 @@ export async function acceptOrder(
     beneficiary_phone?: string | null;
     province?: string | null;
     delivery_currency?: string | null;
+    delivery_method?: string | null;
     note?: string | null;
     redeem?: boolean | null;
     package_id?: string | null;
@@ -1092,10 +1107,32 @@ export async function acceptOrder(
     if (discount > 0) commission = round2(commission - discount);
   }
 
+  // Forma de entrega (0056): si la familia recibe CUP por TRANSFERENCIA, la
+  // tasa efectiva sube el % configurado (transferencia = efectivo + bono). No
+  // aplica a precio fijo (su número ya está cerrado). Lectura tolerante del %.
+  let transferPct = 10;
+  {
+    const { data: tset } = await supabase
+      .from("business_settings")
+      .select("transfer_bonus_pct")
+      .eq("operator_id", tid)
+      .maybeSingle();
+    const v = (tset as { transfer_bonus_pct?: number | null } | null)
+      ?.transfer_bonus_pct;
+    if (v != null) transferPct = Number(v) || 0;
+  }
+  const useTransfer =
+    !fixedMode &&
+    currency === "CUP" &&
+    order.delivery_method === "transferencia";
+  const effectiveRate = useTransfer
+    ? round2(promoRate * transferFactor(transferPct))
+    : promoRate;
+
   const c = computeRemittance({
     amountUsd,
     commission,
-    exchangeRate: promoRate,
+    exchangeRate: effectiveRate,
     exchangeProfit: 0,
     mySplitPercent: split,
   });
@@ -1129,7 +1166,7 @@ export async function acceptOrder(
       commission: c.commission,
       total_received: c.totalReceived,
       delivery_currency: currency,
-      exchange_rate: promoRate,
+      exchange_rate: effectiveRate,
       local_amount: c.localAmount,
       exchange_profit: 0,
       total_profit: c.totalProfit,
@@ -1162,6 +1199,17 @@ export async function acceptOrder(
     }
     await revertToPending();
     return;
+  }
+
+  // Guarda la forma de entrega en la remesa (0056, tolerante). El monto ya está
+  // bien en local_amount vía la tasa efectiva; esto es la etiqueta para que el
+  // repartidor sepa que entrega por transferencia. Si la columna no existe, se
+  // ignora sin romper la aceptación.
+  if (useTransfer) {
+    await supabase
+      .from("remittances")
+      .update({ delivery_method: "transferencia" })
+      .eq("id", remId);
   }
 
   // Bono de puntos de una promo "Bono" (0053): se acreditan al cliente al

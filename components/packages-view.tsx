@@ -43,6 +43,8 @@ export function PackagesView({
   transferBonusPct?: number | null;
 }) {
   const [selected, setSelected] = useState<RemittancePackage | null>(null);
+  // Forma elegida al pedir (solo relevante para CUP). Se guarda en el pedido.
+  const [orderMethod, setOrderMethod] = useState<DeliveryMethod>("efectivo");
 
   const fx = (p: RemittancePackage) =>
     p.pricing_mode === "fixed"
@@ -201,7 +203,16 @@ export function PackagesView({
               </div>
 
               <button
-                onClick={() => setSelected(p)}
+                onClick={() => {
+                  // Pre-selecciona la forma según lo que el cliente venía viendo
+                  // en el switch (si estaba en transferencia y el paquete es CUP).
+                  setOrderMethod(
+                    p.delivery_currency === "CUP" && sel?.method === "transferencia"
+                      ? "transferencia"
+                      : "efectivo"
+                  );
+                  setSelected(p);
+                }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
               >
                 <Send className="h-4 w-4" /> Pedir este paquete
@@ -227,17 +238,21 @@ export function PackagesView({
               transferBonusPct
             );
             const isFixed = selected.pricing_mode === "fixed";
-            const breakdown = isFixed
-              ? []
-              : deliveryOptions(
-                  q.deliveredUsd,
-                  selected.delivery_currency,
-                  rates,
-                  transferBonusPct
-                );
+            const cur = selected.delivery_currency || "USD";
+            // La familia recibe en la MONEDA del paquete. Solo si es CUP puede
+            // elegir efectivo o transferencia (esta última paga más).
+            const canChooseMethod = !isFixed && cur === "CUP";
+            const chosenAmount = canChooseMethod
+              ? orderMethod === "transferencia"
+                ? q.receivesTransfer
+                : q.receives
+              : q.receives;
             return (
               <form action={createOrder} className="space-y-3">
                 <input type="hidden" name="package_id" value={selected.id} />
+                {canChooseMethod && (
+                  <input type="hidden" name="delivery_method" value={orderMethod} />
+                )}
 
                 <div className="rounded-xl bg-muted p-3">
                   <div className="flex items-center justify-between">
@@ -250,38 +265,51 @@ export function PackagesView({
                     </span>
                   </div>
 
-                  {/* Desglose: todas las formas en que la familia puede recibir. */}
-                  {isFixed ? (
+                  {canChooseMethod ? (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        ¿Cómo quiere recibir tu familia?
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(
+                          [
+                            { m: "efectivo" as const, amt: q.receives, label: "💴 Efectivo" },
+                            { m: "transferencia" as const, amt: q.receivesTransfer, label: "🏦 Transferencia" },
+                          ]
+                        ).map(({ m, amt, label }) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setOrderMethod(m)}
+                            className={
+                              "rounded-xl border p-2.5 text-left transition active:scale-[0.98] " +
+                              (orderMethod === m
+                                ? "border-primary bg-primary/10"
+                                : "border-border")
+                            }
+                          >
+                            <span className="block text-[11px] font-semibold text-muted-foreground">
+                              {label}
+                            </span>
+                            <span className="tabular block text-sm font-extrabold text-income">
+                              {amt != null ? `${localAmount(amt)} CUP` : "—"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
                     q.receives != null && (
                       <div className="mt-1 flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
                           Tu familia recibe
                         </span>
                         <span className="tabular text-sm font-bold text-income">
-                          {fmtAmount(q.receives, selected.delivery_currency || "USD")}
+                          {fmtAmount(q.receives, cur)}
                         </span>
                       </div>
                     )
-                  ) : breakdown.length > 0 ? (
-                    <div className="mt-2 space-y-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Tu familia puede recibir
-                      </p>
-                      {breakdown.map((o) => (
-                        <div
-                          key={o.key}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="text-sm text-muted-foreground">
-                            {optionLabel(o.currency, o.method)}
-                          </span>
-                          <span className="tabular text-sm font-bold text-income">
-                            {fmtAmount(o.amount, o.currency)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
+                  )}
 
                   <p className="mt-2 text-[11px] text-muted-foreground">
                     Calculado a la tasa de hoy. El monto final lo confirma el

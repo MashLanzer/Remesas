@@ -60,6 +60,7 @@ export default async function PedidosPage() {
         orders={orders}
         rates={rates}
         earn={earn}
+        transferBonusPct={settings.transfer_bonus_pct}
         repartidores={repartidores.map((r) => ({
           id: r.id,
           name: r.full_name || "Repartidor",

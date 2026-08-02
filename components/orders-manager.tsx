@@ -32,6 +32,7 @@ import {
   restoreOrderToPending,
 } from "@/app/actions";
 import { usd, localAmount, formatDate, cn } from "@/lib/utils";
+import { transferFactor } from "@/lib/calc";
 import type { Order, ExchangeRate } from "@/lib/types";
 import { useDialog } from "@/components/confirm";
 
@@ -80,11 +81,13 @@ export function OrdersManager({
   repartidores = [],
   rates = [],
   earn,
+  transferBonusPct,
 }: {
   orders: Order[];
   repartidores?: Rep[];
   rates?: ExchangeRate[];
   earn?: EarnConfig;
+  transferBonusPct?: number | null;
 }) {
   const router = useRouter();
   const { confirm, notify } = useDialog();
@@ -107,7 +110,12 @@ export function OrdersManager({
     if (!o.delivery_currency || o.delivery_currency === "USD") return null;
     const rate = ratesByCurrency[o.delivery_currency];
     if (!rate || rate <= 0) return null;
-    return `${localAmount(Number(o.amount_usd) * rate)} ${o.delivery_currency}`;
+    const isTransfer =
+      o.delivery_currency === "CUP" && o.delivery_method === "transferencia";
+    const eff = isTransfer ? rate * transferFactor(transferBonusPct) : rate;
+    return `${localAmount(Number(o.amount_usd) * eff)} ${o.delivery_currency}${
+      isTransfer ? " · 🏦 transferencia" : ""
+    }`;
   }
 
   // Ganancia estimada del repartidor si acepta este pedido (misma fórmula que

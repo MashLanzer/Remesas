@@ -311,7 +311,9 @@ export default async function RemesaDetailPage({
         />
         <div className="my-1 border-t border-border" />
         <Row
-          label={`Entregado (${r.delivery_currency})`}
+          label={`Entregado (${r.delivery_currency})${
+            r.delivery_method === "transferencia" ? " · 🏦 transferencia" : ""
+          }`}
           value={`${localAmount(r.local_amount)} ${r.delivery_currency}`}
         />
         <Row label="Tasa" value={localAmount(r.exchange_rate)} />

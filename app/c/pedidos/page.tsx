@@ -4,6 +4,7 @@ import {
   getExchangeRates,
   getMyPoints,
   getMyBeneficiaries,
+  getBusinessSettings,
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
 import {
@@ -34,13 +35,15 @@ export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
   const supabase = await createClient();
-  const [orders, rates, points, cfgRes, beneficiaries] = await Promise.all([
-    getMyOrders(),
-    getExchangeRates(),
-    getMyPoints(),
-    supabase.rpc("my_client_config"),
-    getMyBeneficiaries(),
-  ]);
+  const [orders, rates, points, cfgRes, beneficiaries, settings] =
+    await Promise.all([
+      getMyOrders(),
+      getExchangeRates(),
+      getMyPoints(),
+      supabase.rpc("my_client_config"),
+      getMyBeneficiaries(),
+      getBusinessSettings(),
+    ]);
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -163,6 +166,7 @@ export default async function MisPedidosPage() {
           order={featuredActive}
           rate={featuredRate}
           stage={featuredStage}
+          transferBonusPct={settings.transfer_bonus_pct}
         />
       )}
 

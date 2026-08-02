@@ -9,6 +9,7 @@ import {
   getMyBeneficiaries,
   getMyOperatorContact,
   getMyNotifications,
+  getBusinessSettings,
 } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
 import { NotificationBell } from "@/components/notification-bell";
@@ -36,7 +37,7 @@ export default async function ClienteLayout({
   if (!ctx.isCliente) redirect("/");
 
   // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
-  const [rates, points, cfgRes, beneficiaries, profileRes, contact, notifs] =
+  const [rates, points, cfgRes, beneficiaries, profileRes, contact, notifs, settings] =
     await Promise.all([
       getExchangeRates(),
       getMyPoints(),
@@ -49,6 +50,7 @@ export default async function ClienteLayout({
         .single(),
       getMyOperatorContact(),
       getMyNotifications(),
+      getBusinessSettings(),
     ]);
   const fullName = (profileRes.data?.full_name as string | null) ?? null;
   const avatarUrl = (profileRes.data?.avatar_url as string | null) ?? null;
@@ -128,6 +130,7 @@ export default async function ClienteLayout({
         redeemMin={redeemMin}
         pointValue={pointValue}
         beneficiaries={beneficiaries}
+        transferBonusPct={settings.transfer_bonus_pct}
       />
     </div>
   );

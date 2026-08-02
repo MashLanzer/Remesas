@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { localAmount } from "@/lib/utils";
+import { transferFactor } from "@/lib/calc";
 import type { Order } from "@/lib/types";
 
 // Tarjeta destacada del envío en curso, con mini-seguimiento horizontal.
@@ -10,12 +11,20 @@ export function ActiveOrderCard({
   order,
   rate,
   stage,
+  transferBonusPct,
 }: {
   order: Order;
   rate: number;
   stage: 1 | 2; // 1 = pendiente, 2 = en reparto
+  transferBonusPct?: number | null;
 }) {
-  const receives = Number(order.amount_usd) * Number(rate);
+  const isTransfer =
+    order.delivery_currency === "CUP" &&
+    order.delivery_method === "transferencia";
+  const effRate = isTransfer
+    ? Number(rate) * transferFactor(transferBonusPct)
+    : Number(rate);
+  const receives = Number(order.amount_usd) * effRate;
   const steps = ["Pedido", "En reparto", "Entregado"];
 
   return (
@@ -36,6 +45,11 @@ export function ActiveOrderCard({
                 <span className="text-sm font-semibold text-muted-foreground">
                   {order.delivery_currency}
                 </span>
+                {isTransfer && (
+                  <span className="ml-1 text-xs font-semibold text-primary">
+                    🏦 transferencia
+                  </span>
+                )}
               </p>
             )}
             <p className="truncate text-xs text-muted-foreground">

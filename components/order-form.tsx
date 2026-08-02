@@ -5,7 +5,12 @@ import { Bookmark, X } from "lucide-react";
 import { Field, Input, Select, Textarea, Button } from "@/components/ui";
 import { createOrder } from "@/app/actions";
 import { localAmount, usd } from "@/lib/utils";
-import { DELIVERY_CURRENCIES, type ExchangeRate } from "@/lib/types";
+import { transferFactor } from "@/lib/calc";
+import {
+  DELIVERY_CURRENCIES,
+  type DeliveryMethod,
+  type ExchangeRate,
+} from "@/lib/types";
 
 type Benef = { name: string; phone: string | null; province: string | null };
 type Saved = Benef & { apodo: string };
@@ -29,6 +34,7 @@ export function OrderForm({
   pointValue = 0.05,
   beneficiaries = [],
   initial,
+  transferBonusPct,
 }: {
   rates: ExchangeRate[];
   onDone?: () => void;
@@ -37,6 +43,7 @@ export function OrderForm({
   pointValue?: number;
   beneficiaries?: Benef[];
   initial?: OrderInitial;
+  transferBonusPct?: number | null;
 }) {
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
@@ -60,6 +67,7 @@ export function OrderForm({
   const [bPhone, setBPhone] = useState(initial?.phone ?? "");
   const [bProv, setBProv] = useState(initial?.province ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
+  const [method, setMethod] = useState<DeliveryMethod>("efectivo");
 
   // Beneficiarios guardados (con apodo) en el dispositivo.
   const [saved, setSaved] = useState<Saved[]>([]);
@@ -108,7 +116,12 @@ export function OrderForm({
 
   const amountNum = parseFloat(amount) || 0;
   const rate = ratesByCurrency[currency] ?? 0;
-  const receives = amountNum * rate;
+  const canChooseMethod = currency === "CUP";
+  const effRate =
+    canChooseMethod && method === "transferencia"
+      ? rate * transferFactor(transferBonusPct)
+      : rate;
+  const receives = amountNum * effRate;
   const alreadySaved = savedKeys.has(
     `${bName.trim().toLowerCase()}|${bPhone.trim() || ""}`
   );
@@ -150,11 +163,52 @@ export function OrderForm({
         </Select>
       </Field>
 
+      {/* Forma de entrega: solo CUP tiene variante de transferencia (paga más). */}
+      {canChooseMethod && (
+        <>
+          <input type="hidden" name="delivery_method" value={method} />
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                { m: "efectivo" as const, label: "💴 Efectivo" },
+                { m: "transferencia" as const, label: "🏦 Transferencia" },
+              ]
+            ).map(({ m, label }) => {
+              const f = m === "transferencia" ? transferFactor(transferBonusPct) : 1;
+              const amt = amountNum * rate * f;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMethod(m)}
+                  className={
+                    "rounded-xl border p-2.5 text-left transition active:scale-[0.98] " +
+                    (method === m ? "border-primary bg-primary/10" : "border-border")
+                  }
+                >
+                  <span className="block text-[11px] font-semibold text-muted-foreground">
+                    {label}
+                  </span>
+                  <span className="tabular block text-sm font-extrabold text-foreground">
+                    {amountNum > 0 && rate > 0 ? `${localAmount(amt)} CUP` : "—"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {amountNum > 0 && rate > 0 && (
         <div className="rounded-xl bg-muted p-3 text-center">
           <p className="text-xs text-muted-foreground">Tu familia recibe hasta</p>
           <p className="text-lg font-bold text-foreground">
             {localAmount(receives)} {currency}
+            {canChooseMethod && method === "transferencia" && (
+              <span className="ml-1 text-xs font-semibold text-primary">
+                (transferencia)
+              </span>
+            )}
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             Por {usd(amountNum)} · antes de la comisión. El monto final lo

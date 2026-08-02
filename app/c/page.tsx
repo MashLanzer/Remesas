@@ -253,6 +253,7 @@ export default async function ClienteHome() {
           order={featuredActive}
           rate={featuredRate}
           stage={featuredStage}
+          transferBonusPct={settings.transfer_bonus_pct}
         />
       )}
 
