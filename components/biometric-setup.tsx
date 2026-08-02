@@ -19,7 +19,8 @@ export function BiometricSetup() {
   const { notify } = useDialog();
   const t = useT();
   const [mounted, setMounted] = useState(false);
-  const [supported, setSupported] = useState(false);
+  // null = aún comprobando; false = el dispositivo NO tiene biometría.
+  const [supported, setSupported] = useState<boolean | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [hasPin, setHasPin] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -53,31 +54,31 @@ export function BiometricSetup() {
     notify(t("Biometría desactivada"));
   }
 
-  if (!mounted) return null;
+  // Mientras comprueba (null) o si el dispositivo no tiene biometría (false),
+  // no se muestra nada: no tiene sentido ofrecer algo que no existe aquí.
+  if (!mounted || !supported) return null;
 
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
-          <Fingerprint
-            className={"h-5 w-5 " + (enabled ? "text-income" : "")}
-          />
-        </span>
-        <div className="text-left">
-          <p className="text-sm font-medium text-foreground">
-            {t("Huella o rostro")}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {!supported
-              ? t("No disponible en este dispositivo")
-              : enabled
-              ? t("Activado · desbloquea sin el PIN")
-              : t("Desbloqueo rápido, con el PIN de respaldo")}
-          </p>
+    <div className="border-t border-border pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
+            <Fingerprint
+              className={"h-5 w-5 " + (enabled ? "text-income" : "")}
+            />
+          </span>
+          <div className="text-left">
+            <p className="text-sm font-medium text-foreground">
+              {t("Huella o rostro")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {enabled
+                ? t("Activado · desbloquea sin el PIN")
+                : t("Desbloqueo rápido, con el PIN de respaldo")}
+            </p>
+          </div>
         </div>
-      </div>
-      {supported &&
-        (enabled ? (
+        {enabled ? (
           <button
             onClick={disable}
             className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-destructive transition active:scale-95"
@@ -92,7 +93,8 @@ export function BiometricSetup() {
           >
             {busy ? t("Activando…") : t("Activar")}
           </button>
-        ))}
+        )}
+      </div>
     </div>
   );
 }

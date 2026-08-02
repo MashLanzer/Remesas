@@ -228,24 +228,29 @@ export function ReminderCard({
             familia. Te avisamos aquí cuando toque.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {items
               .filter((r) => r.next_at > today)
               .map((r) => (
                 <div
                   key={r.id}
-                  className="flex items-center justify-between gap-2 text-sm"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5"
                 >
-                  <span className="min-w-0 truncate text-foreground">
-                    <span className="font-semibold">{r.label}</span>{" "}
-                    <span className="text-xs text-muted-foreground">
-                      · {usd(Number(r.amount_usd))} · próx.{" "}
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <CalendarClock className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-foreground">
+                      {r.label}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {usd(Number(r.amount_usd))} en {r.currency} · próx.{" "}
                       {new Date(r.next_at + "T00:00:00").toLocaleDateString("es-ES", {
                         day: "numeric",
                         month: "short",
                       })}
-                    </span>
-                  </span>
+                    </p>
+                  </div>
                   <button
                     onClick={() => remove(r.id)}
                     aria-label="Quitar"

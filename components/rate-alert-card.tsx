@@ -144,29 +144,53 @@ export function RateAlertCard({
             el mejor momento.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {alerts.map((a) => {
               const now = rateOf(a.currency);
               const done = now > 0 && now >= Number(a.target_rate);
               return (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between gap-2 text-sm"
+                  className={
+                    "flex items-center gap-3 rounded-xl border px-3 py-2.5 " +
+                    (done
+                      ? "border-income/30 bg-income/10"
+                      : "border-border bg-muted/40")
+                  }
                 >
-                  <span className="text-foreground">
-                    1 USD ≥{" "}
-                    <span className="font-bold">
-                      {localAmount(Number(a.target_rate))} {a.currency}
-                    </span>
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      (hoy {localAmount(now)}
-                      {done ? " ✅" : ""})
-                    </span>
+                  <span
+                    className={
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full " +
+                      (done
+                        ? "bg-income/15 text-income"
+                        : "bg-primary/10 text-primary")
+                    }
+                  >
+                    {done ? (
+                      <BellRing className="h-5 w-5" />
+                    ) : (
+                      <Bell className="h-5 w-5" />
+                    )}
                   </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-foreground">
+                      1 USD ≥ {localAmount(Number(a.target_rate))} {a.currency}
+                    </p>
+                    <p
+                      className={
+                        "text-xs " +
+                        (done ? "font-semibold text-income" : "text-muted-foreground")
+                      }
+                    >
+                      {done
+                        ? `¡Cumplida! hoy ${localAmount(now)}`
+                        : `Hoy va por ${localAmount(now)} ${a.currency}`}
+                    </p>
+                  </div>
                   <button
                     onClick={() => remove(a.id)}
                     aria-label="Quitar"
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
                   >
                     <X className="h-4 w-4" />
                   </button>

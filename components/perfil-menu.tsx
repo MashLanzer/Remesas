@@ -234,7 +234,6 @@ export function PerfilMenu({
       >
         <div className="space-y-4">
           <PinSetup />
-          <div className="border-t border-border" />
           <BiometricSetup />
         </div>
       </Sheet>
