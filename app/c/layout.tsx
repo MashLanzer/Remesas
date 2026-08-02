@@ -19,6 +19,7 @@ import { ClienteOnboarding } from "@/components/cliente-onboarding";
 import { PageTransition } from "@/components/page-transition";
 import { PinLock } from "@/components/pin-lock";
 import { LangProvider } from "@/components/lang-provider";
+import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { getLang } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,7 @@ export default async function ClienteLayout({
           : undefined
       }
     >
+      <BodyScrollLock />
       <PinLock />
       <ClienteOnboarding />
       <header className="safe-top z-30 shrink-0 border-b border-border bg-background">
