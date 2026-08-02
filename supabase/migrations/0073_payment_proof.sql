@@ -15,7 +15,7 @@ comment on column public.orders.payment_proof_url is
 -- Se recrea (cambia el tipo de retorno: se añade proof_url), por eso hay que
 -- soltar la versión previa (0065) antes.
 drop function if exists public.my_order_payment(uuid);
-create or replace function public.my_order_payment(p_order uuid)
+create function public.my_order_payment(p_order uuid)
 returns table (marked_paid_at timestamptz, confirmed boolean, proof_url text)
 language sql
 stable
