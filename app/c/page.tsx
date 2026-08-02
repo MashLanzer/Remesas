@@ -281,15 +281,32 @@ export default async function ClienteHome() {
         />
       )}
 
-      {/* Aviso de celebración: pedido entregado */}
+      {/* Aviso de celebración: pedido entregado + recompra en 1 toque */}
       {deliveredEvent && (
-        <Link href={`/c/pedidos/${deliveredEvent.id}`} className="block">
-          <div className="flex items-center gap-2 rounded-2xl border border-income/30 bg-income/10 px-4 py-3 text-sm font-semibold text-income transition active:scale-[0.99]">
+        <div className="space-y-2 rounded-2xl border border-income/30 bg-income/10 p-3">
+          <Link
+            href={`/c/pedidos/${deliveredEvent.id}`}
+            className="flex items-center gap-2 px-1 text-sm font-semibold text-income transition active:scale-[0.99]"
+          >
             🎉 Tu envío para {deliveredEvent.beneficiary_name || "tu familia"} fue
             entregado
             <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
-          </div>
-        </Link>
+          </Link>
+          <EnviarRemesaCta
+            {...sendProps}
+            variant="primary"
+            label={`Volver a enviar a ${
+              deliveredEvent.beneficiary_name?.trim().split(" ")[0] || "tu familia"
+            }`}
+            initial={{
+              amount: String(deliveredEvent.amount_usd),
+              currency: deliveredEvent.delivery_currency || undefined,
+              name: deliveredEvent.beneficiary_name || undefined,
+              phone: deliveredEvent.beneficiary_phone || undefined,
+              province: deliveredEvent.province || undefined,
+            }}
+          />
+        </div>
       )}
 
       {/* Tu impacto */}
