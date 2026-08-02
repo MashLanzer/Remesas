@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, BadgeCheck } from "lucide-react";
+import { ArrowLeft, KeyRound, BadgeCheck, MessageCircle } from "lucide-react";
+import { OrderChat } from "@/components/order-chat";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMyOrder,
@@ -172,6 +173,17 @@ export default async function MiPedidoDetallePage({
           delivered_at={order.delivered_at}
           received_at={order.received_at}
         />
+      </Card>
+
+      {/* Chat con el negocio */}
+      <Card className="space-y-2">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          <p className="text-sm font-bold text-foreground">
+            {tr("Chat con el negocio")}
+          </p>
+        </div>
+        <OrderChat orderId={order.id} me="cliente" />
       </Card>
 
       {/* Puntos del envío */}

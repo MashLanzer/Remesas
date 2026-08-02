@@ -1004,6 +1004,36 @@ export async function deleteSavedBeneficiary(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+// ===== Chat por pedido (cliente ↔ negocio), migración 0067 =====
+export type OrderMessage = {
+  id: string;
+  sender: "cliente" | "negocio";
+  body: string;
+  created_at: string;
+};
+
+export async function listOrderMessages(
+  orderId: string
+): Promise<OrderMessage[]> {
+  if (!orderId) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("list_order_messages", {
+    p_order: orderId,
+  });
+  if (error) return [];
+  return (data as OrderMessage[]) ?? [];
+}
+
+export async function sendOrderMessage(
+  orderId: string,
+  body: string
+): Promise<void> {
+  const text = (body || "").trim();
+  if (!orderId || !text) return;
+  const supabase = await createClient();
+  await supabase.rpc("send_order_message", { p_order: orderId, p_body: text });
+}
+
 // Exporta todos los datos personales del cliente en un objeto (para descargar
 // como JSON). Solo lee lo que la RLS permite: sus propios registros.
 export async function exportMyData(): Promise<Record<string, unknown>> {

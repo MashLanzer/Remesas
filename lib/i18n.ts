@@ -484,6 +484,13 @@ export const EN: Record<string, string> = {
   "Enviar pedidos": "Send orders",
   pedidos: "orders",
 
+  // ── Chat ──
+  "Chat con el negocio": "Chat with the business",
+  "Escribe un mensaje…": "Write a message…",
+  "Escríbele al negocio si tienes dudas de este envío.":
+    "Message the business if you have questions about this transfer.",
+  "Aún no hay mensajes con el cliente.": "No messages with the client yet.",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",

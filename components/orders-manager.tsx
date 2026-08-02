@@ -20,11 +20,13 @@ import {
   Bell,
   CheckSquare,
   Coins,
+  MessageSquare,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
 import { OrderStatusBadge } from "@/components/order-status-badge";
+import { OrderChat } from "@/components/order-chat";
 import {
   acceptOrder,
   rejectOrder,
@@ -149,6 +151,8 @@ export function OrdersManager({
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [byFilter, setByFilter] = useState("");
+  // Chat por pedido (sheet).
+  const [chatting, setChatting] = useState<Order | null>(null);
 
   // Orden, agrupación y selección de los pendientes.
   const [sortBy, setSortBy] = useState<"antiguo" | "reciente" | "monto">(
@@ -506,6 +510,14 @@ export function OrdersManager({
             <Share2 className="h-4 w-4" />
           </button>
           <button
+            type="button"
+            onClick={() => setChatting(o)}
+            aria-label="Chat con el cliente"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-primary transition active:scale-95"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => {
               setReason("");
               setRejecting(o);
@@ -750,7 +762,17 @@ export function OrdersManager({
                           {respondedIn ? ` · en ${respondedIn}` : ""}
                         </p>
                       </div>
-                      <OrderStatusBadge order={o} />
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setChatting(o)}
+                          aria-label="Chat con el cliente"
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-primary transition active:scale-90"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
+                        <OrderStatusBadge order={o} />
+                      </div>
                     </div>
                     {o.status === "rechazado" && o.reject_reason && (
                       <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
@@ -943,6 +965,19 @@ export function OrdersManager({
             <X className="h-4 w-4" /> Rechazar
           </button>
         </div>
+      </Sheet>
+
+      {/* Chat con el cliente */}
+      <Sheet
+        open={!!chatting}
+        onClose={() => setChatting(null)}
+        title={
+          chatting
+            ? `Chat · ${chatting.client_name || chatting.beneficiary_name || "cliente"}`
+            : "Chat"
+        }
+      >
+        {chatting && <OrderChat orderId={chatting.id} me="negocio" />}
       </Sheet>
     </div>
   );
