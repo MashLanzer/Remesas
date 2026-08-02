@@ -269,6 +269,8 @@ export function PackagesView({
               opts.find((o) => o.currency === cur) ??
               opts[0] ??
               null;
+            // La dirección hace falta salvo transferencia bancaria (solo CUP).
+            const needsAddress = chosen?.method !== "transferencia";
             return (
               <form action={createOrder} className="space-y-3">
                 <input type="hidden" name="package_id" value={selected.id} />
@@ -370,6 +372,21 @@ export function PackagesView({
                     <Input name="province" placeholder={tr("Ej: La Habana")} />
                   </Field>
                 </div>
+                <Field
+                  label={
+                    needsAddress
+                      ? tr("Dirección exacta en Cuba")
+                      : tr("Dirección exacta en Cuba (opcional)")
+                  }
+                  hint={tr("Calle, número, entre calles y municipio. El repartidor la necesita.")}
+                >
+                  <Textarea
+                    name="beneficiary_address"
+                    rows={2}
+                    placeholder={tr("Ej: Calle 10 #123 e/ 5ta y 7ma, Vedado, Plaza")}
+                    required={needsAddress}
+                  />
+                </Field>
                 <Field label={tr("Nota (opcional)")}>
                   <Textarea name="note" rows={2} placeholder={tr("Algún detalle para el negocio…")} />
                 </Field>
