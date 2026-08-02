@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, BadgeCheck, MessageCircle, MapPin } from "lucide-react";
+import { ArrowLeft, KeyRound, BadgeCheck, XCircle } from "lucide-react";
 import { OrderChat } from "@/components/order-chat";
-import { LiveMap } from "@/components/live-map";
+import { OrderDetailTabs } from "@/components/order-detail-tabs";
+import { OrderMapButton } from "@/components/order-map-button";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMyOrder,
@@ -15,9 +16,10 @@ import {
   getBusinessSettings,
   getMyOperatorPayment,
 } from "@/lib/data";
+import { getUnreadOrderCounts } from "@/app/actions";
 import { PayInstructions } from "@/components/pay-instructions";
 import { ReviewForm } from "@/components/review-form";
-import { Card, PageHeader } from "@/components/ui";
+import { Card } from "@/components/ui";
 import {
   OrderStatusBadge,
   orderDisplay,
@@ -57,6 +59,7 @@ export default async function MiPedidoDetallePage({
     settings,
     payment,
     payStateRes,
+    unread,
   ] = await Promise.all([
     getMyOrder(id),
     getExchangeRates(),
@@ -68,6 +71,7 @@ export default async function MiPedidoDetallePage({
     getBusinessSettings(),
     getMyOperatorPayment(),
     supabase.rpc("my_order_payment", { p_order: id }),
+    getUnreadOrderCounts(),
   ]);
   if (!order) notFound();
 
@@ -101,47 +105,40 @@ export default async function MiPedidoDetallePage({
   const receives = Number(order.amount_usd) * rate;
   const perUsd = Number(settings.points_per_usd ?? 0.2) || 0.2;
   const earnedPts = pointsForOrder(order.amount_usd, perUsd);
+  const isRejected = order.status === "rechazado";
+  const unreadCount = unread[order.id] ?? 0;
 
-  return (
-    <div className="space-y-5">
-      {isDelivered && <ConfettiBurst id={order.id} />}
-      <Link
-        href="/c/pedidos"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> {tr("Mis pedidos")}
-      </Link>
+  // Tono del hero según el estado del pedido.
+  const heroTone = isRejected
+    ? "border-destructive/30 bg-destructive/5"
+    : isDelivered
+    ? "border-income/30 bg-income/10"
+    : display === "en_reparto"
+    ? "border-primary/30 bg-primary/5"
+    : "border-border bg-card";
 
-      <div className="flex items-start justify-between gap-3">
-        <PageHeader
-          title={usd(Number(order.amount_usd))}
-          subtitle={`${tr("Para")} ${order.beneficiary_name || "—"}`}
-        />
-        <OrderStatusBadge order={order} />
-      </div>
-
-      {/* Estimado */}
-      {Number(rate) > 0 && (
-        <Card className="text-center">
-          <p className="text-xs text-muted-foreground">{tr("Tu familia recibe hasta")}</p>
-          <p className="text-2xl font-extrabold text-foreground">
-            {localAmount(receives)} {order.delivery_currency}
-            {isTransfer && (
-              <span className="ml-1.5 align-middle text-sm font-semibold text-primary">
-                🏦 {tr("transferencia")}
-              </span>
-            )}
-          </p>
-          {order.discount_usd ? (
-            <p className="mt-1 text-xs font-semibold text-income">
-              🎁 {tr("Descuento por puntos:")} −{usd(Number(order.discount_usd))}
+  // ───── Pestaña: Seguimiento ─────
+  const seguimiento = (
+    <div className="space-y-4">
+      {/* Rechazado: aviso claro */}
+      {isRejected && (
+        <Card className="flex items-start gap-3 border-destructive/30 bg-destructive/5">
+          <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-destructive">
+              {tr("Este pedido fue rechazado. Contacta al negocio.")}
             </p>
-          ) : null}
+            {order.reject_reason && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {tr("Motivo:")} {order.reject_reason}
+              </p>
+            )}
+          </div>
         </Card>
       )}
 
-      {/* Ciclo de pago (mientras no esté rechazada) */}
-      {order.status !== "rechazado" &&
+      {/* Ciclo de pago (mientras no esté rechazada ni entregada) */}
+      {!isRejected &&
         (paymentConfirmed ? (
           <Card className="flex items-center gap-3 border-income/30 bg-income/10">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-income/15 text-income">
@@ -164,66 +161,7 @@ export default async function MiPedidoDetallePage({
           )
         ))}
 
-      {/* Seguimiento en el mapa (a nivel de provincia) */}
-      {order.status !== "rechazado" && (
-        <Card className="space-y-2">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            <p className="text-sm font-bold text-foreground">
-              {tr("Seguimiento en el mapa")}
-            </p>
-          </div>
-          <LiveMap
-            remittanceId={order.remittance_id}
-            province={order.province}
-            address={order.beneficiary_address}
-            live={display === "en_reparto"}
-          />
-        </Card>
-      )}
-
-      {/* Seguimiento + ¿cuándo llega? */}
-      <Card className="space-y-3">
-        <OrderEta order={order} />
-        <OrderTimeline
-          status={order.status}
-          created_at={order.created_at}
-          accepted_at={order.accepted_at}
-          delivered_at={order.delivered_at}
-          received_at={order.received_at}
-        />
-      </Card>
-
-      {/* Chat con el negocio */}
-      <Card className="space-y-2">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-primary" />
-          <p className="text-sm font-bold text-foreground">
-            {tr("Chat con el negocio")}
-          </p>
-        </div>
-        <OrderChat orderId={order.id} me="cliente" flow />
-      </Card>
-
-      {/* Puntos del envío */}
-      {order.client_id && earnedPts > 0 && (
-        <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-3 text-sm">
-          <span className="text-lg">⭐</span>
-          <span className="text-foreground">
-            {isDelivered ? (
-              <>
-                {tr("Ganaste")} <span className="font-bold text-primary">+{earnedPts} {tr("puntos")}</span> {tr("con este envío.")}
-              </>
-            ) : (
-              <>
-                {tr("Ganarás")} <span className="font-bold text-primary">+{earnedPts} {tr("puntos")}</span> {tr("cuando se entregue.")}
-              </>
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* Código de entrega: dáselo a tu familia (solo mientras no está entregada) */}
+      {/* Código de entrega */}
       {!isDelivered &&
         deliveryCode &&
         !deliveryCode.verified_at &&
@@ -246,7 +184,86 @@ export default async function MiPedidoDetallePage({
           </Card>
         )}
 
-      {/* Datos */}
+      {/* Mapa en una hoja */}
+      {!isRejected && (
+        <OrderMapButton
+          remittanceId={order.remittance_id}
+          province={order.province}
+          address={order.beneficiary_address}
+          live={display === "en_reparto"}
+          title={tr("Seguimiento en el mapa")}
+          label={tr("Ver en el mapa")}
+          sublabelLive={tr("Repartidor en vivo")}
+          sublabelStatic={tr("Ubicación aproximada")}
+        />
+      )}
+
+      {/* ¿Cuándo llega? + línea de tiempo */}
+      <Card className="space-y-3">
+        <OrderEta order={order} />
+        <OrderTimeline
+          status={order.status}
+          created_at={order.created_at}
+          accepted_at={order.accepted_at}
+          delivered_at={order.delivered_at}
+          received_at={order.received_at}
+        />
+      </Card>
+
+      {/* Puntos del envío (no aplica a rechazado/cancelado) */}
+      {order.client_id && earnedPts > 0 && !isRejected && (
+        <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-3 text-sm">
+          <span className="text-lg">⭐</span>
+          <span className="text-foreground">
+            {isDelivered ? (
+              <>
+                {tr("Ganaste")}{" "}
+                <span className="font-bold text-primary">
+                  +{earnedPts} {tr("puntos")}
+                </span>{" "}
+                {tr("con este envío.")}
+              </>
+            ) : (
+              <>
+                {tr("Ganarás")}{" "}
+                <span className="font-bold text-primary">
+                  +{earnedPts} {tr("puntos")}
+                </span>{" "}
+                {tr("cuando se entregue.")}
+              </>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Acciones contextuales */}
+      {order.status === "aceptado" && order.track_token && (
+        <ShareTrackButton token={order.track_token} />
+      )}
+      {order.status === "pendiente" && <CancelOrderButton id={order.id} />}
+    </div>
+  );
+
+  // ───── Pestaña: Chat ─────
+  const chat = (
+    <div className="space-y-3">
+      <Card>
+        <OrderChat orderId={order.id} me="cliente" flow />
+      </Card>
+      {!isDelivered && (
+        <OrderContactButton
+          order={order}
+          phone={contact.phone}
+          brand={contact.businessName}
+          className="w-full justify-center py-2.5"
+        />
+      )}
+    </div>
+  );
+
+  // ───── Pestaña: Detalles ─────
+  const detalles = (
+    <div className="space-y-4">
       <Card className="space-y-2.5">
         <Row label={tr("Beneficiario")} value={order.beneficiary_name || "—"} />
         {order.beneficiary_phone && (
@@ -269,21 +286,39 @@ export default async function MiPedidoDetallePage({
         {order.note && <Row label={tr("Nota")} value={order.note} />}
       </Card>
 
-      {order.status === "rechazado" && order.reject_reason && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <p className="text-sm font-semibold text-destructive">{tr("Rechazado")}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {tr("Motivo:")} {order.reject_reason}
-          </p>
+      {/* Desglose del monto */}
+      {Number(rate) > 0 && (
+        <Card className="space-y-2.5">
+          <Row label={tr("Tú envías")} value={usd(Number(order.amount_usd))} />
+          <Row
+            label={tr("Tasa")}
+            value={`${localAmount(Number(rate))} ${order.delivery_currency}/USD${
+              isTransfer ? ` · 🏦 ${tr("transferencia")}` : ""
+            }`}
+          />
+          {order.discount_usd ? (
+            <Row
+              label={tr("Descuento por puntos:")}
+              value={`−${usd(Number(order.discount_usd))}`}
+            />
+          ) : null}
+          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2.5 text-sm">
+            <span className="shrink-0 text-muted-foreground">
+              {tr("Tu familia recibe hasta")}
+            </span>
+            <span className="min-w-0 truncate text-right font-bold text-foreground">
+              {localAmount(receives)} {order.delivery_currency}
+            </span>
+          </div>
         </Card>
       )}
 
-      {/* Calificación del envío (solo entregado) */}
+      {/* Calificación (solo entregado) */}
       {isDelivered && (
         <ReviewForm orderId={order.id} initialRating={reviewMap[order.id] ?? 0} />
       )}
 
-      {/* Comprobante de entrega (foto) */}
+      {/* Comprobante de entrega */}
       {isDelivered && Number(rate) > 0 && (
         <ShareReceipt
           data={{
@@ -299,39 +334,81 @@ export default async function MiPedidoDetallePage({
           }}
         />
       )}
+    </div>
+  );
 
-      {/* Acciones */}
-      <div className="space-y-2">
-        {order.status === "aceptado" && order.track_token && (
-          <ShareTrackButton token={order.track_token} />
+  return (
+    <div className="space-y-5">
+      {isDelivered && <ConfettiBurst id={order.id} />}
+      <Link
+        href="/c/pedidos"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" /> {tr("Mis pedidos")}
+      </Link>
+
+      {/* Hero de estado */}
+      <div className={"rounded-3xl border p-5 " + heroTone}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-3xl font-extrabold text-foreground">
+              {usd(Number(order.amount_usd))}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {tr("Para")} {order.beneficiary_name || "—"}
+            </p>
+          </div>
+          <OrderStatusBadge order={order} />
+        </div>
+        {Number(rate) > 0 && !isRejected && (
+          <div className="mt-4 rounded-2xl bg-background/50 p-3 text-center">
+            <p className="text-xs text-muted-foreground">
+              {tr("Tu familia recibe hasta")}
+            </p>
+            <p className="text-2xl font-extrabold text-foreground">
+              {localAmount(receives)} {order.delivery_currency}
+              {isTransfer && (
+                <span className="ml-1.5 align-middle text-sm font-semibold text-primary">
+                  🏦
+                </span>
+              )}
+            </p>
+            {order.discount_usd ? (
+              <p className="mt-1 text-xs font-semibold text-income">
+                🎁 {tr("Descuento por puntos:")} −{usd(Number(order.discount_usd))}
+              </p>
+            ) : null}
+          </div>
         )}
-        {order.status === "pendiente" && <CancelOrderButton id={order.id} />}
-        {!isDelivered && order.status !== "rechazado" && (
-          <OrderContactButton
-            order={order}
-            phone={contact.phone}
-            brand={contact.businessName}
-            className="w-full justify-center py-2.5"
-          />
-        )}
-        <EnviarRemesaCta
-          rates={rates}
-          pointsBalance={points.balance}
-          redeemMin={redeemMin}
-          pointValue={pointValue}
-          beneficiaries={beneficiaries}
-          variant="primary"
-          label={tr("Enviar otra vez")}
-          initial={{
-            amount: String(order.amount_usd),
-            currency: order.delivery_currency || undefined,
-            name: order.beneficiary_name || undefined,
-            phone: order.beneficiary_phone || undefined,
-            province: order.province || undefined,
-            address: order.beneficiary_address || undefined,
-          }}
-        />
       </div>
+
+      {/* Pestañas */}
+      <OrderDetailTabs
+        tabs={[
+          { key: "seguimiento", label: tr("Seguimiento"), content: seguimiento },
+          { key: "chat", label: tr("Chat"), badge: unreadCount, content: chat },
+          { key: "detalles", label: tr("Detalles"), content: detalles },
+        ]}
+      />
+
+      {/* Acción principal siempre visible */}
+      <EnviarRemesaCta
+        rates={rates}
+        pointsBalance={points.balance}
+        redeemMin={redeemMin}
+        pointValue={pointValue}
+        beneficiaries={beneficiaries}
+        variant="primary"
+        label={tr("Enviar otra vez")}
+        initial={{
+          amount: String(order.amount_usd),
+          currency: order.delivery_currency || undefined,
+          name: order.beneficiary_name || undefined,
+          phone: order.beneficiary_phone || undefined,
+          province: order.province || undefined,
+          address: order.beneficiary_address || undefined,
+        }}
+      />
     </div>
   );
 }
