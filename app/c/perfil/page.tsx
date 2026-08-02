@@ -20,6 +20,7 @@ import { SavedBeneficiaries } from "@/components/saved-beneficiaries";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ClearLocalData } from "@/components/clear-local-data";
+import { PinSetup } from "@/components/pin-setup";
 import { usd } from "@/lib/utils";
 import { Card, Field, Input, Button } from "@/components/ui";
 import { Settings } from "lucide-react";
@@ -177,6 +178,8 @@ export default async function ClientePerfilPage() {
           <ThemeSwitch />
           <div className="border-t border-border" />
           <DataModeSwitch />
+          <div className="border-t border-border" />
+          <PinSetup />
           <div className="border-t border-border" />
           <ClearLocalData />
         </Card>

@@ -17,6 +17,7 @@ import { ClienteNav } from "@/components/cliente-nav";
 import { ClienteProfileMenu } from "@/components/cliente-profile-menu";
 import { ClienteOnboarding } from "@/components/cliente-onboarding";
 import { PageTransition } from "@/components/page-transition";
+import { PinLock } from "@/components/pin-lock";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,7 @@ export default async function ClienteLayout({
           : undefined
       }
     >
+      <PinLock />
       <ClienteOnboarding />
       <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
