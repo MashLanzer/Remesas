@@ -20,6 +20,7 @@ import { PageTransition } from "@/components/page-transition";
 import { PinLock } from "@/components/pin-lock";
 import { LangProvider } from "@/components/lang-provider";
 import { BodyScrollLock } from "@/components/body-scroll-lock";
+import { ScrollReset } from "@/components/scroll-reset";
 import { getLang } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +134,11 @@ export default async function ClienteLayout({
       {/* El scroll lo hace ESTE contenedor acotado (no el documento). Así el
           WebView de Android compone solo el alto de la pantalla y nunca una
           capa gigante que duplique contenido en páginas largas. */}
-      <main className="min-h-0 flex-1 overflow-y-auto bg-background [contain:paint] [transform:translateZ(0)]">
+      <main
+        id="client-scroll"
+        className="min-h-0 flex-1 overflow-y-auto bg-background [contain:paint] [transform:translateZ(0)]"
+      >
+        <ScrollReset targetId="client-scroll" />
         <div className="mx-auto max-w-md px-4 pb-28 pt-4">
           <PageTransition>{children}</PageTransition>
         </div>
