@@ -455,6 +455,25 @@ export const EN: Record<string, string> = {
   "Activando…": "Enabling…",
   Activar: "Enable",
 
+  // ── Cuenta y datos ──
+  "Cuenta y datos": "Account and data",
+  "Exportar mis datos": "Export my data",
+  "Preparando…": "Preparing…",
+  "Descarga un archivo con toda tu información.":
+    "Download a file with all your information.",
+  "No se pudo exportar. Inténtalo de nuevo.":
+    "Couldn't export. Please try again.",
+  "Eliminar mi cuenta": "Delete my account",
+  "Eliminando…": "Deleting…",
+  "Borra tus datos personales de forma permanente.":
+    "Permanently deletes your personal data.",
+  "¿Eliminar tu cuenta?": "Delete your account?",
+  "Se borrarán tu perfil, puntos, beneficiarios y reseñas. Tus pedidos se conservan sin tus datos personales. Esta acción no se puede deshacer.":
+    "Your profile, points, beneficiaries and reviews will be deleted. Your orders are kept without your personal data. This action can't be undone.",
+  "Eliminar cuenta": "Delete account",
+  "No se pudo eliminar la cuenta. Inténtalo de nuevo.":
+    "Couldn't delete the account. Please try again.",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",

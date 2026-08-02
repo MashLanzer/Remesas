@@ -11,6 +11,7 @@ import {
   PartyPopper,
   MessageSquareQuote,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "@/app/actions";
@@ -23,6 +24,7 @@ import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ClearLocalData } from "@/components/clear-local-data";
 import { PinSetup } from "@/components/pin-setup";
 import { BiometricSetup } from "@/components/biometric-setup";
+import { AccountDataControls } from "@/components/account-data-controls";
 import { usd } from "@/lib/utils";
 import { Card, Field, Input, Button } from "@/components/ui";
 import { Settings } from "lucide-react";
@@ -316,6 +318,14 @@ export default async function ClientePerfilPage() {
             />
           </div>
         </Card>
+      </section>
+
+      {/* Cuenta y datos: exportar / eliminar */}
+      <section>
+        <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <ShieldCheck className="h-4 w-4" /> {tr("Cuenta y datos")}
+        </h2>
+        <AccountDataControls />
       </section>
 
       <form action="/auth/signout" method="post">

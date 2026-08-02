@@ -932,6 +932,53 @@ export async function deleteSavedBeneficiary(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+// Exporta todos los datos personales del cliente en un objeto (para descargar
+// como JSON). Solo lee lo que la RLS permite: sus propios registros.
+export async function exportMyData(): Promise<Record<string, unknown>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+  const [profile, orders, points, benef, reviews, alerts, reminders] =
+    await Promise.all([
+      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+      supabase.from("orders").select("*").eq("client_id", user.id),
+      supabase.from("points_ledger").select("*").eq("client_id", user.id),
+      supabase
+        .from("client_saved_beneficiaries")
+        .select("*")
+        .eq("user_id", user.id),
+      supabase.from("reviews").select("*").eq("client_id", user.id),
+      supabase.from("client_rate_alerts").select("*").eq("user_id", user.id),
+      supabase.from("client_send_reminders").select("*").eq("user_id", user.id),
+    ]);
+  return {
+    exported_at: new Date().toISOString(),
+    account: { id: user.id, email: user.email },
+    profile: profile.data ?? null,
+    orders: orders.data ?? [],
+    points: points.data ?? [],
+    saved_beneficiaries: benef.data ?? [],
+    reviews: reviews.data ?? [],
+    rate_alerts: alerts.data ?? [],
+    send_reminders: reminders.data ?? [],
+  };
+}
+
+// Elimina la cuenta del cliente: borra datos personales y anonimiza pedidos
+// (función 0066), cierra la sesión y redirige al login.
+export async function deleteMyAccount(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.rpc("delete_my_account");
+  await supabase.auth.signOut();
+  redirect("/login");
+}
+
 // El cliente informa en la app que ya pagó su pedido (queda registrado con
 // marca de tiempo). El cobro lo confirma luego el negocio. Tolerante: si la
 // función aún no existe (migración 0065), no rompe.
