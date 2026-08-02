@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { BookUser, Pencil, Trash2, Check, X, Phone, MapPin, Star } from "lucide-react";
+import {
+  BookUser,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Phone,
+  MapPin,
+  Star,
+  StickyNote,
+} from "lucide-react";
 import { Card } from "@/components/ui";
 import { useDialog } from "@/components/confirm";
 import {
@@ -10,6 +20,7 @@ import {
   renameSavedBeneficiary,
   toggleFavoriteSavedBeneficiary,
   deleteSavedBeneficiary,
+  saveSavedBeneficiaryNote,
 } from "@/app/actions";
 import type { ClientSavedBeneficiary } from "@/lib/types";
 
@@ -21,6 +32,9 @@ export function SavedBeneficiaries() {
   const [ready, setReady] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // Edición de la nota (independiente del apodo).
+  const [noteId, setNoteId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const [, start] = useTransition();
 
   // Carga de la nube. Si está vacía pero hay libreta vieja en el teléfono,
@@ -64,6 +78,18 @@ export function SavedBeneficiaries() {
     setEditingId(null);
     start(() => renameSavedBeneficiary(id, val));
   }
+  function startNote(b: ClientSavedBeneficiary) {
+    setNoteId(b.id);
+    setNoteDraft(b.note ?? "");
+  }
+  function saveNote(id: string) {
+    const val = noteDraft.trim();
+    setSaved((s) =>
+      s.map((b) => (b.id === id ? { ...b, note: val || null } : b))
+    );
+    setNoteId(null);
+    start(() => saveSavedBeneficiaryNote(id, val));
+  }
   function toggleFav(b: ClientSavedBeneficiary) {
     setSaved((s) =>
       s.map((x) => (x.id === b.id ? { ...x, favorite: !x.favorite } : x))
@@ -99,7 +125,8 @@ export function SavedBeneficiaries() {
       ) : (
         <div className="space-y-2">
           {saved.map((s) => (
-            <Card key={s.id} className="flex items-center gap-3 p-3.5">
+            <Card key={s.id} className="p-3.5">
+              <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                 {(s.apodo || s.name).trim().charAt(0).toUpperCase()}
               </span>
@@ -176,6 +203,17 @@ export function SavedBeneficiaries() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => (noteId === s.id ? setNoteId(null) : startNote(s))}
+                    aria-label={s.note ? "Editar nota" : "Añadir nota"}
+                    className={
+                      "flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-muted active:scale-90 " +
+                      (s.note ? "text-primary" : "text-muted-foreground")
+                    }
+                  >
+                    <StickyNote className={"h-4 w-4" + (s.note ? " fill-primary/20" : "")} />
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => startEdit(s)}
                     aria-label="Editar apodo"
                     className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
@@ -191,6 +229,48 @@ export function SavedBeneficiaries() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
+              )}
+              </div>
+
+              {/* Nota del beneficiario: editor si está activo, si no, el texto. */}
+              {noteId === s.id ? (
+                <div className="mt-3 space-y-2">
+                  <textarea
+                    autoFocus
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    rows={2}
+                    placeholder="Ej: recibe en CUP, edificio azul, avisar antes…"
+                    className="w-full resize-none rounded-lg border border-input bg-background px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  />
+                  <div className="flex justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => saveNote(s.id)}
+                      className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition active:scale-95"
+                    >
+                      <Check className="h-3.5 w-3.5" /> Guardar nota
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNoteId(null)}
+                      className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground transition active:scale-95"
+                    >
+                      <X className="h-3.5 w-3.5" /> Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                s.note && (
+                  <button
+                    type="button"
+                    onClick={() => startNote(s)}
+                    className="mt-2 flex w-full items-start gap-1.5 rounded-lg bg-muted/60 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition active:scale-[0.99]"
+                  >
+                    <StickyNote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span className="whitespace-pre-line">{s.note}</span>
+                  </button>
+                )
               )}
             </Card>
           ))}

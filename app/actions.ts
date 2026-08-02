@@ -790,20 +790,32 @@ type SavedBenef = {
   phone: string | null;
   province: string | null;
   favorite: boolean;
+  note: string | null;
 };
+
+// Columnas a leer. La nota (migración 0063) puede no existir aún; en ese caso
+// se reintenta sin ella para no romper la libreta.
+const SAVED_COLS = "id, apodo, name, phone, province, favorite, note";
+const SAVED_COLS_BASE = "id, apodo, name, phone, province, favorite";
 
 export async function listSavedBeneficiaries(): Promise<SavedBenef[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
   if (!ctx.userId) return [];
-  const { data, error } = await supabase
-    .from("client_saved_beneficiaries")
-    .select("id, apodo, name, phone, province, favorite")
-    .eq("user_id", ctx.userId)
-    .order("favorite", { ascending: false })
-    .order("created_at", { ascending: false });
+  const run = (cols: string) =>
+    supabase
+      .from("client_saved_beneficiaries")
+      .select(cols)
+      .eq("user_id", ctx.userId as string)
+      .order("favorite", { ascending: false })
+      .order("created_at", { ascending: false });
+  let { data, error } = await run(SAVED_COLS);
+  if (error) ({ data, error } = await run(SAVED_COLS_BASE));
   if (error) return [];
-  return (data as SavedBenef[]) ?? [];
+  return ((data as unknown as SavedBenef[]) ?? []).map((b) => ({
+    ...b,
+    note: b.note ?? null,
+  }));
 }
 
 export async function addSavedBeneficiary(input: {
@@ -834,9 +846,10 @@ export async function addSavedBeneficiary(input: {
       .update({ apodo, province: (input.province || "").trim() || null })
       .eq("id", dupId)
       .eq("user_id", ctx.userId)
-      .select("id, apodo, name, phone, province, favorite")
+      .select(SAVED_COLS_BASE)
       .maybeSingle();
-    return (data as SavedBenef) ?? null;
+    const row = data as unknown as SavedBenef | null;
+    return row ? { ...row, note: row.note ?? null } : null;
   }
   const { data, error } = await supabase
     .from("client_saved_beneficiaries")
@@ -847,10 +860,28 @@ export async function addSavedBeneficiary(input: {
       phone,
       province: (input.province || "").trim() || null,
     })
-    .select("id, apodo, name, phone, province, favorite")
+    .select(SAVED_COLS_BASE)
     .maybeSingle();
   if (error) return null;
-  return (data as SavedBenef) ?? null;
+  const row = data as unknown as SavedBenef | null;
+  return row ? { ...row, note: row.note ?? null } : null;
+}
+
+// Guarda (o limpia) la nota de un beneficiario. Tolerante: si la columna aún
+// no existe (migración 0063 sin aplicar), no hace nada.
+export async function saveSavedBeneficiaryNote(
+  id: string,
+  note: string
+): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return;
+  const value = note.trim() || null;
+  await supabase
+    .from("client_saved_beneficiaries")
+    .update({ note: value })
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
 }
 
 export async function renameSavedBeneficiary(

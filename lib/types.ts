@@ -388,6 +388,7 @@ export interface ClientSavedBeneficiary {
   phone: string | null;
   province: string | null;
   favorite: boolean;
+  note: string | null;
 }
 
 export interface PointsEntry {
