@@ -11,7 +11,9 @@ import {
   getMyReviewMap,
   getDeliveryCode,
   getBusinessSettings,
+  getMyOperatorPayment,
 } from "@/lib/data";
+import { PayInstructions } from "@/components/pay-instructions";
 import { ReviewForm } from "@/components/review-form";
 import { Card, PageHeader } from "@/components/ui";
 import {
@@ -38,17 +40,27 @@ export default async function MiPedidoDetallePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [order, rates, points, cfgRes, beneficiaries, contact, reviewMap, settings] =
-    await Promise.all([
-      getMyOrder(id),
-      getExchangeRates(),
-      getMyPoints(),
-      supabase.rpc("my_client_config"),
-      getMyBeneficiaries(),
-      getMyOperatorContact(),
-      getMyReviewMap(),
-      getBusinessSettings(),
-    ]);
+  const [
+    order,
+    rates,
+    points,
+    cfgRes,
+    beneficiaries,
+    contact,
+    reviewMap,
+    settings,
+    payment,
+  ] = await Promise.all([
+    getMyOrder(id),
+    getExchangeRates(),
+    getMyPoints(),
+    supabase.rpc("my_client_config"),
+    getMyBeneficiaries(),
+    getMyOperatorContact(),
+    getMyReviewMap(),
+    getBusinessSettings(),
+    getMyOperatorPayment(),
+  ]);
   if (!order) notFound();
 
   const display = orderDisplay(order);
@@ -111,6 +123,11 @@ export default async function MiPedidoDetallePage({
             </p>
           ) : null}
         </Card>
+      )}
+
+      {/* ¿Cómo pago? (mientras no esté entregada ni rechazada) */}
+      {!isDelivered && order.status !== "rechazado" && (
+        <PayInstructions order={order} payment={payment} />
       )}
 
       {/* Seguimiento + ¿cuándo llega? */}

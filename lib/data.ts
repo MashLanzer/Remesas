@@ -923,6 +923,35 @@ export async function getMyOperatorContact(): Promise<{
   };
 }
 
+// Métodos de pago del negocio para mostrárselos al cliente ("¿Cómo pago?").
+// RLS-safe vía RPC (0058). Tolerante: si la función no existe, todo vacío.
+export async function getMyOperatorPayment(): Promise<{
+  businessName: string | null;
+  phone: string | null;
+  zelle: string | null;
+  cashapp: string | null;
+  paypal: string | null;
+}> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_operator_payment");
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | {
+        business_name?: string | null;
+        phone?: string | null;
+        zelle?: string | null;
+        cashapp?: string | null;
+        paypal?: string | null;
+      }
+    | null;
+  return {
+    businessName: row?.business_name ?? null,
+    phone: row?.phone ?? null,
+    zelle: row?.zelle ?? null,
+    cashapp: row?.cashapp ?? null,
+    paypal: row?.paypal ?? null,
+  };
+}
+
 // Pedidos del negocio (para el personal). opts.pendingOnly filtra los pendientes.
 export async function getOrders(
   opts: { pendingOnly?: boolean } = {}

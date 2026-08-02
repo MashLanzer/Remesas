@@ -54,6 +54,7 @@ const TABLE_CHECKS: TableCheck[] = [
 type RpcCheck = { fn: string; args?: Record<string, unknown>; feature: string; migration: string };
 const RPC_CHECKS: RpcCheck[] = [
   { fn: "my_operator_contact", feature: "WhatsApp del negocio (cliente)", migration: "0028" },
+  { fn: "my_operator_payment", feature: "Métodos de pago para el cliente (¿Cómo pago?)", migration: "0058" },
   { fn: "package_popularity", feature: "Orden por popularidad (Tienda)", migration: "0030" },
   { fn: "admin_metrics", feature: "Panel de super-admin", migration: "0047" },
   {
