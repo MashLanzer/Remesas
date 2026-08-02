@@ -6,6 +6,7 @@ import { useT } from "@/components/lang-provider";
 import {
   listOrderMessages,
   sendOrderMessage,
+  markOrderMessagesRead,
   type OrderMessage,
 } from "@/app/actions";
 
@@ -30,6 +31,8 @@ export function OrderChat({
     const list = await listOrderMessages(orderId);
     setMessages(list);
     setLoaded(true);
+    // Al ver el chat, se marca como leído (limpia el aviso de no leídos).
+    markOrderMessagesRead(orderId);
     if (scroll) {
       requestAnimationFrame(() =>
         endRef.current?.scrollIntoView({ behavior: "smooth" })

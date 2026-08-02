@@ -5,8 +5,10 @@ import {
   Gift,
   ChevronRight,
   Heart,
+  MessageSquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getUnreadOrderCounts } from "@/app/actions";
 import {
   getActiveOffers,
   getActivePackages,
@@ -80,9 +82,10 @@ export default async function ClienteHome() {
     commission_percent: settings.commission_percent,
     commission_flat: settings.commission_flat,
   };
-  const [referral, announcements] = await Promise.all([
+  const [referral, announcements, unread] = await Promise.all([
     getMyReferral(),
     getActiveAnnouncements(),
+    getUnreadOrderCounts(),
   ]);
   // Envío en curso destacado (el más reciente pendiente / en reparto).
   const activeList = orders.filter((o) => {
@@ -282,6 +285,7 @@ export default async function ClienteHome() {
           rate={featuredRate}
           stage={featuredStage}
           transferBonusPct={settings.transfer_bonus_pct}
+          unread={unread[featuredActive.id] ?? 0}
         />
       )}
 
@@ -453,7 +457,14 @@ export default async function ClienteHome() {
                           : ""}
                       </p>
                     </div>
-                    <OrderStatusBadge order={o} />
+                    <div className="flex items-center gap-1.5">
+                      {(unread[o.id] ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                          <MessageSquare className="h-3 w-3" /> {unread[o.id]}
+                        </span>
+                      )}
+                      <OrderStatusBadge order={o} />
+                    </div>
                   </Card>
                 </Link>
               );

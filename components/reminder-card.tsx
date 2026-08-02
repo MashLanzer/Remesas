@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarClock, Plus, X, Clock } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Card, Select } from "@/components/ui";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { usd } from "@/lib/utils";
 import { listReminders, addReminder, snoozeReminder, deleteReminder } from "@/app/actions";
@@ -173,30 +173,32 @@ export function ReminderCard({ sendProps }: { sendProps: SendProps }) {
                 placeholder="Monto USD"
                 className="w-24 rounded-lg border border-input bg-background px-2 py-2 text-sm font-semibold text-foreground outline-none focus:border-primary"
               />
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                title="Moneda"
-                className="rounded-lg border border-input bg-background px-2 py-2 text-sm font-semibold text-foreground outline-none"
-              >
-                {(currencies.length ? currencies : ["CUP"]).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={freq}
-                onChange={(e) => setFreq(Number(e.target.value))}
-                title="Frecuencia"
-                className="flex-1 rounded-lg border border-input bg-background px-2 py-2 text-sm font-semibold text-foreground outline-none"
-              >
-                {FREQS.map((f) => (
-                  <option key={f.d} value={f.d}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
+              <div className="w-24 shrink-0">
+                <Select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  title="Moneda"
+                >
+                  {(currencies.length ? currencies : ["CUP"]).map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="flex-1">
+                <Select
+                  value={String(freq)}
+                  onChange={(e) => setFreq(Number(e.target.value))}
+                  title="Frecuencia"
+                >
+                  {FREQS.map((f) => (
+                    <option key={f.d} value={f.d}>
+                      {f.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
             <button
               onClick={add}

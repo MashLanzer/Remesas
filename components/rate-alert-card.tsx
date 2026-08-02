@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bell, BellRing, Plus, X } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Card, Select } from "@/components/ui";
 import { localAmount } from "@/lib/utils";
 import { listRateAlerts, setRateAlert, deleteRateAlert } from "@/app/actions";
 import type { ExchangeRate } from "@/lib/types";
@@ -102,18 +102,19 @@ export function RateAlertCard({ rates }: { rates: ExchangeRate[] }) {
                 className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-1.5 text-sm font-semibold text-foreground outline-none focus:border-primary"
               />
             </label>
-            <select
-              value={cur}
-              onChange={(e) => setCur(e.target.value)}
-              title="Moneda"
-              className="rounded-lg border border-input bg-background px-2 py-1.5 text-sm font-semibold text-foreground outline-none"
-            >
-              {active.map((r) => (
-                <option key={r.currency} value={r.currency}>
-                  {r.currency}
-                </option>
-              ))}
-            </select>
+            <div className="w-24 shrink-0">
+              <Select
+                value={cur}
+                onChange={(e) => setCur(e.target.value)}
+                title="Moneda"
+              >
+                {active.map((r) => (
+                  <option key={r.currency} value={r.currency}>
+                    {r.currency}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <button
               onClick={add}
               className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition active:scale-95"

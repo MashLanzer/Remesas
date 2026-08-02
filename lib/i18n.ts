@@ -490,6 +490,7 @@ export const EN: Record<string, string> = {
   "Escríbele al negocio si tienes dudas de este envío.":
     "Message the business if you have questions about this transfer.",
   "Aún no hay mensajes con el cliente.": "No messages with the client yet.",
+  "Mensaje nuevo": "New message",
 
   // ── Seguimiento en el mapa ──
   "Seguimiento en el mapa": "Tracking on the map",

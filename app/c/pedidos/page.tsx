@@ -24,6 +24,7 @@ import { ActiveOrderCard } from "@/components/active-order-card";
 import { ClientOrderHistory } from "@/components/client-order-history";
 import { IlluOrders } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
+import { getUnreadOrderCounts } from "@/app/actions";
 import { getLang } from "@/lib/lang";
 import { translate } from "@/lib/i18n";
 import Link from "next/link";
@@ -35,6 +36,7 @@ import {
   PartyPopper,
   Star,
   ChevronRight,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 
@@ -44,7 +46,7 @@ export default async function MisPedidosPage() {
   const lang = await getLang();
   const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
-  const [orders, rates, points, cfgRes, beneficiaries, settings, contact] =
+  const [orders, rates, points, cfgRes, beneficiaries, settings, contact, unread] =
     await Promise.all([
       getMyOrders(),
       getExchangeRates(),
@@ -53,6 +55,7 @@ export default async function MisPedidosPage() {
       getMyBeneficiaries(),
       getBusinessSettings(),
       getMyOperatorContact(),
+      getUnreadOrderCounts(),
     ]);
   const perUsd = Number(settings.points_per_usd ?? 0.2) || 0.2;
 
@@ -180,6 +183,7 @@ export default async function MisPedidosPage() {
           rate={featuredRate}
           stage={featuredStage}
           transferBonusPct={settings.transfer_bonus_pct}
+          unread={unread[featuredActive.id] ?? 0}
         />
       )}
 
@@ -276,6 +280,14 @@ export default async function MisPedidosPage() {
                     phone={contact.phone}
                     brand={contact.businessName}
                   />
+                  {(unread[o.id] ?? 0) > 0 && (
+                    <Link
+                      href={`/c/pedidos/${o.id}`}
+                      className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-1 text-xs font-semibold text-destructive"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> {tr("Mensaje nuevo")}
+                    </Link>
+                  )}
                   <Link
                     href={`/c/pedidos/${o.id}`}
                     className="ml-auto flex items-center gap-0.5 text-xs font-semibold text-primary"

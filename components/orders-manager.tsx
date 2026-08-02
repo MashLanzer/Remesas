@@ -27,6 +27,7 @@ import { IlluOrders } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { OrderChat } from "@/components/order-chat";
+import { getUnreadOrderCounts } from "@/app/actions";
 import {
   acceptOrder,
   rejectOrder,
@@ -151,8 +152,27 @@ export function OrdersManager({
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [byFilter, setByFilter] = useState("");
-  // Chat por pedido (sheet).
+  // Chat por pedido (sheet) + avisos de mensajes no leídos.
   const [chatting, setChatting] = useState<Order | null>(null);
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let stop = false;
+    const tick = async () => {
+      const counts = await getUnreadOrderCounts();
+      if (!stop) setUnread(counts);
+    };
+    tick();
+    const iv = setInterval(tick, 12000);
+    return () => {
+      stop = true;
+      clearInterval(iv);
+    };
+  }, []);
+  // Al cerrar el chat, ese pedido queda leído: limpia su aviso localmente.
+  function openChat(o: Order) {
+    setChatting(o);
+    setUnread((u) => ({ ...u, [o.id]: 0 }));
+  }
 
   // Orden, agrupación y selección de los pendientes.
   const [sortBy, setSortBy] = useState<"antiguo" | "reciente" | "monto">(
@@ -517,11 +537,16 @@ export function OrdersManager({
           </button>
           <button
             type="button"
-            onClick={() => setChatting(o)}
+            onClick={() => openChat(o)}
             aria-label="Chat con el cliente"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-primary transition active:scale-95"
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border text-primary transition active:scale-95"
           >
             <MessageSquare className="h-4 w-4" />
+            {(unread[o.id] ?? 0) > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                {unread[o.id]}
+              </span>
+            )}
           </button>
           <button
             onClick={() => {
@@ -771,11 +796,16 @@ export function OrdersManager({
                       <div className="flex shrink-0 items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setChatting(o)}
+                          onClick={() => openChat(o)}
                           aria-label="Chat con el cliente"
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-primary transition active:scale-90"
+                          className="relative flex h-8 w-8 items-center justify-center rounded-full text-primary transition active:scale-90"
                         >
                           <MessageSquare className="h-4 w-4" />
+                          {(unread[o.id] ?? 0) > 0 && (
+                            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                              {unread[o.id]}
+                            </span>
+                          )}
                         </button>
                         <OrderStatusBadge order={o} />
                       </div>

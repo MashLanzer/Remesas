@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { localAmount } from "@/lib/utils";
@@ -13,11 +13,13 @@ export function ActiveOrderCard({
   rate,
   stage,
   transferBonusPct,
+  unread = 0,
 }: {
   order: Order;
   rate: number;
   stage: 1 | 2; // 1 = pendiente, 2 = en reparto
   transferBonusPct?: number | null;
+  unread?: number;
 }) {
   const isTransfer =
     order.delivery_currency === "CUP" &&
@@ -35,7 +37,14 @@ export function ActiveOrderCard({
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">
             Tu envío en curso
           </p>
-          <OrderStatusBadge order={order} />
+          <div className="flex items-center gap-1.5">
+            {unread > 0 && (
+              <span className="flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                <MessageSquare className="h-3 w-3" /> {unread}
+              </span>
+            )}
+            <OrderStatusBadge order={order} />
+          </div>
         </div>
 
         <div className="flex items-end justify-between gap-3">

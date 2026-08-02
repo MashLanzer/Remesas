@@ -1113,6 +1113,25 @@ export async function sendOrderMessage(
   await supabase.rpc("send_order_message", { p_order: orderId, p_body: text });
 }
 
+// Marca el chat de un pedido como leído por el usuario actual.
+export async function markOrderMessagesRead(orderId: string): Promise<void> {
+  if (!orderId) return;
+  const supabase = await createClient();
+  await supabase.rpc("mark_order_messages_read", { p_order: orderId });
+}
+
+// Mensajes no leídos por pedido para el usuario actual (mapa order_id -> conteo).
+export async function getUnreadOrderCounts(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("order_unread_counts");
+  if (error) return {};
+  const out: Record<string, number> = {};
+  for (const row of (data as { order_id: string; unread: number }[]) ?? []) {
+    out[row.order_id] = Number(row.unread) || 0;
+  }
+  return out;
+}
+
 // Exporta todos los datos personales del cliente en un objeto (para descargar
 // como JSON). Solo lee lo que la RLS permite: sus propios registros.
 export async function exportMyData(): Promise<Record<string, unknown>> {
