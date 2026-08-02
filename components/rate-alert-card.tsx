@@ -9,7 +9,13 @@ import type { ExchangeRate } from "@/lib/types";
 
 type Alert = { id: string; currency: string; target_rate: number };
 
-export function RateAlertCard({ rates }: { rates: ExchangeRate[] }) {
+export function RateAlertCard({
+  rates,
+  embedded = false,
+}: {
+  rates: ExchangeRate[];
+  embedded?: boolean;
+}) {
   const active = useMemo(
     () => rates.filter((r) => r.active !== false && Number(r.rate) > 0),
     [rates]
@@ -31,6 +37,10 @@ export function RateAlertCard({ rates }: { rates: ExchangeRate[] }) {
   }, []);
 
   if (!ready || active.length === 0) return null;
+
+  // Dentro de una hoja (embedded) no se dibuja el marco Card ni el título (la
+  // hoja ya los aporta); en el inicio conserva su tarjeta.
+  const Wrapper: React.ElementType = embedded ? "div" : Card;
 
   const met = alerts.filter((a) => {
     const now = rateOf(a.currency);
@@ -74,11 +84,15 @@ export function RateAlertCard({ rates }: { rates: ExchangeRate[] }) {
         </div>
       ))}
 
-      <Card className="space-y-3">
+      <Wrapper className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-            <Bell className="h-4 w-4 text-primary" /> Alerta de tasa
-          </span>
+          {embedded ? (
+            <span />
+          ) : (
+            <span className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <Bell className="h-4 w-4 text-primary" /> Alerta de tasa
+            </span>
+          )}
           {!adding && (
             <button
               onClick={() => setAdding(true)}
@@ -161,7 +175,7 @@ export function RateAlertCard({ rates }: { rates: ExchangeRate[] }) {
             })}
           </div>
         )}
-      </Card>
+      </Wrapper>
     </div>
   );
 }

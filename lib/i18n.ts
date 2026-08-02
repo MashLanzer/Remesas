@@ -514,6 +514,13 @@ export const EN: Record<string, string> = {
   "Falta la dirección de entrega de algún beneficiario.":
     "A beneficiary's delivery address is missing.",
 
+  // ── Herramientas del inicio ──
+  "Alerta de tasa": "Rate alert",
+  "Avísame cuando suba": "Alert me when it rises",
+  Recordatorio: "Reminder",
+  "Recordatorios de envío": "Transfer reminders",
+  "Envío recurrente": "Recurring transfer",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",

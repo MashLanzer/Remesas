@@ -21,7 +21,6 @@ import {
   getMyReferral,
   getActiveAnnouncements,
 } from "@/lib/data";
-import { ReferralCard } from "@/components/referral-card";
 import { AnnouncementsBanner } from "@/components/announcements-banner";
 import { Card } from "@/components/ui";
 import { localAmount, packageQuote, usd } from "@/lib/utils";
@@ -36,8 +35,7 @@ import { PaperPlane } from "@/components/paper-plane";
 import { ClienteGreeting } from "@/components/cliente-greeting";
 import { QuickSendRow } from "@/components/quick-send-row";
 import { ActiveOrderCard } from "@/components/active-order-card";
-import { RateAlertCard } from "@/components/rate-alert-card";
-import { ReminderCard } from "@/components/reminder-card";
+import { HomeTools } from "@/components/home-tools";
 import { Send, Check, PartyPopper } from "lucide-react";
 import { getLang } from "@/lib/lang";
 import { translate } from "@/lib/i18n";
@@ -244,14 +242,12 @@ export default async function ClienteHome() {
               beneficiaries={beneficiaries}
             />
           </div>
+          <CalculadoraSheet rates={rates} variant="link" />
         </div>
       </div>
 
       {/* Anuncios del negocio */}
       <AnnouncementsBanner items={announcements} />
-
-      {/* Calculadora (fuera del hero, más discreta) */}
-      <CalculadoraSheet rates={rates} variant="plain" />
 
       {/* Enviar rápido a tus beneficiarios */}
       <QuickSendRow {...sendProps} />
@@ -274,9 +270,6 @@ export default async function ClienteHome() {
           />
         </section>
       )}
-
-      {/* Alerta de tasa: avísame cuando llegue a X */}
-      <RateAlertCard rates={rates} />
 
       {/* Envío en curso destacado */}
       {featuredActive && (
@@ -361,43 +354,38 @@ export default async function ClienteHome() {
                   : null
               ).receives;
               return (
-                <Link key={p.id} href="/c/tienda" className="w-40 shrink-0">
-                  <Card className="flex h-full flex-col gap-2 overflow-hidden p-0 transition active:scale-[0.98]">
+                <Link key={p.id} href="/c/tienda" className="w-32 shrink-0">
+                  <Card className="flex h-full flex-col gap-1.5 overflow-hidden p-0 transition active:scale-[0.98]">
                     {p.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={p.image_url}
                         alt={p.title}
-                        className="h-20 w-full object-cover"
+                        className="h-14 w-full object-cover"
                       />
                     ) : (
-                      <span className="mt-4 ml-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-2xl">
+                      <span className="ml-3 mt-3 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-xl">
                         {p.emoji || "🎁"}
                       </span>
                     )}
-                    <div className="min-w-0 px-4">
-                      <p className="truncate text-sm font-bold text-foreground">
+                    <div className="min-w-0 px-3">
+                      <p className="truncate text-xs font-bold text-foreground">
                         {p.title}
                       </p>
                       {receives != null && p.delivery_currency !== "USD" ? (
-                        <p className="truncate text-xs font-semibold text-income">
-                          {t("Recibe")} ~{localAmount(receives)} {p.delivery_currency}
+                        <p className="truncate text-[11px] font-semibold text-income">
+                          ~{localAmount(receives)} {p.delivery_currency}
                         </p>
                       ) : (
-                        <p className="truncate text-xs text-muted-foreground">
-                          {t("Entrega en")} {p.delivery_currency || "—"}
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {p.delivery_currency || "—"}
                         </p>
                       )}
                     </div>
-                    <div className="mt-auto flex items-center justify-between gap-1 px-4 pb-4 pt-1">
+                    <div className="mt-auto px-3 pb-3 pt-0.5">
                       <span className="tabular text-sm font-bold text-foreground">
                         ${Number(p.amount_usd)}
                       </span>
-                      {p.highlight ? (
-                        <span className="truncate rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary">
-                          {p.highlight}
-                        </span>
-                      ) : null}
                     </div>
                   </Card>
                 </Link>
@@ -407,18 +395,8 @@ export default async function ClienteHome() {
         </section>
       )}
 
-      {/* Recordatorios de envío recurrente */}
-      <ReminderCard sendProps={sendProps} />
-
-      {/* Invita y gana (referidos) — antes de Mis pedidos */}
-      {referral?.code && (
-        <ReferralCard
-          code={referral.code}
-          invited={referral.invited}
-          rewarded={referral.rewarded}
-          bonus={referral.bonus}
-        />
-      )}
+      {/* Herramientas: alerta de tasa + recordatorio (chips que abren su hoja) */}
+      <HomeTools rates={rates} sendProps={sendProps} />
 
       {/* Mis pedidos recientes (solo si hay) */}
       {recentOrders.length > 0 && (

@@ -34,7 +34,13 @@ const FREQS = [
   { d: 30, label: "Mensual" },
 ];
 
-export function ReminderCard({ sendProps }: { sendProps: SendProps }) {
+export function ReminderCard({
+  sendProps,
+  embedded = false,
+}: {
+  sendProps: SendProps;
+  embedded?: boolean;
+}) {
   const currencies = useMemo(
     () => sendProps.rates.filter((r) => r.active !== false).map((r) => r.currency),
     [sendProps.rates]
@@ -55,6 +61,9 @@ export function ReminderCard({ sendProps }: { sendProps: SendProps }) {
   }, []);
 
   if (!ready) return null;
+
+  // En hoja (embedded) sin marco Card ni título propios; en el inicio, con ellos.
+  const Wrapper: React.ElementType = embedded ? "div" : Card;
 
   const today = new Date().toISOString().slice(0, 10);
   const due = items.filter((r) => r.next_at <= today);
@@ -141,11 +150,15 @@ export function ReminderCard({ sendProps }: { sendProps: SendProps }) {
       ))}
 
       {/* Gestión de recordatorios */}
-      <Card className="space-y-3">
+      <Wrapper className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-            <CalendarClock className="h-4 w-4 text-primary" /> Recordatorios de envío
-          </span>
+          {embedded ? (
+            <span />
+          ) : (
+            <span className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+              <CalendarClock className="h-4 w-4 text-primary" /> Recordatorios de envío
+            </span>
+          )}
           {!adding && (
             <button
               onClick={() => setAdding(true)}
@@ -244,7 +257,7 @@ export function ReminderCard({ sendProps }: { sendProps: SendProps }) {
               ))}
           </div>
         )}
-      </Card>
+      </Wrapper>
     </div>
   );
 }

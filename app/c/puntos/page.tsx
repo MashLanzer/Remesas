@@ -1,7 +1,8 @@
 import { Star, Gift, Send, Settings2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getMyPoints } from "@/lib/data";
+import { getMyPoints, getMyReferral } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { ReferralCard } from "@/components/referral-card";
 import { IlluPoints } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
 import { getLang } from "@/lib/lang";
@@ -32,9 +33,10 @@ export default async function PuntosPage() {
   const lang = await getLang();
   const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
-  const [{ balance, entries }, cfgRes] = await Promise.all([
+  const [{ balance, entries }, cfgRes, referral] = await Promise.all([
     getMyPoints(),
     supabase.rpc("my_client_config"),
+    getMyReferral(),
   ]);
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -97,6 +99,18 @@ export default async function PuntosPage() {
           </p>
         )}
       </Card>
+
+      {/* Invita y gana (referidos) — vive aquí, en Puntos */}
+      {referral?.code && (
+        <div className="mb-5">
+          <ReferralCard
+            code={referral.code}
+            invited={referral.invited}
+            rewarded={referral.rewarded}
+            bonus={referral.bonus}
+          />
+        </div>
+      )}
 
       <h2 className="mb-2 text-sm font-bold text-foreground">{tr("Historial")}</h2>
       {entries.length === 0 ? (
