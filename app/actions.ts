@@ -923,6 +923,25 @@ export async function deleteSavedBeneficiary(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+export type ReferralFriend = {
+  name: string;
+  status: "premiado" | "activo" | "registrado";
+  joined_at: string;
+};
+
+// Lista de amigos referidos por el usuario y su estado. Tolerante: si la
+// función my_referrals() aún no existe (migración 0064), devuelve vacío.
+export async function listMyReferrals(): Promise<ReferralFriend[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_referrals");
+  if (error) return [];
+  return ((data as ReferralFriend[]) ?? []).map((r) => ({
+    name: r.name,
+    status: r.status,
+    joined_at: r.joined_at,
+  }));
+}
+
 // ===== Alertas de tasa del cliente (0060) =====
 
 type RateAlert = { id: string; currency: string; target_rate: number };
