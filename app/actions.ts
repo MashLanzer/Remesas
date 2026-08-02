@@ -881,6 +881,53 @@ export async function deleteSavedBeneficiary(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+// ===== Alertas de tasa del cliente (0060) =====
+
+type RateAlert = { id: string; currency: string; target_rate: number };
+
+export async function listRateAlerts(): Promise<RateAlert[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return [];
+  const { data, error } = await supabase
+    .from("client_rate_alerts")
+    .select("id, currency, target_rate")
+    .eq("user_id", ctx.userId);
+  if (error) return [];
+  return (data as RateAlert[]) ?? [];
+}
+
+export async function setRateAlert(
+  currency: string,
+  target: number
+): Promise<RateAlert | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !currency || !(target > 0)) return null;
+  // Un objetivo por moneda: upsert por (user_id, currency).
+  const { data, error } = await supabase
+    .from("client_rate_alerts")
+    .upsert(
+      { user_id: ctx.userId, currency, target_rate: target },
+      { onConflict: "user_id,currency" }
+    )
+    .select("id, currency, target_rate")
+    .maybeSingle();
+  if (error) return null;
+  return (data as RateAlert) ?? null;
+}
+
+export async function deleteRateAlert(id: string): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return;
+  await supabase
+    .from("client_rate_alerts")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
+}
+
 // El beneficiario (sin login) confirma que recibió, vía enlace público.
 export async function confirmReceived(token: string) {
   const supabase = await createClient();

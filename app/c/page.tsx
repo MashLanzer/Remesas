@@ -34,6 +34,7 @@ import { PaperPlane } from "@/components/paper-plane";
 import { ClienteGreeting } from "@/components/cliente-greeting";
 import { QuickSendRow } from "@/components/quick-send-row";
 import { ActiveOrderCard } from "@/components/active-order-card";
+import { RateAlertCard } from "@/components/rate-alert-card";
 import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -265,6 +266,9 @@ export default async function ClienteHome() {
           />
         </section>
       )}
+
+      {/* Alerta de tasa: avísame cuando llegue a X */}
+      <RateAlertCard rates={rates} />
 
       {/* Envío en curso destacado */}
       {featuredActive && (
