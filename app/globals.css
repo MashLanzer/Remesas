@@ -61,7 +61,11 @@
   html,
   body {
     max-width: 100vw;
-    overflow-x: hidden;
+    /* `clip` recorta el desbordamiento horizontal SIN convertir el body en un
+       contenedor de scroll. `overflow-x: hidden` sí lo convierte, y en el
+       WebView de Android eso hace que en páginas largas el compositor mosaique
+       la capa y DUPLIQUE contenido al hacer scroll. `clip` evita ese bug. */
+    overflow-x: clip;
   }
   body {
     background-color: hsl(var(--background));
