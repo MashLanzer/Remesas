@@ -224,6 +224,8 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
   "Otro",
 ];
 
+export type AnnouncementAudience = "clientes" | "repartidores" | "ambos";
+
 export interface Announcement {
   id: string;
   operator_id: string | null;
@@ -231,6 +233,7 @@ export interface Announcement {
   body: string | null;
   emoji: string | null;
   active: boolean;
+  audience?: AnnouncementAudience | null;
   created_at: string;
 }
 

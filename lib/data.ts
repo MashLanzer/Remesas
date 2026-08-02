@@ -529,7 +529,9 @@ export async function getMyReferral(): Promise<{
 // === Anuncios del operador ===
 import type { Announcement } from "@/lib/types";
 
-// Anuncios activos del negocio del usuario (para el inicio del cliente).
+// Anuncios activos del negocio del usuario para el INICIO DEL CLIENTE.
+// Filtra por audiencia en JS para ser tolerante si la columna aún no existe
+// (migración 0071): sin columna se asume 'clientes'.
 export async function getActiveAnnouncements(): Promise<Announcement[]> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
@@ -540,9 +542,35 @@ export async function getActiveAnnouncements(): Promise<Announcement[]> {
     .eq("operator_id", ctx.tenantId)
     .eq("active", true)
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(10);
   if (error) return [];
-  return (data as Announcement[]) ?? [];
+  const rows = (data as Announcement[]) ?? [];
+  return rows
+    .filter((a) => {
+      const aud = a.audience ?? "clientes";
+      return aud === "clientes" || aud === "ambos";
+    })
+    .slice(0, 5);
+}
+
+// Anuncios activos dirigidos al PERSONAL (repartidores / ambos), para el inicio
+// del panel de negocio.
+export async function getActiveStaffAnnouncements(): Promise<Announcement[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  if (error) return [];
+  const rows = (data as Announcement[]) ?? [];
+  return rows
+    .filter((a) => a.audience === "repartidores" || a.audience === "ambos")
+    .slice(0, 5);
 }
 
 // Todos los anuncios del operador (para gestionarlos).

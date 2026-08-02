@@ -171,15 +171,28 @@ export async function createAnnouncement(formData: FormData) {
   if (!ctx.isOperador || !ctx.tenantId) return;
   const title = str(formData.get("title"));
   if (!title) return;
-  await supabase.from("announcements").insert({
+  const audRaw = str(formData.get("audience"));
+  const audience =
+    audRaw === "repartidores" || audRaw === "ambos" ? audRaw : "clientes";
+  const base = {
     operator_id: ctx.tenantId,
     title,
     body: str(formData.get("body")),
     emoji: str(formData.get("emoji")),
     active: true,
-  });
+  };
+  // Se intenta con audiencia; si la columna aún no existe (migración 0071 sin
+  // aplicar), se reintenta sin ella.
+  const withAud = await supabase
+    .from("announcements")
+    .insert({ ...base, audience });
+  if (withAud.error) {
+    await supabase.from("announcements").insert(base);
+  }
   await logActivity("anuncio.crear", { entityType: "anuncio", entityLabel: title });
   revalidatePath("/ajustes");
+  revalidatePath("/anuncios");
+  revalidatePath("/", "layout");
   revalidatePath("/c", "layout");
 }
 
@@ -189,6 +202,8 @@ export async function toggleAnnouncement(id: string, active: boolean) {
   if (!ctx.isOperador) return;
   await supabase.from("announcements").update({ active }).eq("id", id);
   revalidatePath("/ajustes");
+  revalidatePath("/anuncios");
+  revalidatePath("/", "layout");
   revalidatePath("/c", "layout");
 }
 
@@ -198,6 +213,8 @@ export async function deleteAnnouncement(id: string) {
   if (!ctx.isOperador) return;
   await supabase.from("announcements").delete().eq("id", id);
   revalidatePath("/ajustes");
+  revalidatePath("/anuncios");
+  revalidatePath("/", "layout");
   revalidatePath("/c", "layout");
 }
 

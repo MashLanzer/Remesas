@@ -5,12 +5,14 @@ import {
   getOrders,
   getBusinessSettings,
   getExchangeRates,
+  getActiveStaffAnnouncements,
 } from "@/lib/data";
 import Link from "next/link";
 import { Route, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
 import { DashboardView } from "@/components/dashboard-view";
+import { AnnouncementsBanner } from "@/components/announcements-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -22,21 +24,29 @@ export default async function DashboardPage() {
 
   const ctx = await getSessionContext();
 
-  const [remittances, settlements, pendingOrders, settings, rates, profileRes] =
-    await Promise.all([
-      getRemittances(),
-      getSettlements(),
-      getOrders({ pendingOnly: true }),
-      getBusinessSettings(),
-      getExchangeRates(),
-      user
-        ? supabase
-            .from("profiles")
-            .select("full_name, monthly_goal, monthly_goal_count")
-            .eq("id", user.id)
-            .single()
-        : Promise.resolve({ data: null }),
-    ]);
+  const [
+    remittances,
+    settlements,
+    pendingOrders,
+    settings,
+    rates,
+    profileRes,
+    staffAnnouncements,
+  ] = await Promise.all([
+    getRemittances(),
+    getSettlements(),
+    getOrders({ pendingOnly: true }),
+    getBusinessSettings(),
+    getExchangeRates(),
+    user
+      ? supabase
+          .from("profiles")
+          .select("full_name, monthly_goal, monthly_goal_count")
+          .eq("id", user.id)
+          .single()
+      : Promise.resolve({ data: null }),
+    getActiveStaffAnnouncements(),
+  ]);
 
   const partnerBalance = calcPartnerBalance(remittances, settlements);
   const name = profileRes.data?.full_name ?? null;
@@ -59,6 +69,14 @@ export default async function DashboardPage() {
 
   return (
     <>
+      {staffAnnouncements.length > 0 && (
+        <div className="mb-4">
+          <AnnouncementsBanner
+            items={staffAnnouncements}
+            storageKey="giro_staff_dismissed_ann"
+          />
+        </div>
+      )}
       {!ctx.isOperador && pendientes.length > 0 && (
         <Link href="/ruta" className="mb-4 block">
           <div className="flex items-center gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-3.5 transition active:scale-[0.99]">

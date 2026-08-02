@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Boxes, Megaphone, Inbox, ChevronRight } from "lucide-react";
+import { ArrowLeft, Boxes, Megaphone, Inbox, Bell, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   getOffers,
@@ -10,7 +10,6 @@ import {
   getAnnouncements,
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
-import { AnunciosHub } from "@/components/anuncios-hub";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +61,18 @@ export default async function GestionPage() {
           }
           highlight={pending.length > 0}
         />
-        <AnunciosHub items={announcements} />
+        <HubCard
+          href="/anuncios"
+          icon={Bell}
+          title="Anuncios a clientes"
+          subtitle={
+            announcements.length > 0
+              ? `${announcements.length} publicado${
+                  announcements.length === 1 ? "" : "s"
+                }`
+              : "Publica avisos en la app del cliente"
+          }
+        />
       </div>
     </div>
   );

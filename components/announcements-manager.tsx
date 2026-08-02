@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Megaphone, Plus, Trash2, Eye, EyeOff } from "lucide-react";
+import { Megaphone, Plus, Trash2, Eye, EyeOff, Users, Truck } from "lucide-react";
 import { Card } from "@/components/ui";
 import {
   createAnnouncement,
@@ -9,11 +9,26 @@ import {
   deleteAnnouncement,
 } from "@/app/actions";
 import { useDialog } from "@/components/confirm";
-import type { Announcement } from "@/lib/types";
+import type { Announcement, AnnouncementAudience } from "@/lib/types";
+
+const AUDIENCES: { key: AnnouncementAudience; label: string }[] = [
+  { key: "clientes", label: "Clientes" },
+  { key: "repartidores", label: "Repartidores" },
+  { key: "ambos", label: "Ambos" },
+];
+
+function audienceLabel(a: AnnouncementAudience) {
+  return a === "repartidores"
+    ? "Repartidores"
+    : a === "ambos"
+    ? "Clientes y repartidores"
+    : "Clientes";
+}
 
 export function AnnouncementsManager({ items }: { items: Announcement[] }) {
   const { confirm } = useDialog();
   const [open, setOpen] = useState(false);
+  const [audience, setAudience] = useState<AnnouncementAudience>("clientes");
   const [pending, start] = useTransition();
 
   async function remove(id: string) {
@@ -34,6 +49,7 @@ export function AnnouncementsManager({ items }: { items: Announcement[] }) {
             action={async (fd) => {
               await createAnnouncement(fd);
               setOpen(false);
+              setAudience("clientes");
             }}
             className="space-y-2"
           >
@@ -57,6 +73,34 @@ export function AnnouncementsManager({ items }: { items: Announcement[] }) {
               placeholder="Detalle (opcional): nueva promo, cambio de horario…"
               className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none"
             />
+
+            {/* ¿Para quién? */}
+            <input type="hidden" name="audience" value={audience} />
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                ¿Para quién?
+              </p>
+              <div className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-muted/40 p-1">
+                {AUDIENCES.map((a) => {
+                  const on = a.key === audience;
+                  return (
+                    <button
+                      key={a.key}
+                      type="button"
+                      onClick={() => setAudience(a.key)}
+                      className={
+                        "rounded-lg py-1.5 text-xs font-semibold transition " +
+                        (on
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground")
+                      }
+                    >
+                      {a.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -100,11 +144,21 @@ export function AnnouncementsManager({ items }: { items: Announcement[] }) {
             {a.body && (
               <p className="truncate text-xs text-muted-foreground">{a.body}</p>
             )}
-            {!a.active && (
-              <p className="mt-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                Oculto
-              </p>
-            )}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                {(a.audience ?? "clientes") === "repartidores" ? (
+                  <Truck className="h-3 w-3" />
+                ) : (
+                  <Users className="h-3 w-3" />
+                )}
+                {audienceLabel(a.audience ?? "clientes")}
+              </span>
+              {!a.active && (
+                <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                  Oculto
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex shrink-0 gap-1">
             <button

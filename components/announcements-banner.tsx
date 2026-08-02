@@ -4,17 +4,24 @@ import { useEffect, useState } from "react";
 import { Megaphone, X } from "lucide-react";
 import type { Announcement } from "@/lib/types";
 
-const KEY = "giro_c_dismissed_ann";
+const DEFAULT_KEY = "giro_c_dismissed_ann";
 
-// Muestra los anuncios activos del negocio en el inicio del cliente. Cada uno
-// se puede descartar (se recuerda por id en el dispositivo).
-export function AnnouncementsBanner({ items }: { items: Announcement[] }) {
+// Muestra los anuncios activos del negocio. Cada uno se puede descartar (se
+// recuerda por id en el dispositivo). `storageKey` separa los descartes por
+// contexto (cliente vs personal).
+export function AnnouncementsBanner({
+  items,
+  storageKey = DEFAULT_KEY,
+}: {
+  items: Announcement[];
+  storageKey?: string;
+}) {
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(storageKey);
       if (raw) setDismissed(JSON.parse(raw));
     } catch {
       /* nada */
@@ -26,7 +33,7 @@ export function AnnouncementsBanner({ items }: { items: Announcement[] }) {
     const next = [...dismissed, id];
     setDismissed(next);
     try {
-      localStorage.setItem(KEY, JSON.stringify(next.slice(-50)));
+      localStorage.setItem(storageKey, JSON.stringify(next.slice(-50)));
     } catch {
       /* nada */
     }
