@@ -87,6 +87,26 @@ export function SettingsSheet({ settings }: { settings: BusinessSettings }) {
             cobran $5.
           </p>
 
+          <div className="border-t border-border pt-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
+              Entrega por transferencia (CUP)
+            </p>
+            <Field label="% extra sobre el efectivo">
+              <Input
+                type="number"
+                name="transfer_bonus_pct"
+                min="0"
+                step="0.1"
+                defaultValue={String(settings.transfer_bonus_pct ?? 10)}
+              />
+            </Field>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              La familia que recibe CUP por transferencia obtiene este % de más
+              que en efectivo. Ej: 10% → 65,000 en efectivo = 71,500 por
+              transferencia. Solo aplica a CUP.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-2">
             <Field label="Moneda por defecto">
               <Select

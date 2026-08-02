@@ -73,6 +73,7 @@ export default async function NuevaRemesaPage({
         rates={rates}
         defaultSplit={defaultSplit}
         rules={settings}
+        transferBonusPct={settings.transfer_bonus_pct}
         defaultCurrency={settings.default_currency}
         defaultPayment={settings.default_payment_method}
         prefill={prefill ?? undefined}

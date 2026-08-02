@@ -1482,6 +1482,17 @@ export async function createRemittance(formData: FormData) {
   if (inserted?.id) {
     await handleReceiptUpload(supabase, formData, "remittances", inserted.id);
     await handleDeliveryProof(supabase, formData, inserted.id);
+    // Forma de entrega (0056, tolerante). La tasa ya trae el bono aplicado, así
+    // que el monto está bien; esto solo guarda la etiqueta 'transferencia'.
+    if (
+      str(formData.get("delivery_currency")) === "CUP" &&
+      str(formData.get("delivery_method")) === "transferencia"
+    ) {
+      await supabase
+        .from("remittances")
+        .update({ delivery_method: "transferencia" })
+        .eq("id", inserted.id);
+    }
   }
 
   await logActivity("remesa.crear", {
@@ -1560,6 +1571,20 @@ export async function updateRemittance(formData: FormData) {
     await supabase
       .from("remittances")
       .update({ deliverer_id: str(delivererId) })
+      .eq("id", id);
+  }
+
+  // Forma de entrega (0056, tolerante). La tasa ya trae el bono; esto guarda la
+  // etiqueta. Si el form la trae, se respeta (efectivo o transferencia).
+  if (formData.get("delivery_method") !== null) {
+    const dm =
+      str(formData.get("delivery_currency")) === "CUP" &&
+      str(formData.get("delivery_method")) === "transferencia"
+        ? "transferencia"
+        : "efectivo";
+    await supabase
+      .from("remittances")
+      .update({ delivery_method: dm })
       .eq("id", id);
   }
 
@@ -2528,6 +2553,16 @@ export async function updateBusinessSettings(formData: FormData) {
       .from("business_settings")
       .update({ monthly_goal: trimmed === "" ? null : num(goal) })
       .eq(keyField, keyVal);
+  }
+  // % extra de la transferencia (aparte, tolerante si no existe — 0056).
+  const tbonus = formData.get("transfer_bonus_pct");
+  if (tbonus !== null && String(tbonus).trim() !== "") {
+    await supabase
+      .from("business_settings")
+      .update({ transfer_bonus_pct: num(tbonus) })
+      .eq(keyField, keyVal);
+    revalidatePath("/c", "layout");
+    revalidatePath("/c/tienda");
   }
   // Color de marca para la app del cliente (aparte, tolerante — 0029).
   const hue = formData.get("brand_hue");

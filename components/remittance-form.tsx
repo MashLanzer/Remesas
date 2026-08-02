@@ -15,6 +15,7 @@ import { Sheet } from "@/components/sheet";
 import {
   calcCommission,
   computeRemittance,
+  transferFactor,
   type CommissionRules,
 } from "@/lib/calc";
 import { usd, localAmount, cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ export function RemittanceForm({
   repartidores = [],
   isOperador = true,
   recentRemesas = [],
+  transferBonusPct,
 }: {
   clients: Client[];
   beneficiaries: Beneficiary[];
@@ -72,6 +74,7 @@ export function RemittanceForm({
   initial?: Remittance;
   prefill?: Remittance;
   rules?: CommissionRules;
+  transferBonusPct?: number | null;
   defaultCurrency?: string;
   defaultPayment?: string | null;
   defaultClientId?: string;
@@ -142,6 +145,12 @@ export function RemittanceForm({
   const [split, setSplit] = useState(
     String(source?.my_split_percent ?? defaultSplit ?? 50)
   );
+  // Forma de entrega (0056). Solo CUP tiene transferencia. La tasa que se
+  // guarda YA incluye el bono (al alternar se ajusta el campo de tasa), así que
+  // al guardar no se recalcula: lo que ve el operador es lo que se guarda.
+  const [method, setMethod] = useState<"efectivo" | "transferencia">(
+    (source?.delivery_method as "efectivo" | "transferencia") ?? "efectivo"
+  );
 
   const amountNum = parseFloat(amount) || 0;
   const effectiveCommission = commissionTouched
@@ -166,8 +175,24 @@ export function RemittanceForm({
 
   function onCurrencyChange(c: string) {
     setCurrency(c);
+    // Al cambiar de moneda se vuelve a efectivo y a la tasa base de esa moneda.
+    setMethod("efectivo");
     const r = ratesByCurrency[c];
     if (r != null) setRate(String(r));
+  }
+
+  // Alterna la forma de entrega ajustando la tasa por el bono (solo CUP): al
+  // pasar a transferencia sube +%, al volver a efectivo lo quita. Así el campo
+  // de tasa siempre muestra el número real que se va a guardar.
+  function onMethodChange(m: "efectivo" | "transferencia") {
+    if (m === method) return;
+    const factor = transferFactor(transferBonusPct);
+    const cur = parseFloat(rate) || 0;
+    if (factor > 0 && cur > 0) {
+      const next = m === "transferencia" ? cur * factor : cur / factor;
+      setRate(String(Math.round(next * 10000) / 10000));
+    }
+    setMethod(m);
   }
 
   // Al elegir beneficiario, aplica su moneda preferida si la tiene.
@@ -562,6 +587,39 @@ export function RemittanceForm({
             />
           </Field>
         </div>
+
+        {/* Forma de entrega: solo CUP tiene transferencia (tasa +%). */}
+        {currency === "CUP" && (
+          <>
+            <input type="hidden" name="delivery_method" value={method} />
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { m: "efectivo" as const, label: "💴 Efectivo" },
+                  { m: "transferencia" as const, label: "🏦 Transferencia" },
+                ]
+              ).map(({ m, label }) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => onMethodChange(m)}
+                  className={cn(
+                    "rounded-xl border px-3 py-2 text-sm font-semibold transition active:scale-[0.98]",
+                    method === m
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-foreground"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="-mt-1 text-[11px] text-muted-foreground">
+              Transferencia = efectivo +{Number(transferBonusPct ?? 10)}% (ajusta
+              la tasa sola). Puedes editarla a mano.
+            </p>
+          </>
+        )}
 
         {rateStale && (
           <Link

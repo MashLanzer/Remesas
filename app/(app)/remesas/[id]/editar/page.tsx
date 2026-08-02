@@ -52,6 +52,7 @@ export default async function EditarRemesaPage({
         defaultSplit={Number(remittance.my_split_percent)}
         initial={remittance}
         rules={settings}
+        transferBonusPct={settings.transfer_bonus_pct}
         repartidores={repartidores}
         isOperador={ctx.isOperador}
       />
