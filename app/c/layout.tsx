@@ -89,7 +89,7 @@ export default async function ClienteLayout({
       <BodyScrollLock />
       <PinLock />
       <ClienteOnboarding />
-      <header className="safe-top z-30 shrink-0 border-b border-border bg-background">
+      <header className="safe-top z-30 shrink-0 border-b border-border bg-background [transform:translateZ(0)] [will-change:transform]">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
