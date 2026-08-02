@@ -923,6 +923,16 @@ export async function deleteSavedBeneficiary(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+// El cliente informa en la app que ya pagó su pedido (queda registrado con
+// marca de tiempo). El cobro lo confirma luego el negocio. Tolerante: si la
+// función aún no existe (migración 0065), no rompe.
+export async function clientMarkOrderPaid(orderId: string): Promise<void> {
+  if (!orderId) return;
+  const supabase = await createClient();
+  await supabase.rpc("client_mark_order_paid", { p_order: orderId });
+  revalidatePath(`/c/pedidos/${orderId}`);
+}
+
 export type ReferralFriend = {
   name: string;
   status: "premiado" | "activo" | "registrado";

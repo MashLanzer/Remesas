@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft, KeyRound, BadgeCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMyOrder,
@@ -50,6 +50,7 @@ export default async function MiPedidoDetallePage({
     reviewMap,
     settings,
     payment,
+    payStateRes,
   ] = await Promise.all([
     getMyOrder(id),
     getExchangeRates(),
@@ -60,8 +61,16 @@ export default async function MiPedidoDetallePage({
     getMyReviewMap(),
     getBusinessSettings(),
     getMyOperatorPayment(),
+    supabase.rpc("my_order_payment", { p_order: id }),
   ]);
   if (!order) notFound();
+
+  // Estado de pago (migración 0065). Tolerante si la función no existe aún.
+  const payRow = (
+    Array.isArray(payStateRes.data) ? payStateRes.data[0] : payStateRes.data
+  ) as { marked_paid_at?: string | null; confirmed?: boolean } | null;
+  const paymentConfirmed = payRow?.confirmed === true;
+  const paymentInformed = !!payRow?.marked_paid_at;
 
   const display = orderDisplay(order);
   const isDelivered = display === "entregado" || display === "recibido";
@@ -125,10 +134,29 @@ export default async function MiPedidoDetallePage({
         </Card>
       )}
 
-      {/* ¿Cómo pago? (mientras no esté entregada ni rechazada) */}
-      {!isDelivered && order.status !== "rechazado" && (
-        <PayInstructions order={order} payment={payment} />
-      )}
+      {/* Ciclo de pago (mientras no esté rechazada) */}
+      {order.status !== "rechazado" &&
+        (paymentConfirmed ? (
+          <Card className="flex items-center gap-3 border-income/30 bg-income/10">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-income/15 text-income">
+              <BadgeCheck className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-income">Pago confirmado</p>
+              <p className="text-xs text-muted-foreground">
+                El negocio recibió tu pago de {usd(Number(order.amount_usd))}.
+              </p>
+            </div>
+          </Card>
+        ) : (
+          !isDelivered && (
+            <PayInstructions
+              order={order}
+              payment={payment}
+              informed={paymentInformed}
+            />
+          )
+        ))}
 
       {/* Seguimiento + ¿cuándo llega? */}
       <Card className="space-y-3">

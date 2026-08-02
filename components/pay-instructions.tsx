@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Check, Wallet, MessageCircle } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Copy, Check, Wallet, MessageCircle, Clock, HandCoins } from "lucide-react";
 import { Card } from "@/components/ui";
+import { clientMarkOrderPaid } from "@/app/actions";
 import type { Order } from "@/lib/types";
 
 type M = { k: string; v: string };
 
 // Tarjeta "¿Cómo pago?" para el cliente: muestra los métodos de cobro del
-// negocio (copiables) y un botón para avisar por WhatsApp que ya pagó, con el
-// pedido citado. No cambia datos; el pago se coordina con el negocio.
+// negocio (copiables), permite marcar "ya pagué" (queda registrado) y avisar
+// por WhatsApp. El cobro real lo confirma el negocio.
 export function PayInstructions({
   order,
   payment,
+  informed = false,
 }: {
   order: Order;
   payment: {
@@ -22,8 +24,16 @@ export function PayInstructions({
     cashapp: string | null;
     paypal: string | null;
   };
+  informed?: boolean;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [marked, setMarked] = useState(informed);
+  const [saving, start] = useTransition();
+
+  function markPaid() {
+    setMarked(true);
+    start(() => clientMarkOrderPaid(order.id));
+  }
 
   const methods: M[] = [
     payment.zelle ? { k: "Zelle", v: payment.zelle } : null,
@@ -56,6 +66,16 @@ export function PayInstructions({
       <div className="flex items-center gap-2">
         <Wallet className="h-4 w-4 text-primary" />
         <p className="text-sm font-bold text-foreground">¿Cómo pagar tu envío?</p>
+        <span
+          className={
+            "ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
+            (marked
+              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+              : "bg-muted text-muted-foreground")
+          }
+        >
+          <Clock className="h-3 w-3" /> {marked ? "Pago informado" : "Por pagar"}
+        </span>
       </div>
       <p className="text-xs text-muted-foreground">
         Paga <span className="font-semibold text-foreground">$
@@ -93,6 +113,22 @@ export function PayInstructions({
         ))}
       </div>
 
+      {marked ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-center text-xs font-medium text-amber-700 dark:text-amber-300">
+          Avisaste que ya pagaste. El negocio confirmará el cobro y verás
+          “Pagado” aquí.
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={markPaid}
+          disabled={saving}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-70"
+        >
+          <HandCoins className="h-4 w-4" /> Ya pagué
+        </button>
+      )}
+
       {digits && (
         <a
           href={`https://wa.me/${digits}?text=${encodeURIComponent(waText)}`}
@@ -100,7 +136,7 @@ export function PayInstructions({
           rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-income py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
         >
-          <MessageCircle className="h-4 w-4" /> Ya pagué · avisar al negocio
+          <MessageCircle className="h-4 w-4" /> Avisar por WhatsApp
         </a>
       )}
     </Card>
