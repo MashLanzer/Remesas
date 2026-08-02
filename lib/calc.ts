@@ -2,7 +2,7 @@
 // Se mantiene en funciones puras para poder reusarla en el formulario (cliente)
 // y en el servidor, y para que sea fácil de testear.
 
-import type { Remittance, Settlement } from "./types";
+import type { DeliveryMethod, Remittance, Settlement } from "./types";
 
 export interface CommissionRules {
   commission_threshold: number;
@@ -61,6 +61,54 @@ export function calcDelivered(amountUsd: number, commission: number): number {
 /** Monto que recibe la familia en moneda local = (USD entregado) * tasa. */
 export function calcLocalAmount(deliveredUsd: number, rate: number): number {
   return round2((Number(deliveredUsd) || 0) * (Number(rate) || 0));
+}
+
+// ===== Formas de entrega: efectivo vs transferencia (0056) =====
+//
+// La transferencia solo aplica a CUP y vale más que el efectivo:
+//   transferencia = efectivo * (1 + transfer_bonus_pct/100).
+// Para el resto de monedas (USD, MLC, EUR) la forma no cambia el monto.
+
+type RateLike = { currency: string; rate: number; active?: boolean };
+
+/** Factor de la transferencia: 1 + pct/100 (nunca < 1). */
+export function transferFactor(pct: number | null | undefined): number {
+  const p = Number(pct) || 0;
+  return p > 0 ? 1 + p / 100 : 1;
+}
+
+/** ¿Esta moneda tiene variante de transferencia? Hoy: solo CUP. */
+export function methodApplies(currency: string | null | undefined): boolean {
+  return currency === "CUP";
+}
+
+/**
+ * Convierte el USD entregado a la moneda y forma elegidas.
+ *   - USD: el mismo importe (la forma no aplica).
+ *   - CUP + transferencia: efectivo * (1 + pct/100).
+ *   - resto: importe * tasa.
+ * Devuelve null si no hay tasa activa para esa moneda (no se puede estimar).
+ */
+export function convertDelivered(
+  deliveredUsd: number | null | undefined,
+  currency: string | null | undefined,
+  method: DeliveryMethod,
+  rates: RateLike[],
+  transferBonusPct?: number | null
+): number | null {
+  const usd = Math.max(0, Number(deliveredUsd) || 0);
+  if (!currency) return null;
+  if (currency === "USD") return round2(usd);
+  const r = rates.find((x) => x.currency === currency);
+  if (!r || r.active === false) return null;
+  const rate = Number(r.rate) || 0;
+  if (rate <= 0) return null;
+  const base = usd * rate;
+  const amount =
+    currency === "CUP" && method === "transferencia"
+      ? base * transferFactor(transferBonusPct)
+      : base;
+  return round2(amount);
 }
 
 /** Ganancia total = comisión + ganancia por diferencial de cambio (spread). */
