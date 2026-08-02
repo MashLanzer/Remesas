@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/components/lang-provider";
 
 // Saludo por la hora local del usuario. Renderiza un saludo neutro en el
 // servidor y lo ajusta tras montar para evitar desajustes de hidratación.
 export function ClienteGreeting({ firstName }: { firstName?: string | null }) {
+  const t = useT();
   const [greet, setGreet] = useState("Hola");
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export function ClienteGreeting({ firstName }: { firstName?: string | null }) {
   return (
     <div>
       <p className="text-sm font-medium text-white/85">
-        {greet}
+        {t(greet)}
         {firstName ? (
           <>
             , <span className="font-bold text-white">{firstName}</span>
@@ -25,7 +27,7 @@ export function ClienteGreeting({ firstName }: { firstName?: string | null }) {
         ) : null}{" "}
         👋
       </p>
-      <p className="text-xs text-white/70">¿A quién le envías hoy?</p>
+      <p className="text-xs text-white/70">{t("¿A quién le envías hoy?")}</p>
     </div>
   );
 }

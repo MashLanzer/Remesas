@@ -27,6 +27,15 @@ export async function setDataModeCookie(low: boolean) {
   });
 }
 
+// Idioma de la experiencia del cliente (es | en).
+export async function setLangCookie(lang: "es" | "en") {
+  cookies().set("giro_lang", lang === "en" ? "en" : "es", {
+    path: "/",
+    maxAge: YEAR,
+    sameSite: "lax",
+  });
+}
+
 // ============ ONBOARDING / EQUIPO ============
 
 function genCode(len = 6): string {

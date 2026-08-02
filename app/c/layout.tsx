@@ -18,6 +18,8 @@ import { ClienteProfileMenu } from "@/components/cliente-profile-menu";
 import { ClienteOnboarding } from "@/components/cliente-onboarding";
 import { PageTransition } from "@/components/page-transition";
 import { PinLock } from "@/components/pin-lock";
+import { LangProvider } from "@/components/lang-provider";
+import { getLang } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,8 @@ export default async function ClienteLayout({
   if (ctx.needsOnboarding) redirect("/onboarding");
   // Esta área es solo para clientes; el resto va a la app de negocio.
   if (!ctx.isCliente) redirect("/");
+
+  const lang = await getLang();
 
   // Datos para el FAB "Enviar" (formulario de remesa en un sheet global).
   const [rates, points, cfgRes, beneficiaries, profileRes, contact, notifs, settings] =
@@ -72,6 +76,7 @@ export default async function ClienteLayout({
   const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
   return (
+    <LangProvider lang={lang}>
     <div
       className="min-h-screen bg-background"
       style={
@@ -135,5 +140,6 @@ export default async function ClienteLayout({
         transferBonusPct={settings.transfer_bonus_pct}
       />
     </div>
+    </LangProvider>
   );
 }

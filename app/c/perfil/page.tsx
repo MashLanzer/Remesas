@@ -18,6 +18,7 @@ import { getMyOrders, getMyPoints, getMyOperatorContact } from "@/lib/data";
 import { orderDisplay } from "@/components/order-status-badge";
 import { SavedBeneficiaries } from "@/components/saved-beneficiaries";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { LangSwitch } from "@/components/lang-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ClearLocalData } from "@/components/clear-local-data";
 import { PinSetup } from "@/components/pin-setup";
@@ -211,6 +212,8 @@ export default async function ClientePerfilPage() {
           <Settings className="h-4 w-4" /> Ajustes
         </h2>
         <Card className="space-y-4">
+          <LangSwitch />
+          <div className="border-t border-border" />
           <ThemeSwitch />
           <div className="border-t border-border" />
           <DataModeSwitch />

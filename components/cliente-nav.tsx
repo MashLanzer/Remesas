@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Home, Gift, Package, Star, Send } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { OrderForm } from "@/components/order-form";
+import { useT } from "@/components/lang-provider";
 import type { ExchangeRate } from "@/lib/types";
 
 const items = [
@@ -32,6 +33,7 @@ export function ClienteNav({
   transferBonusPct?: number | null;
 }) {
   const pathname = usePathname();
+  const t = useT();
   const [saver, setSaver] = useState(false);
   const [enviar, setEnviar] = useState(false);
 
@@ -46,14 +48,14 @@ export function ClienteNav({
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 backdrop-blur">
       <div className="relative mx-auto flex max-w-md items-stretch justify-around">
         {left.map((item) => (
-          <NavItem key={item.href} item={item} pathname={pathname} saver={saver} />
+          <NavItem key={item.href} item={item} pathname={pathname} saver={saver} t={t} />
         ))}
 
         {/* Hueco para el FAB */}
         <div className="w-16 shrink-0" aria-hidden />
 
         {right.map((item) => (
-          <NavItem key={item.href} item={item} pathname={pathname} saver={saver} />
+          <NavItem key={item.href} item={item} pathname={pathname} saver={saver} t={t} />
         ))}
 
         {/* FAB central: enviar remesa (abre en sheet) */}
@@ -61,7 +63,7 @@ export function ClienteNav({
           <button
             type="button"
             onClick={() => setEnviar(true)}
-            aria-label="Enviar remesa"
+            aria-label={t("Enviar remesa")}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition active:scale-90"
           >
             <Send className="h-6 w-6" />
@@ -72,7 +74,7 @@ export function ClienteNav({
       <Sheet
         open={enviar}
         onClose={() => setEnviar(false)}
-        title="Enviar una remesa"
+        title={t("Enviar una remesa")}
       >
         <OrderForm
           rates={rates}
@@ -92,10 +94,12 @@ function NavItem({
   item,
   pathname,
   saver,
+  t,
 }: {
   item: (typeof items)[number];
   pathname: string;
   saver: boolean;
+  t: (es: string) => string;
 }) {
   const active = item.exact
     ? pathname === item.href
@@ -118,7 +122,7 @@ function NavItem({
       >
         <Icon className="h-5 w-5" />
       </span>
-      {item.label}
+      {t(item.label)}
     </Link>
   );
 }
