@@ -78,7 +78,7 @@ export default async function ClienteLayout({
   return (
     <LangProvider lang={lang}>
     <div
-      className="min-h-screen bg-background"
+      className="flex h-screen flex-col overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh]"
       style={
         contact.brandHue != null
           ? ({ "--brand-hue": String(contact.brandHue) } as React.CSSProperties)
@@ -87,7 +87,7 @@ export default async function ClienteLayout({
     >
       <PinLock />
       <ClienteOnboarding />
-      <header className="safe-top sticky top-0 z-30 border-b border-border bg-background">
+      <header className="safe-top z-30 shrink-0 border-b border-border bg-background">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -128,8 +128,13 @@ export default async function ClienteLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-md px-4 pb-28 pt-4">
-        <PageTransition>{children}</PageTransition>
+      {/* El scroll lo hace ESTE contenedor acotado (no el documento). Así el
+          WebView de Android compone solo el alto de la pantalla y nunca una
+          capa gigante que duplique contenido en páginas largas. */}
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-md px-4 pb-28 pt-4">
+          <PageTransition>{children}</PageTransition>
+        </div>
       </main>
       <ClienteNav
         rates={rates}
