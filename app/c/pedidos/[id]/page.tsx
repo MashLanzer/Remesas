@@ -202,7 +202,7 @@ export default async function MiPedidoDetallePage({
             {tr("Chat con el negocio")}
           </p>
         </div>
-        <OrderChat orderId={order.id} me="cliente" />
+        <OrderChat orderId={order.id} me="cliente" flow />
       </Card>
 
       {/* Puntos del envío */}

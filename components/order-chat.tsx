@@ -16,9 +16,15 @@ import {
 export function OrderChat({
   orderId,
   me,
+  flow = false,
 }: {
   orderId: string;
   me: "cliente" | "negocio";
+  // flow=true: los mensajes fluyen con la página (sin scroll anidado). Se usa en
+  // el detalle del pedido del cliente para evitar un contenedor de scroll
+  // anidado que provoca artefactos de compositing (fantasmas) en el WebView de
+  // Android. En la hoja del panel se deja el scroll acotado (flow=false).
+  flow?: boolean;
 }) {
   const t = useT();
   const [messages, setMessages] = useState<OrderMessage[]>([]);
@@ -33,7 +39,8 @@ export function OrderChat({
     setLoaded(true);
     // Al ver el chat, se marca como leído (limpia el aviso de no leídos).
     markOrderMessagesRead(orderId);
-    if (scroll) {
+    // En modo flujo no auto-desplazamos (moveríamos toda la página).
+    if (scroll && !flow) {
       requestAnimationFrame(() =>
         endRef.current?.scrollIntoView({ behavior: "smooth" })
       );
@@ -59,7 +66,12 @@ export function OrderChat({
 
   return (
     <div className="flex flex-col">
-      <div className="max-h-72 min-h-[8rem] space-y-2 overflow-y-auto rounded-xl bg-muted/40 p-3">
+      <div
+        className={
+          "space-y-2 rounded-xl bg-muted/40 p-3 " +
+          (flow ? "min-h-[6rem]" : "max-h-72 min-h-[8rem] overflow-y-auto")
+        }
+      >
         {!loaded ? (
           <p className="py-6 text-center text-xs text-muted-foreground">
             {t("Cargando…")}
