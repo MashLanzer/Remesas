@@ -1,13 +1,38 @@
-// Desbloqueo biométrico (huella / rostro) como complemento del PIN. Usa
-// WebAuthn con el autenticador de PLATAFORMA del dispositivo, que funciona
-// tanto en la web (https) como en el WebView del APK. No sustituye al PIN: el
-// PIN sigue siendo el respaldo si la biometría falla o no está disponible.
+// Desbloqueo biométrico (huella / rostro) como complemento del PIN.
 //
-// Para un bloqueo LOCAL no verificamos la firma en un servidor: basta con que
-// el dispositivo realice la verificación de usuario (biometría) y devuelva una
-// aserción; es el mismo nivel de confianza que el PIN (todo en el dispositivo).
+// Dos caminos, según dónde corra la app:
+//   • APK (Capacitor nativo): usa el plugin nativo BiometricAuth, que abre el
+//     diálogo REAL del sistema (androidx.biometric) y verifica contra las
+//     huellas/rostros del teléfono. Es lo que funciona de verdad en el móvil.
+//   • Web (navegador https): usa WebAuthn con el autenticador de plataforma.
+//
+// En ambos casos es verificación LOCAL: confirma que quien abre la app es el
+// dueño del dispositivo, igual que el PIN, que sigue siendo el respaldo.
 
-export const BIO_KEY = "giro_bio_cred"; // id de credencial (base64url)
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
+export const BIO_KEY = "giro_bio_cred"; // marca/credencial guardada localmente
+
+interface BiometricAuthPlugin {
+  isAvailable(): Promise<{ available: boolean; code?: number; reason?: string }>;
+  verify(options: {
+    title?: string;
+    subtitle?: string;
+    cancelTitle?: string;
+  }): Promise<{ verified: boolean }>;
+}
+
+const Native = registerPlugin<BiometricAuthPlugin>("BiometricAuth");
+
+function isNative(): boolean {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
+// ───────────────────────── helpers WebAuthn (web) ─────────────────────────
 
 function bufToB64url(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
@@ -32,29 +57,34 @@ function randomBytes(n: number): ArrayBuffer {
   return buf;
 }
 
+// ───────────────────────────── API pública ────────────────────────────────
+
 // ¿El dispositivo puede ofrecer desbloqueo con huella/rostro?
-//
-// Nota importante: en el WebView de Android (el APK) el método
-// isUserVerifyingPlatformAuthenticatorAvailable() a veces devuelve false aunque
-// el teléfono SÍ tenga huella/rostro, porque el WebView no expone bien esa
-// consulta. Por eso, si WebAuthn existe y estamos en un móvil, damos la opción
-// por disponible y dejamos que sea el propio dispositivo quien confirme al
-// intentar registrar la biometría (si de verdad no la tiene, fallará ahí).
 export async function biometricSupported(): Promise<boolean> {
+  // En el APK preguntamos al sistema directamente (respuesta fiable).
+  if (isNative()) {
+    try {
+      const res = await Native.isAvailable();
+      return !!res.available;
+    } catch {
+      return false;
+    }
+  }
+  // En la web, WebAuthn con autenticador de plataforma.
   try {
     if (typeof window === "undefined" || !window.PublicKeyCredential) return false;
     const uvpaa = await window.PublicKeyCredential
       .isUserVerifyingPlatformAuthenticatorAvailable()
       .catch(() => false);
     if (uvpaa) return true;
-    // El navegador dice que no; en móviles no nos fiamos (ver nota) y dejamos
-    // intentarlo. En escritorio sin autenticador, sí lo ocultamos.
+    // Algunos WebView móviles reportan false aunque el teléfono sí tenga
+    // biometría; en móvil dejamos intentarlo. En escritorio, se oculta.
     const ua = navigator.userAgent || "";
-    const isMobile =
+    return (
       /Android|iPhone|iPad|iPod/i.test(ua) ||
       (typeof window.matchMedia === "function" &&
-        window.matchMedia("(pointer: coarse)").matches);
-    return isMobile;
+        window.matchMedia("(pointer: coarse)").matches)
+    );
   } catch {
     return false;
   }
@@ -68,8 +98,27 @@ export function biometricEnabled(): boolean {
   }
 }
 
-// Registra una credencial de plataforma y guarda su id en el dispositivo.
+// Activa el desbloqueo biométrico. En el APK basta con una verificación de
+// prueba (el usuario confirma con su huella/rostro) y guardamos la marca. En la
+// web se registra una credencial de plataforma con WebAuthn.
 export async function registerBiometric(): Promise<boolean> {
+  if (isNative()) {
+    try {
+      const res = await Native.verify({
+        title: "Activar desbloqueo",
+        subtitle: "Confirma con tu huella o rostro",
+        cancelTitle: "Cancelar",
+      });
+      if (res?.verified) {
+        localStorage.setItem(BIO_KEY, "native");
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   try {
     const cred = (await navigator.credentials.create({
       publicKey: {
@@ -102,11 +151,21 @@ export async function registerBiometric(): Promise<boolean> {
 }
 
 // Pide la biometría para desbloquear. Devuelve true si el dispositivo verificó
-// al usuario y entregó una aserción con la credencial guardada.
+// al usuario.
 export async function verifyBiometric(): Promise<boolean> {
   try {
     const id = localStorage.getItem(BIO_KEY);
     if (!id) return false;
+
+    if (isNative()) {
+      const res = await Native.verify({
+        title: "Desbloquear Giro",
+        subtitle: "Usa tu huella o rostro",
+        cancelTitle: "Usar PIN",
+      });
+      return !!res?.verified;
+    }
+
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge: randomBytes(32),
