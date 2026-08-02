@@ -158,7 +158,7 @@ export function LiveMap({
     <div>
       <div
         ref={containerRef}
-        className="h-56 w-full overflow-hidden rounded-xl border border-border"
+        className="h-56 w-full overflow-hidden rounded-xl border border-border [transform:translateZ(0)] isolate"
         style={{ background: "#e5e7eb" }}
       />
       <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
