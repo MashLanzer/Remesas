@@ -111,11 +111,14 @@ export default async function ClientePerfilPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <Link href="/c/estado" className="grid grid-cols-3 gap-2">
         <MiniStat icon={Send} value={String(delivered.length)} label="Envíos" />
         <MiniStat icon={Wallet} value={usd(totalEnviado)} label="Enviado" />
         <MiniStat icon={Star} value={String(points.balance)} label="Puntos" />
-      </div>
+      </Link>
+      <p className="-mt-3 text-center text-[11px] text-muted-foreground">
+        Toca para ver tu resumen y descargarlo
+      </p>
 
       <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Tus datos para los envíos
