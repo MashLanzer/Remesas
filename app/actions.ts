@@ -216,13 +216,24 @@ export async function updateClientProfile(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
-  await supabase
+  const base = {
+    full_name: str(formData.get("full_name")),
+    phone: str(formData.get("phone")),
+    phone2: str(formData.get("phone2")),
+    address: str(formData.get("address")),
+  };
+  // Si las columnas phone2/address aún no existen (migración 0062 sin aplicar),
+  // se reintenta solo con los campos de siempre para no bloquear el guardado.
+  const { error } = await supabase
     .from("profiles")
-    .update({
-      full_name: str(formData.get("full_name")),
-      phone: str(formData.get("phone")),
-    })
+    .update(base)
     .eq("id", user.id);
+  if (error) {
+    await supabase
+      .from("profiles")
+      .update({ full_name: base.full_name, phone: base.phone })
+      .eq("id", user.id);
+  }
   // Foto de perfil (tolerante — columna 0027).
   const avatar = formData.get("avatar");
   if (avatar instanceof File && avatar.size > 0) {

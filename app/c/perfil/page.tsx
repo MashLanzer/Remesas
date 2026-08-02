@@ -33,17 +33,32 @@ export default async function ClientePerfilPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = user
-    ? await supabase
+  // Se piden también phone2/address; si la migración 0062 aún no se aplicó, el
+  // select falla, así que se reintenta con las columnas de siempre.
+  let profile: Record<string, unknown> | null = null;
+  if (user) {
+    const full = await supabase
+      .from("profiles")
+      .select("full_name, phone, phone2, address, avatar_url")
+      .eq("id", user.id)
+      .single();
+    if (full.error) {
+      const basic = await supabase
         .from("profiles")
         .select("full_name, phone, avatar_url")
         .eq("id", user.id)
-        .single()
-    : { data: null };
+        .single();
+      profile = basic.data;
+    } else {
+      profile = full.data;
+    }
+  }
 
   const p = (profile ?? {}) as {
     full_name?: string | null;
     phone?: string | null;
+    phone2?: string | null;
+    address?: string | null;
     avatar_url?: string | null;
   };
 
@@ -158,6 +173,27 @@ export default async function ClientePerfilPage() {
               inputMode="tel"
               defaultValue={p.phone ?? ""}
               placeholder="+1 305 000 0000"
+            />
+          </Field>
+          <Field
+            label="Segundo teléfono (opcional)"
+            hint="Por si no contestan el principal."
+          >
+            <Input
+              name="phone2"
+              inputMode="tel"
+              defaultValue={p.phone2 ?? ""}
+              placeholder="+1 786 000 0000"
+            />
+          </Field>
+          <Field
+            label="Dirección o ciudad (opcional)"
+            hint="Ayuda al negocio a ubicarte."
+          >
+            <Input
+              name="address"
+              defaultValue={p.address ?? ""}
+              placeholder="Ej: Miami, FL"
             />
           </Field>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
