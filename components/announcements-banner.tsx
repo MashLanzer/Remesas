@@ -45,32 +45,63 @@ export function AnnouncementsBanner({
 
   return (
     <div className="space-y-2">
-      {visible.map((a) => (
-        <div
-          key={a.id}
-          className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg text-primary">
-            {a.emoji || <Megaphone className="h-5 w-5" />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">{a.title}</p>
-            {a.body && (
-              <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
-                {a.body}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => dismiss(a.id)}
-            aria-label="Descartar"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
+      {visible.map((a) =>
+        a.image_url ? (
+          // Con foto: imagen arriba + texto debajo.
+          <div
+            key={a.id}
+            className="relative overflow-hidden rounded-2xl border border-primary/20 bg-primary/5"
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      ))}
+            <button
+              type="button"
+              onClick={() => dismiss(a.id)}
+              aria-label="Descartar"
+              className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={a.image_url}
+              alt={a.title}
+              className="h-40 w-full object-cover"
+            />
+            <div className="p-4">
+              <p className="text-sm font-bold text-foreground">{a.title}</p>
+              {a.body && (
+                <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
+                  {a.body}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div
+            key={a.id}
+            className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-lg text-primary">
+              {a.emoji || <Megaphone className="h-5 w-5" />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-foreground">{a.title}</p>
+              {a.body && (
+                <p className="mt-0.5 whitespace-pre-line text-xs text-muted-foreground">
+                  {a.body}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => dismiss(a.id)}
+              aria-label="Descartar"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )
+      )}
     </div>
   );
 }

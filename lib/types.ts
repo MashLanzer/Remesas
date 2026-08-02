@@ -234,6 +234,7 @@ export interface Announcement {
   emoji: string | null;
   active: boolean;
   audience?: AnnouncementAudience | null;
+  image_url?: string | null;
   created_at: string;
 }
 

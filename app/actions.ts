@@ -171,29 +171,81 @@ export async function createAnnouncement(formData: FormData) {
   if (!ctx.isOperador || !ctx.tenantId) return;
   const title = str(formData.get("title"));
   if (!title) return;
+  const id = str(formData.get("id"));
   const audRaw = str(formData.get("audience"));
   const audience =
     audRaw === "repartidores" || audRaw === "ambos" ? audRaw : "clientes";
-  const base = {
-    operator_id: ctx.tenantId,
+  const values = {
     title,
     body: str(formData.get("body")),
     emoji: str(formData.get("emoji")),
-    active: true,
   };
-  // Se intenta con audiencia; si la columna aún no existe (migración 0071 sin
-  // aplicar), se reintenta sin ella.
-  const withAud = await supabase
-    .from("announcements")
-    .insert({ ...base, audience });
-  if (withAud.error) {
-    await supabase.from("announcements").insert(base);
+
+  let annId: string | null = id || null;
+  if (id) {
+    // Editar. Se intenta con audiencia; si la columna no existe (migración 0071
+    // sin aplicar), se reintenta sin ella.
+    const upd = await supabase
+      .from("announcements")
+      .update({ ...values, audience })
+      .eq("id", id)
+      .eq("operator_id", ctx.tenantId);
+    if (upd.error) {
+      await supabase
+        .from("announcements")
+        .update(values)
+        .eq("id", id)
+        .eq("operator_id", ctx.tenantId);
+    }
+  } else {
+    const withAud = await supabase
+      .from("announcements")
+      .insert({ operator_id: ctx.tenantId, ...values, audience, active: true })
+      .select("id")
+      .single();
+    if (withAud.error) {
+      const plain = await supabase
+        .from("announcements")
+        .insert({ operator_id: ctx.tenantId, ...values, active: true })
+        .select("id")
+        .single();
+      annId = (plain.data as { id?: string } | null)?.id ?? null;
+    } else {
+      annId = (withAud.data as { id?: string } | null)?.id ?? null;
+    }
   }
-  await logActivity("anuncio.crear", { entityType: "anuncio", entityLabel: title });
+
+  if (annId) await uploadAnnouncementImage(supabase, formData, annId);
+  await logActivity(id ? "anuncio.editar" : "anuncio.crear", {
+    entityType: "anuncio",
+    entityLabel: title,
+  });
   revalidatePath("/ajustes");
   revalidatePath("/anuncios");
   revalidatePath("/", "layout");
   revalidatePath("/c", "layout");
+}
+
+// Sube la imagen del anuncio (si hay) al bucket público "receipts" y guarda la
+// URL. Tolerante: sin archivo o si la columna image_url no existe, no rompe.
+async function uploadAnnouncementImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  formData: FormData,
+  announcementId: string
+) {
+  const file = formData.get("image");
+  if (!(file instanceof File) || file.size === 0) return;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `announcements/${announcementId}/img-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  await supabase
+    .from("announcements")
+    .update({ image_url: data.publicUrl })
+    .eq("id", announcementId);
 }
 
 export async function toggleAnnouncement(id: string, active: boolean) {
