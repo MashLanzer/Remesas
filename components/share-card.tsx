@@ -14,6 +14,7 @@ export function ShareCard({
   zelle,
   cashapp,
   paypal,
+  variant = "icon",
 }: {
   name?: string | null;
   businessName?: string | null;
@@ -21,6 +22,9 @@ export function ShareCard({
   zelle?: string | null;
   cashapp?: string | null;
   paypal?: string | null;
+  // "icon": botón redondo pequeño (cabecera). "button": botón con borde y
+  // texto, centrado (para la hoja de perfil).
+  variant?: "icon" | "button";
 }) {
   const { notify } = useDialog();
   const [open, setOpen] = useState(false);
@@ -314,14 +318,24 @@ export function ShareCard({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-        aria-label="Mi tarjeta"
-        title="Mi tarjeta"
-      >
-        <QrCode className="h-5 w-5" />
-      </button>
+      {variant === "button" ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+          aria-label="Mi tarjeta"
+        >
+          <QrCode className="h-5 w-5 text-primary" /> Ver mi tarjeta
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
+          aria-label="Mi tarjeta"
+          title="Mi tarjeta"
+        >
+          <QrCode className="h-5 w-5" />
+        </button>
+      )}
       {sheet}
     </>
   );

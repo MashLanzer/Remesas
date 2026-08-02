@@ -325,6 +325,7 @@ export default async function PerfilPage() {
         cobro={
           <div className="space-y-3">
             <ShareCard
+              variant="button"
               name={(p.full_name as string) ?? null}
               businessName={businessName}
               phone={(p.phone as string) ?? null}
