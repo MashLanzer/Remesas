@@ -12,6 +12,7 @@ import {
 } from "@/components/order-status-badge";
 import { usd, cn, methodTag, pointsForOrder } from "@/lib/utils";
 import type { Order, ExchangeRate } from "@/lib/types";
+import { useT } from "@/components/lang-provider";
 
 type SendProps = {
   rates: ExchangeRate[];
@@ -31,6 +32,7 @@ export function ClientOrderHistory({
   sendProps?: SendProps;
   perUsd?: number | null;
 }) {
+  const tr = useT();
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [repeatInitial, setRepeatInitial] = useState<OrderInitial | undefined>();
 
@@ -95,7 +97,7 @@ export function ClientOrderHistory({
   return (
     <section>
       <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Historial
+        {tr("Historial")}
       </h2>
 
       {showControls && (
@@ -105,22 +107,22 @@ export function ClientOrderHistory({
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por beneficiario"
+              placeholder={tr("Buscar por beneficiario")}
               className="w-full bg-transparent text-sm text-foreground outline-none"
             />
           </div>
           {hasRejected && hasDelivered && (
             <div className="flex gap-2">
-              <Chip active={filter === "todos"} onClick={() => setFilter("todos")} label="Todos" />
+              <Chip active={filter === "todos"} onClick={() => setFilter("todos")} label={tr("Todos")} />
               <Chip
                 active={filter === "entregadas"}
                 onClick={() => setFilter("entregadas")}
-                label="Entregadas"
+                label={tr("Entregadas")}
               />
               <Chip
                 active={filter === "rechazadas"}
                 onClick={() => setFilter("rechazadas")}
-                label="Rechazadas"
+                label={tr("Rechazadas")}
               />
             </div>
           )}
@@ -129,7 +131,7 @@ export function ClientOrderHistory({
 
       {filtered.length === 0 ? (
         <p className="py-4 text-center text-sm text-muted-foreground">
-          Sin resultados.
+          {tr("Sin resultados.")}
         </p>
       ) : (
         <div className="space-y-4">
@@ -176,7 +178,7 @@ export function ClientOrderHistory({
                     </Link>
                     {o.status === "rechazado" && o.reject_reason && (
                       <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
-                        Motivo: {o.reject_reason}
+                        {tr("Motivo:")} {o.reject_reason}
                       </p>
                     )}
                     {sendProps && (
@@ -185,7 +187,7 @@ export function ClientOrderHistory({
                         onClick={() => repeat(o)}
                         className="flex items-center gap-1 border-t border-border pt-2 text-xs font-semibold text-primary transition active:scale-95"
                       >
-                        <RotateCcw className="h-3.5 w-3.5" /> Repetir envío
+                        <RotateCcw className="h-3.5 w-3.5" /> {tr("Repetir envío")}
                       </button>
                     )}
                   </Card>
@@ -200,7 +202,7 @@ export function ClientOrderHistory({
         <Sheet
           open={repeatOpen}
           onClose={() => setRepeatOpen(false)}
-          title="Repetir envío"
+          title={tr("Repetir envío")}
         >
           <OrderForm
             rates={sendProps.rates}

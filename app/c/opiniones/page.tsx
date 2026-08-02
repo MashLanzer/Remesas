@@ -2,10 +2,14 @@ import Link from "next/link";
 import { ArrowLeft, MessageSquareQuote } from "lucide-react";
 import { StarRating } from "@/components/star-rating";
 import { getBusinessReviews } from "@/lib/data";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClienteOpinionesPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const data = await getBusinessReviews();
 
   return (
@@ -14,7 +18,7 @@ export default async function ClienteOpinionesPage() {
         href="/c"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Inicio
+        <ArrowLeft className="h-4 w-4" /> {tr("Inicio")}
       </Link>
 
       <div className="mb-1 flex items-center gap-3">
@@ -23,10 +27,10 @@ export default async function ClienteOpinionesPage() {
         </span>
         <div className="min-w-0">
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Opiniones
+            {tr("Opiniones")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Lo que dicen otros clientes
+            {tr("Lo que dicen otros clientes")}
           </p>
         </div>
       </div>
@@ -40,7 +44,8 @@ export default async function ClienteOpinionesPage() {
           <div className="mb-1.5">
             <StarRating value={data?.avg ?? 0} size="md" />
             <p className="mt-0.5 text-xs text-white/80">
-              {data?.total ?? 0} reseña{(data?.total ?? 0) === 1 ? "" : "s"}
+              {data?.total ?? 0}{" "}
+              {(data?.total ?? 0) === 1 ? tr("reseña") : tr("reseñas")}
             </p>
           </div>
         </div>
@@ -49,8 +54,7 @@ export default async function ClienteOpinionesPage() {
       {/* Lista */}
       {!data || data.list.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          Aún no hay reseñas. Cuando recibas un envío podrás calificar y ayudar a
-          otros clientes.
+          {tr("Aún no hay reseñas. Cuando recibas un envío podrás calificar y ayudar a otros clientes.")}
         </p>
       ) : (
         <div className="space-y-3">
@@ -58,7 +62,7 @@ export default async function ClienteOpinionesPage() {
             <div key={i} className="rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-foreground">
-                  {r.name || "Cliente"}
+                  {r.name || tr("Cliente")}
                 </span>
                 <StarRating value={r.rating} />
               </div>

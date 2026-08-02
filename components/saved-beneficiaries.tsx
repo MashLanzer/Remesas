@@ -23,10 +23,12 @@ import {
   saveSavedBeneficiaryNote,
 } from "@/app/actions";
 import type { ClientSavedBeneficiary } from "@/lib/types";
+import { useT } from "@/components/lang-provider";
 
 const SAVED_KEY = "giro_c_benefs";
 
 export function SavedBeneficiaries() {
+  const tr = useT();
   const { confirm } = useDialog();
   const [saved, setSaved] = useState<ClientSavedBeneficiary[]>([]);
   const [ready, setReady] = useState(false);
@@ -98,9 +100,9 @@ export function SavedBeneficiaries() {
   }
   async function remove(b: ClientSavedBeneficiary) {
     const ok = await confirm({
-      title: "Quitar de la libreta",
-      message: `¿Quitar a "${b.apodo}" de tus beneficiarios guardados?`,
-      confirmLabel: "Quitar",
+      title: tr("Quitar de la libreta"),
+      message: `${tr("¿Quitar a")} "${b.apodo}" ${tr("de tus beneficiarios guardados?")}`,
+      confirmLabel: tr("Quitar"),
     });
     if (!ok) return;
     setSaved((s) => s.filter((x) => x.id !== b.id));
@@ -112,14 +114,15 @@ export function SavedBeneficiaries() {
   return (
     <section>
       <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <BookUser className="h-4 w-4" /> Mi libreta
+        <BookUser className="h-4 w-4" /> {tr("Mi libreta")}
       </h2>
 
       {saved.length === 0 ? (
         <Card className="p-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Aún no has guardado beneficiarios. Al enviar una remesa puedes
-            guardar a quien recibe con un apodo para reutilizarlo la próxima vez.
+            {tr(
+              "Aún no has guardado beneficiarios. Al enviar una remesa puedes guardar a quien recibe con un apodo para reutilizarlo la próxima vez."
+            )}
           </p>
         </Card>
       ) : (
@@ -141,7 +144,7 @@ export function SavedBeneficiaries() {
                       if (e.key === "Escape") setEditingId(null);
                     }}
                     className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm font-semibold text-foreground outline-none focus:border-primary"
-                    placeholder="Apodo"
+                    placeholder={tr("Apodo")}
                   />
                 ) : (
                   <>
@@ -174,7 +177,7 @@ export function SavedBeneficiaries() {
                   <button
                     type="button"
                     onClick={() => saveEdit(s.id)}
-                    aria-label="Guardar apodo"
+                    aria-label={tr("Guardar apodo")}
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary transition active:scale-90"
                   >
                     <Check className="h-4 w-4" />
@@ -182,7 +185,7 @@ export function SavedBeneficiaries() {
                   <button
                     type="button"
                     onClick={() => setEditingId(null)}
-                    aria-label="Cancelar"
+                    aria-label={tr("Cancelar")}
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition active:scale-90"
                   >
                     <X className="h-4 w-4" />
@@ -193,7 +196,7 @@ export function SavedBeneficiaries() {
                   <button
                     type="button"
                     onClick={() => toggleFav(s)}
-                    aria-label={s.favorite ? "Quitar favorito" : "Marcar favorito"}
+                    aria-label={s.favorite ? tr("Quitar favorito") : tr("Marcar favorito")}
                     className={
                       "flex h-8 w-8 items-center justify-center rounded-full transition active:scale-90 " +
                       (s.favorite ? "text-primary" : "text-muted-foreground hover:bg-muted")
@@ -204,7 +207,7 @@ export function SavedBeneficiaries() {
                   <button
                     type="button"
                     onClick={() => (noteId === s.id ? setNoteId(null) : startNote(s))}
-                    aria-label={s.note ? "Editar nota" : "Añadir nota"}
+                    aria-label={s.note ? tr("Editar nota") : tr("Añadir nota")}
                     className={
                       "flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-muted active:scale-90 " +
                       (s.note ? "text-primary" : "text-muted-foreground")
@@ -215,7 +218,7 @@ export function SavedBeneficiaries() {
                   <button
                     type="button"
                     onClick={() => startEdit(s)}
-                    aria-label="Editar apodo"
+                    aria-label={tr("Editar apodo")}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
                   >
                     <Pencil className="h-4 w-4" />
@@ -223,7 +226,7 @@ export function SavedBeneficiaries() {
                   <button
                     type="button"
                     onClick={() => remove(s)}
-                    aria-label="Quitar"
+                    aria-label={tr("Quitar")}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-destructive transition hover:bg-destructive/10 active:scale-90"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -240,7 +243,7 @@ export function SavedBeneficiaries() {
                     value={noteDraft}
                     onChange={(e) => setNoteDraft(e.target.value)}
                     rows={2}
-                    placeholder="Ej: recibe en CUP, edificio azul, avisar antes…"
+                    placeholder={tr("Ej: recibe en CUP, edificio azul, avisar antes…")}
                     className="w-full resize-none rounded-lg border border-input bg-background px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary"
                   />
                   <div className="flex justify-end gap-1">
@@ -249,14 +252,14 @@ export function SavedBeneficiaries() {
                       onClick={() => saveNote(s.id)}
                       className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition active:scale-95"
                     >
-                      <Check className="h-3.5 w-3.5" /> Guardar nota
+                      <Check className="h-3.5 w-3.5" /> {tr("Guardar nota")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setNoteId(null)}
                       className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground transition active:scale-95"
                     >
-                      <X className="h-3.5 w-3.5" /> Cancelar
+                      <X className="h-3.5 w-3.5" /> {tr("Cancelar")}
                     </button>
                   </div>
                 </div>

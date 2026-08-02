@@ -1,4 +1,7 @@
+"use client";
+
 import { MessageCircle } from "lucide-react";
+import { useT } from "@/components/lang-provider";
 import type { Order } from "@/lib/types";
 
 // Botón "¿Dudas de este envío?" que abre WhatsApp del negocio con el pedido ya
@@ -15,6 +18,7 @@ export function OrderContactButton({
   brand?: string | null;
   className?: string;
 }) {
+  const tr = useT();
   const digits = (phone || "").replace(/\D/g, "");
   if (!digits) return null;
   const ref = order.id.slice(0, 8).toUpperCase();
@@ -33,7 +37,7 @@ export function OrderContactButton({
         (className ?? "")
       }
     >
-      <MessageCircle className="h-3.5 w-3.5" /> Dudas de este envío
+      <MessageCircle className="h-3.5 w-3.5" /> {tr("Dudas de este envío")}
     </a>
   );
 }

@@ -15,17 +15,21 @@ import {
 } from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
 import { FaqAccordion, type Faq } from "@/components/faq-accordion";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function AyudaPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const [settings, rates, contact] = await Promise.all([
     getBusinessSettings(),
     getExchangeRates(),
     getMyOperatorContact(),
   ]);
 
-  const brand = contact.businessName || "el negocio";
+  const brand = contact.businessName || tr("el negocio");
   const pct = Number(settings.commission_percent ?? 10);
   const threshold = Number(settings.commission_threshold ?? 100);
   const flat = Number(settings.commission_flat ?? 5);
@@ -45,36 +49,36 @@ export default async function AyudaPage() {
 
   const faqs: Faq[] = [
     {
-      q: "¿Cómo pago mi envío?",
-      a: `Después de hacer el pedido, en su detalle verás los datos de cobro de ${brand} (Zelle, CashApp, etc.). Paga por cualquiera de ellos y toca "Ya pagué" para avisar. El negocio confirma y comienza el reparto.`,
+      q: tr("¿Cómo pago mi envío?"),
+      a: `${tr("Después de hacer el pedido, en su detalle verás los datos de cobro de")} ${brand} ${tr("(Zelle, CashApp, etc.). Paga por cualquiera de ellos y toca \"Ya pagué\" para avisar. El negocio confirma y comienza el reparto.")}`,
     },
     {
-      q: "¿Cuánto tarda en llegar?",
-      a: "En cada envío verás su estado en vivo (pendiente → en camino → entregado) y el tiempo transcurrido. Los tiempos dependen del negocio y la provincia; si tienes prisa, escríbeles por WhatsApp desde el propio pedido.",
+      q: tr("¿Cuánto tarda en llegar?"),
+      a: tr("En cada envío verás su estado en vivo (pendiente → en camino → entregado) y el tiempo transcurrido. Los tiempos dependen del negocio y la provincia; si tienes prisa, escríbeles por WhatsApp desde el propio pedido."),
     },
     {
-      q: "¿Cómo recibe el dinero mi familia?",
-      a: `Puede recibir en ${currencies || "la moneda disponible"}. En CUP hay dos formas: efectivo o transferencia bancaria. La transferencia entrega un ${transfer}% más que el efectivo. Eliges la forma al hacer el pedido.`,
+      q: tr("¿Cómo recibe el dinero mi familia?"),
+      a: `${tr("Puede recibir en")} ${currencies || tr("la moneda disponible")}. ${tr("En CUP hay dos formas: efectivo o transferencia bancaria. La transferencia entrega un")} ${transfer}% ${tr("más que el efectivo. Eliges la forma al hacer el pedido.")}`,
     },
     {
-      q: "¿Qué comisión cobran?",
-      a: `Envíos de $${threshold} o más: ${pct}% por cada $${threshold} completos. Envíos menores: $${flat} fijo. La comisión ya viene descontada en el monto que ves que recibe tu familia — sin sorpresas.`,
+      q: tr("¿Qué comisión cobran?"),
+      a: `${tr("Envíos de")} $${threshold} ${tr("o más:")} ${pct}% ${tr("por cada")} $${threshold} ${tr("completos. Envíos menores:")} $${flat} ${tr("fijo. La comisión ya viene descontada en el monto que ves que recibe tu familia — sin sorpresas.")}`,
     },
     {
-      q: "¿Cómo gano y uso puntos?",
-      a: `Ganas ${Math.round(perUsd * 100) / 100} puntos por cada USD enviado (se acreditan al entregarse). Cuando juntas suficientes, los canjeas como descuento en tu próxima remesa desde la pantalla de Puntos.`,
+      q: tr("¿Cómo gano y uso puntos?"),
+      a: `${tr("Ganas")} ${Math.round(perUsd * 100) / 100} ${tr("puntos por cada USD enviado (se acreditan al entregarse). Cuando juntas suficientes, los canjeas como descuento en tu próxima remesa desde la pantalla de Puntos.")}`,
     },
     {
-      q: "¿Para qué es el código de entrega?",
-      a: "Cuando tu envío está en camino, aparece un código en el detalle del pedido. Dáselo a tu familiar: el repartidor lo pedirá al entregar el dinero, para que solo lo reciba quien debe.",
+      q: tr("¿Para qué es el código de entrega?"),
+      a: tr("Cuando tu envío está en camino, aparece un código en el detalle del pedido. Dáselo a tu familiar: el repartidor lo pedirá al entregar el dinero, para que solo lo reciba quien debe."),
     },
     {
-      q: "¿Y si rechazan mi pedido?",
-      a: "Verás el pedido como 'Rechazado' con el motivo (si el negocio lo indicó). No se te cobra nada. Puedes tocar 'Repetir envío' para intentarlo de nuevo corrigiendo lo necesario.",
+      q: tr("¿Y si rechazan mi pedido?"),
+      a: tr("Verás el pedido como 'Rechazado' con el motivo (si el negocio lo indicó). No se te cobra nada. Puedes tocar 'Repetir envío' para intentarlo de nuevo corrigiendo lo necesario."),
     },
     {
-      q: "¿Es seguro?",
-      a: "Tus datos y beneficiarios se guardan en tu cuenta. El pago lo coordinas directo con el negocio por sus medios oficiales. Ante cualquier duda, contáctalos por WhatsApp desde la app.",
+      q: tr("¿Es seguro?"),
+      a: tr("Tus datos y beneficiarios se guardan en tu cuenta. El pago lo coordinas directo con el negocio por sus medios oficiales. Ante cualquier duda, contáctalos por WhatsApp desde la app."),
     },
   ];
 
@@ -84,12 +88,12 @@ export default async function AyudaPage() {
         href="/c/perfil"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Perfil
+        <ArrowLeft className="h-4 w-4" /> {tr("Perfil")}
       </Link>
 
       <PageHeader
-        title="Centro de ayuda"
-        subtitle="Todo lo que necesitas saber de tus envíos"
+        title={tr("Centro de ayuda")}
+        subtitle={tr("Todo lo que necesitas saber de tus envíos")}
         icon={HelpCircle}
       />
 
@@ -106,10 +110,10 @@ export default async function AyudaPage() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-foreground">
-              ¿No encuentras tu respuesta?
+              {tr("¿No encuentras tu respuesta?")}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              Escríbele a {brand} por WhatsApp
+              {tr("Escríbele a")} {brand} {tr("por WhatsApp")}
             </p>
           </div>
         </a>
@@ -118,27 +122,27 @@ export default async function AyudaPage() {
       {/* Tarifas y datos clave */}
       <section>
         <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Tarifas y datos
+          {tr("Tarifas y datos")}
         </h2>
         <div className="grid grid-cols-2 gap-2">
           <KeyFact
             icon={Percent}
-            label="Comisión"
-            value={`${pct}% · desde $${threshold}`}
+            label={tr("Comisión")}
+            value={`${pct}% · ${tr("desde")} $${threshold}`}
           />
           <KeyFact
             icon={Banknote}
-            label="Transferencia CUP"
-            value={`+${transfer}% vs efectivo`}
+            label={tr("Transferencia CUP")}
+            value={`+${transfer}% ${tr("vs efectivo")}`}
           />
           <KeyFact
             icon={Star}
-            label="Puntos"
-            value={`${Math.round(perUsd * 100) / 100} por USD`}
+            label={tr("Puntos")}
+            value={`${Math.round(perUsd * 100) / 100} ${tr("por USD")}`}
           />
           <KeyFact
             icon={Clock}
-            label="Monedas"
+            label={tr("Monedas")}
             value={currencies || "—"}
           />
         </div>

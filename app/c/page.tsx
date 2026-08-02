@@ -37,10 +37,14 @@ import { ActiveOrderCard } from "@/components/active-order-card";
 import { RateAlertCard } from "@/components/rate-alert-card";
 import { ReminderCard } from "@/components/reminder-card";
 import { Send, Check, PartyPopper } from "lucide-react";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClienteHome() {
+  const lang = await getLang();
+  const t = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const {
     data: { user },
@@ -197,14 +201,14 @@ export default async function ClienteHome() {
           </div>
 
           <h1 className="mt-3 text-3xl font-extrabold leading-[1.1] tracking-tight">
-            Envía dinero
-            <br />a Cuba
+            {t("Envía dinero")}
+            <br />{t("a Cuba")}
           </h1>
           {heroRates.length > 0 ? (
             <div className="mt-2">
               <p className="text-xs text-white/70">
-                Tasa de hoy
-                {freshest ? ` · actualizada ${agoShort(freshest)}` : ""}
+                {t("Tasa de hoy")}
+                {freshest ? ` · ${t("actualizada")} ${agoShort(freshest, t)}` : ""}
               </p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {heroRates.map((r) => {
@@ -224,7 +228,7 @@ export default async function ClienteHome() {
             </div>
           ) : (
             <p className="mt-1 text-sm text-white/85">
-              Rápido, seguro y con seguimiento en vivo.
+              {t("Rápido, seguro y con seguimiento en vivo.")}
             </p>
           )}
 
@@ -254,7 +258,7 @@ export default async function ClienteHome() {
         <section>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
             <span className="h-4 w-1 rounded-full bg-primary" />
-            <Star className="h-4 w-4 text-primary" /> Anuncios
+            <Star className="h-4 w-4 text-primary" /> {t("Anuncios")}
           </h2>
           <OffersView
             offers={featuredOffers}
@@ -288,15 +292,15 @@ export default async function ClienteHome() {
             href={`/c/pedidos/${deliveredEvent.id}`}
             className="flex items-center gap-2 px-1 text-sm font-semibold text-income transition active:scale-[0.99]"
           >
-            🎉 Tu envío para {deliveredEvent.beneficiary_name || "tu familia"} fue
-            entregado
+            🎉 {t("Tu envío para")}{" "}
+            {deliveredEvent.beneficiary_name || t("tu familia")} {t("fue entregado")}
             <ChevronRight className="ml-auto h-4 w-4 shrink-0" />
           </Link>
           <EnviarRemesaCta
             {...sendProps}
             variant="primary"
-            label={`Volver a enviar a ${
-              deliveredEvent.beneficiary_name?.trim().split(" ")[0] || "tu familia"
+            label={`${t("Volver a enviar a")} ${
+              deliveredEvent.beneficiary_name?.trim().split(" ")[0] || t("tu familia")
             }`}
             initial={{
               amount: String(deliveredEvent.amount_usd),
@@ -313,14 +317,14 @@ export default async function ClienteHome() {
       {deliveredCount > 0 && (
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
           <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">
-            <Heart className="h-3.5 w-3.5 fill-primary" /> Tu impacto
+            <Heart className="h-3.5 w-3.5 fill-primary" /> {t("Tu impacto")}
           </p>
           <p className="mt-1 text-lg font-extrabold text-foreground">
-            Ya enviaste {usd(totalToFamily)} a los tuyos
+            {t("Ya enviaste")} {usd(totalToFamily)} {t("a los tuyos")}
           </p>
           <p className="text-xs text-muted-foreground">
-            {deliveredCount} envío{deliveredCount > 1 ? "s" : ""} entregado
-            {deliveredCount > 1 ? "s" : ""} · gracias por cuidar a tu familia ❤️
+            {deliveredCount} {t("envío")}{deliveredCount > 1 ? "s" : ""} {t("entregado")}
+            {deliveredCount > 1 ? "s" : ""} · {t("gracias por cuidar a tu familia")} ❤️
           </p>
         </div>
       )}
@@ -331,13 +335,13 @@ export default async function ClienteHome() {
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <span className="h-4 w-1 rounded-full bg-primary" />
-              <Gift className="h-4 w-4 text-primary" /> Paquetes de remesa
+              <Gift className="h-4 w-4 text-primary" /> {t("Paquetes de remesa")}
             </h2>
             <Link
               href="/c/tienda"
               className="flex items-center text-xs font-semibold text-primary"
             >
-              Ver todos <ChevronRight className="h-3.5 w-3.5" />
+              {t("Ver todos")} <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
@@ -372,11 +376,11 @@ export default async function ClienteHome() {
                       </p>
                       {receives != null && p.delivery_currency !== "USD" ? (
                         <p className="truncate text-xs font-semibold text-income">
-                          Recibe ~{localAmount(receives)} {p.delivery_currency}
+                          {t("Recibe")} ~{localAmount(receives)} {p.delivery_currency}
                         </p>
                       ) : (
                         <p className="truncate text-xs text-muted-foreground">
-                          Entrega en {p.delivery_currency || "—"}
+                          {t("Entrega en")} {p.delivery_currency || "—"}
                         </p>
                       )}
                     </div>
@@ -417,13 +421,13 @@ export default async function ClienteHome() {
           <div className="mb-2 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <span className="h-4 w-1 rounded-full bg-primary" />
-              <Package className="h-4 w-4 text-primary" /> Mis pedidos
+              <Package className="h-4 w-4 text-primary" /> {t("Mis pedidos")}
             </h2>
             <Link
               href="/c/pedidos"
               className="flex items-center text-xs font-semibold text-primary"
             >
-              Ver todos <ChevronRight className="h-3.5 w-3.5" />
+              {t("Ver todos")} <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
           <div className="space-y-2">
@@ -437,12 +441,12 @@ export default async function ClienteHome() {
                   <Card className="flex items-center justify-between gap-3 p-3.5 transition active:scale-[0.99]">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">
-                        {o.beneficiary_name || "Beneficiario"}
+                        {o.beneficiary_name || t("Beneficiario")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {usd(Number(o.amount_usd))}
                         {oRate > 0
-                          ? ` · recibe ≈ ${localAmount(oReceives)} ${o.delivery_currency}`
+                          ? ` · ${t("recibe")} ≈ ${localAmount(oReceives)} ${o.delivery_currency}`
                           : o.delivery_currency
                           ? ` · ${o.delivery_currency}`
                           : ""}
@@ -462,26 +466,26 @@ export default async function ClienteHome() {
         <section>
           <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-foreground">
             <span className="h-4 w-1 rounded-full bg-primary" />
-            Cómo funciona
+            {t("Cómo funciona")}
           </h2>
           <div className="space-y-3">
             <HowStep
               n={1}
               icon={<Send className="h-5 w-5" />}
-              title="Pide tu remesa"
-              desc="Elige el monto y quién recibe en Cuba."
+              title={t("Pide tu remesa")}
+              desc={t("Elige el monto y quién recibe en Cuba.")}
             />
             <HowStep
               n={2}
               icon={<Check className="h-5 w-5" />}
-              title="El negocio la acepta"
-              desc="Confirma el envío y empieza el reparto."
+              title={t("El negocio la acepta")}
+              desc={t("Confirma el envío y empieza el reparto.")}
             />
             <HowStep
               n={3}
               icon={<PartyPopper className="h-5 w-5" />}
-              title="Entrega con seguimiento"
-              desc="Sigues cada paso hasta tu familia."
+              title={t("Entrega con seguimiento")}
+              desc={t("Sigues cada paso hasta tu familia.")}
             />
           </div>
         </section>
@@ -491,14 +495,14 @@ export default async function ClienteHome() {
   );
 }
 
-function agoShort(iso: string): string {
+function agoShort(iso: string, t: (es: string) => string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return "hace un momento";
+  if (mins < 60) return t("hace un momento");
   const h = Math.floor(mins / 60);
-  if (h < 24) return `hace ${h} h`;
+  if (h < 24) return `${t("hace")} ${h} h`;
   const d = Math.floor(h / 24);
-  return `hace ${d} día${d > 1 ? "s" : ""}`;
+  return `${t("hace")} ${d} ${t("día")}${d > 1 ? "s" : ""}`;
 }
 
 function HowStep({

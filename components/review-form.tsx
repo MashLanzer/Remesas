@@ -5,6 +5,7 @@ import { Star, Check } from "lucide-react";
 import { Card } from "@/components/ui";
 import { submitReview } from "@/app/actions";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/lang-provider";
 
 // Formulario de calificación del cliente para un envío entregado.
 export function ReviewForm({
@@ -14,6 +15,7 @@ export function ReviewForm({
   orderId: string;
   initialRating?: number;
 }) {
+  const tr = useT();
   const [rating, setRating] = useState(initialRating);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
@@ -34,7 +36,7 @@ export function ReviewForm({
         <div className="flex items-center gap-2">
           <Check className="h-4 w-4 text-income" />
           <span className="text-sm font-semibold text-foreground">
-            Gracias por calificar
+            {tr("Gracias por calificar")}
           </span>
           <span className="flex">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -55,7 +57,7 @@ export function ReviewForm({
           onClick={() => setEditing(true)}
           className="text-xs font-semibold text-primary"
         >
-          Cambiar
+          {tr("Cambiar")}
         </button>
       </Card>
     );
@@ -64,7 +66,7 @@ export function ReviewForm({
   return (
     <Card className="space-y-3 p-4">
       <p className="text-sm font-bold text-foreground">
-        ¿Cómo estuvo tu envío?
+        {tr("¿Cómo estuvo tu envío?")}
       </p>
       <div className="flex items-center justify-center gap-1.5">
         {[1, 2, 3, 4, 5].map((i) => (
@@ -74,7 +76,7 @@ export function ReviewForm({
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(0)}
             onClick={() => setRating(i)}
-            aria-label={`${i} estrellas`}
+            aria-label={`${i} ${tr("estrellas")}`}
             className="transition active:scale-90"
           >
             <Star
@@ -92,7 +94,7 @@ export function ReviewForm({
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}
-        placeholder="Cuéntanos (opcional)…"
+        placeholder={tr("Cuéntanos (opcional)…")}
         className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm text-foreground outline-none"
       />
       <button
@@ -101,7 +103,7 @@ export function ReviewForm({
         disabled={pending || rating < 1}
         className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-50"
       >
-        Enviar calificación
+        {tr("Enviar calificación")}
       </button>
     </Card>
   );

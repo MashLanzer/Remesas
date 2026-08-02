@@ -11,6 +11,7 @@ import {
 } from "@/app/actions";
 import { localAmount, usd } from "@/lib/utils";
 import { transferFactor } from "@/lib/calc";
+import { useT } from "@/components/lang-provider";
 import {
   DELIVERY_CURRENCIES,
   type ClientSavedBeneficiary,
@@ -51,6 +52,7 @@ export function OrderForm({
   initial?: OrderInitial;
   transferBonusPct?: number | null;
 }) {
+  const tr = useT();
   const ratesByCurrency = useMemo(() => {
     const m: Record<string, number> = {};
     for (const r of rates) m[r.currency] = Number(r.rate);
@@ -155,7 +157,7 @@ export function OrderForm({
       }}
       className="space-y-3"
     >
-      <Field label="¿Cuánto quieres enviar? (USD)">
+      <Field label={tr("¿Cuánto quieres enviar? (USD)")}>
         <Input
           type="number"
           name="amount_usd"
@@ -169,12 +171,12 @@ export function OrderForm({
         />
       </Field>
 
-      <Field label="Moneda que recibe tu familia">
+      <Field label={tr("Moneda que recibe tu familia")}>
         <Select
           name="delivery_currency"
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
-          title="Moneda"
+          title={tr("Moneda")}
         >
           {available.map((c) => (
             <option key={c} value={c}>
@@ -191,8 +193,8 @@ export function OrderForm({
           <div className="grid grid-cols-2 gap-2">
             {(
               [
-                { m: "efectivo" as const, label: "💴 Efectivo" },
-                { m: "transferencia" as const, label: "🏦 Transferencia" },
+                { m: "efectivo" as const, label: `💴 ${tr("Efectivo")}` },
+                { m: "transferencia" as const, label: `🏦 ${tr("Transferencia")}` },
               ]
             ).map(({ m, label }) => {
               const f = m === "transferencia" ? transferFactor(transferBonusPct) : 1;
@@ -222,25 +224,25 @@ export function OrderForm({
 
       {amountNum > 0 && rate > 0 && (
         <div className="rounded-xl bg-muted p-3 text-center">
-          <p className="text-xs text-muted-foreground">Tu familia recibe hasta</p>
+          <p className="text-xs text-muted-foreground">{tr("Tu familia recibe hasta")}</p>
           <p className="text-lg font-bold text-foreground">
             {localAmount(receives)} {currency}
             {canChooseMethod && method === "transferencia" && (
               <span className="ml-1 text-xs font-semibold text-primary">
-                (transferencia)
+                ({tr("transferencia")})
               </span>
             )}
           </p>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Por {usd(amountNum)} · antes de la comisión. El monto final lo
-            confirma el negocio.
+            {tr("Por")} {usd(amountNum)} ·{" "}
+            {tr("antes de la comisión. El monto final lo confirma el negocio.")}
           </p>
         </div>
       )}
 
       <div className="border-t border-border pt-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          ¿Quién recibe en Cuba?
+          {tr("¿Quién recibe en Cuba?")}
         </p>
 
         {(saved.length > 0 || derived.length > 0) && (
@@ -266,7 +268,7 @@ export function OrderForm({
                 <button
                   type="button"
                   onClick={() => removeSaved(b.id)}
-                  aria-label="Borrar guardado"
+                  aria-label={tr("Borrar guardado")}
                   className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition active:scale-90"
                 >
                   <X className="h-3 w-3" />
@@ -294,17 +296,17 @@ export function OrderForm({
           </div>
         )}
 
-        <Field label="Nombre del beneficiario">
+        <Field label={tr("Nombre del beneficiario")}>
           <Input
             name="beneficiary_name"
-            placeholder="Nombre de quien recibe"
+            placeholder={tr("Nombre de quien recibe")}
             value={bName}
             onChange={(e) => setBName(e.target.value)}
             required
           />
         </Field>
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Field label="Teléfono">
+          <Field label={tr("Teléfono")}>
             <Input
               name="beneficiary_phone"
               inputMode="tel"
@@ -313,10 +315,10 @@ export function OrderForm({
               onChange={(e) => setBPhone(e.target.value)}
             />
           </Field>
-          <Field label="Provincia">
+          <Field label={tr("Provincia")}>
             <Input
               name="province"
-              placeholder="Ej: La Habana"
+              placeholder={tr("Ej: La Habana")}
               value={bProv}
               onChange={(e) => setBProv(e.target.value)}
             />
@@ -326,11 +328,11 @@ export function OrderForm({
         {/* Guardar beneficiario con apodo */}
         {bName.trim() && !alreadySaved && (
           <div className="mt-2 flex items-end gap-2">
-            <Field label="Apodo (opcional)">
+            <Field label={tr("Apodo (opcional)")}>
               <Input
                 value={apodo}
                 onChange={(e) => setApodo(e.target.value)}
-                placeholder="Ej: Mamá"
+                placeholder={tr("Ej: Mamá")}
               />
             </Field>
             <button
@@ -338,17 +340,17 @@ export function OrderForm({
               onClick={saveCurrent}
               className="mb-0.5 flex shrink-0 items-center gap-1.5 rounded-xl border border-border px-3 py-2.5 text-sm font-semibold text-foreground transition active:scale-95"
             >
-              <Bookmark className="h-4 w-4" /> Guardar
+              <Bookmark className="h-4 w-4" /> {tr("Guardar")}
             </button>
           </div>
         )}
       </div>
 
-      <Field label="Nota (opcional)">
+      <Field label={tr("Nota (opcional)")}>
         <Textarea
           name="note"
           rows={2}
-          placeholder="Algún detalle para el negocio…"
+          placeholder={tr("Algún detalle para el negocio…")}
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
@@ -362,17 +364,18 @@ export function OrderForm({
             className="mt-0.5 h-4 w-4 accent-[color:hsl(var(--primary))]"
           />
           <span className="text-sm">
-            <span className="font-semibold text-foreground">Usar mis puntos</span>
+            <span className="font-semibold text-foreground">{tr("Usar mis puntos")}</span>
             <span className="block text-xs text-muted-foreground">
-              Tienes {pointsBalance} puntos (hasta {usd(pointsBalance * pointValue)}).
-              El negocio aplica el descuento al aceptar.
+              {tr("Tienes")} {pointsBalance} {tr("puntos (hasta")}{" "}
+              {usd(pointsBalance * pointValue)}
+              {tr("). El negocio aplica el descuento al aceptar.")}
             </span>
           </span>
         </label>
       )}
 
       <Button type="submit" className="w-full">
-        Enviar pedido
+        {tr("Enviar pedido")}
       </Button>
     </form>
   );

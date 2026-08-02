@@ -24,6 +24,8 @@ import { ActiveOrderCard } from "@/components/active-order-card";
 import { ClientOrderHistory } from "@/components/client-order-history";
 import { IlluOrders } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 import Link from "next/link";
 import {
   Truck,
@@ -39,6 +41,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const [orders, rates, points, cfgRes, beneficiaries, settings, contact] =
     await Promise.all([
@@ -62,15 +66,16 @@ export default async function MisPedidosPage() {
   if (orders.length === 0) {
     return (
       <div>
-        <PageHeader title="Mis pedidos" icon={Send} />
+        <PageHeader title={tr("Mis pedidos")} icon={Send} />
         <div className="flex flex-col items-center pt-4 text-center">
           <IlluOrders />
           <h2 className="mt-4 text-lg font-bold text-foreground">
-            Aún no has enviado
+            {tr("Aún no has enviado")}
           </h2>
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-            Tu primer envío aparecerá aquí con seguimiento en vivo, paso a paso
-            hasta tu familia.
+            {tr(
+              "Tu primer envío aparecerá aquí con seguimiento en vivo, paso a paso hasta tu familia."
+            )}
           </p>
           <div className="mt-5 w-full">
             <EnviarRemesaCta
@@ -85,26 +90,26 @@ export default async function MisPedidosPage() {
 
         <div className="mt-8">
           <h3 className="mb-3 text-sm font-bold text-foreground">
-            Cómo funciona
+            {tr("Cómo funciona")}
           </h3>
           <div className="space-y-3">
             <HowStep
               n={1}
               icon={Send}
-              title="Pides tu remesa"
-              desc="Eliges el monto y quién recibe en Cuba."
+              title={tr("Pides tu remesa")}
+              desc={tr("Eliges el monto y quién recibe en Cuba.")}
             />
             <HowStep
               n={2}
               icon={Check}
-              title="El negocio la acepta"
-              desc="Confirma el envío y empieza el reparto."
+              title={tr("El negocio la acepta")}
+              desc={tr("Confirma el envío y empieza el reparto.")}
             />
             <HowStep
               n={3}
               icon={PartyPopper}
-              title="Entrega con seguimiento"
-              desc="Sigues cada paso hasta que llega a tu familia."
+              title={tr("Entrega con seguimiento")}
+              desc={tr("Sigues cada paso hasta que llega a tu familia.")}
             />
           </div>
         </div>
@@ -112,8 +117,9 @@ export default async function MisPedidosPage() {
         <div className="mt-6 flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
           <Star className="h-5 w-5 shrink-0 text-primary" />
           <p className="text-sm text-foreground">
-            Ganas <span className="font-semibold">puntos con cada envío</span>{" "}
-            para descuentos en tus próximas remesas.
+            {tr("Ganas")}{" "}
+            <span className="font-semibold">{tr("puntos con cada envío")}</span>{" "}
+            {tr("para descuentos en tus próximas remesas.")}
           </p>
         </div>
       </div>
@@ -162,8 +168,8 @@ export default async function MisPedidosPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Mis pedidos"
-        subtitle="Sigue el estado de tus envíos"
+        title={tr("Mis pedidos")}
+        subtitle={tr("Sigue el estado de tus envíos")}
         icon={Send}
       />
 
@@ -181,19 +187,19 @@ export default async function MisPedidosPage() {
       <div className="grid grid-cols-3 gap-2">
         <Stat
           icon={Truck}
-          label="En proceso"
+          label={tr("En proceso")}
           value={String(active.length)}
           tone="info"
         />
         <Stat
           icon={CheckCircle2}
-          label="Entregadas"
+          label={tr("Entregadas")}
           value={String(entregadas)}
           tone="income"
         />
         <Stat
           icon={Send}
-          label="Enviado"
+          label={tr("Enviado")}
           value={usd(totalEnviado)}
           tone="primary"
         />
@@ -212,7 +218,7 @@ export default async function MisPedidosPage() {
       {otherActive.length > 0 && (
         <section>
           <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Otros activos
+            {tr("Otros activos")}
           </h2>
           <div className="space-y-3">
             {otherActive.map((o) => (
@@ -223,7 +229,7 @@ export default async function MisPedidosPage() {
                       {usd(Number(o.amount_usd))}
                       {o.delivery_currency ? (
                         <span className="ml-1 text-xs font-medium text-muted-foreground">
-                          en {o.delivery_currency}
+                          {tr("en")} {o.delivery_currency}
                         </span>
                       ) : null}
                       {methodTag(o.delivery_currency, o.delivery_method) && (
@@ -233,17 +239,17 @@ export default async function MisPedidosPage() {
                       )}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      Para {o.beneficiary_name || "—"}
+                      {tr("Para")} {o.beneficiary_name || "—"}
                       {o.province ? ` · ${o.province}` : ""}
                     </p>
                     <OrderEta order={o} className="mt-1" />
                     {o.discount_usd ? (
                       <p className="mt-0.5 text-xs font-semibold text-income">
-                        🎁 Descuento por puntos: −{usd(Number(o.discount_usd))}
+                        🎁 {tr("Descuento por puntos:")} −{usd(Number(o.discount_usd))}
                       </p>
                     ) : o.redeem && o.status === "pendiente" ? (
                       <p className="mt-0.5 text-xs text-primary">
-                        Pediste usar tus puntos
+                        {tr("Pediste usar tus puntos")}
                       </p>
                     ) : null}
                   </div>
@@ -274,7 +280,7 @@ export default async function MisPedidosPage() {
                     href={`/c/pedidos/${o.id}`}
                     className="ml-auto flex items-center gap-0.5 text-xs font-semibold text-primary"
                   >
-                    Ver detalle <ChevronRight className="h-3.5 w-3.5" />
+                    {tr("Ver detalle")} <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
               </Card>

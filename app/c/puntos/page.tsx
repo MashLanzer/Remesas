@@ -4,6 +4,8 @@ import { getMyPoints } from "@/lib/data";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { IlluPoints } from "@/components/illustrations";
 import { usd } from "@/lib/utils";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,8 @@ function when(iso: string): string {
 }
 
 export default async function PuntosPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const [{ balance, entries }, cfgRes] = await Promise.all([
     getMyPoints(),
@@ -43,33 +47,33 @@ export default async function PuntosPage() {
 
   return (
     <div>
-      <PageHeader title="Mis puntos" icon={Star} />
+      <PageHeader title={tr("Mis puntos")} icon={Star} />
 
       {/* Saldo */}
       <div className="hero-gradient mb-4 rounded-3xl p-5 text-white shadow-xl">
         <p className="flex items-center gap-1.5 text-sm font-medium text-white/75">
-          <Star className="h-4 w-4" /> Tienes
+          <Star className="h-4 w-4" /> {tr("Tienes")}
         </p>
-        <p className="tabular mt-1 text-4xl font-extrabold">{balance} puntos</p>
+        <p className="tabular mt-1 text-4xl font-extrabold">{balance} {tr("puntos")}</p>
         <p className="mt-1 text-xs text-white/70">
-          ≈ {usd(worth)} en descuentos · ganas puntos con cada remesa entregada.
+          ≈ {usd(worth)} {tr("en descuentos · ganas puntos con cada remesa entregada.")}
         </p>
       </div>
 
       {/* Cómo canjear */}
       <Card className="mb-5 space-y-2 border-primary/20 bg-primary/5">
         <p className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-          <Gift className="h-4 w-4 text-primary" /> Cómo usar tus puntos
+          <Gift className="h-4 w-4 text-primary" /> {tr("Cómo usar tus puntos")}
         </p>
         <p className="text-xs text-muted-foreground">
-          Cada punto vale ≈ {usd(pointValue)}. Desde {redeemMin} puntos puedes
-          canjearlos por un descuento en la comisión de tu próxima remesa.
+          {tr("Cada punto vale ≈")} {usd(pointValue)}. {tr("Desde")} {redeemMin}{" "}
+          {tr("puntos puedes canjearlos por un descuento en la comisión de tu próxima remesa.")}
         </p>
         {/* Progreso hacia el mínimo de canje */}
         <div>
           <div className="mb-1 flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{Math.min(balance, redeemMin)} / {redeemMin} pts</span>
-            <span>{canRedeem ? "¡Listo!" : `faltan ${missing}`}</span>
+            <span>{Math.min(balance, redeemMin)} / {redeemMin} {tr("pts")}</span>
+            <span>{canRedeem ? tr("¡Listo!") : `${tr("faltan")} ${missing}`}</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
@@ -85,21 +89,21 @@ export default async function PuntosPage() {
         </div>
         {canRedeem ? (
           <p className="rounded-lg bg-income/10 px-2.5 py-1.5 text-xs font-semibold text-income">
-            ¡Puedes canjear! Marca “Usar mis puntos” al enviar tu próxima remesa.
+            {tr("¡Puedes canjear! Marca “Usar mis puntos” al enviar tu próxima remesa.")}
           </p>
         ) : (
           <p className="rounded-lg bg-muted/60 px-2.5 py-1.5 text-xs font-medium text-muted-foreground">
-            Sigue enviando para llegar a {redeemMin} puntos y canjear.
+            {tr("Sigue enviando para llegar a")} {redeemMin} {tr("puntos y canjear.")}
           </p>
         )}
       </Card>
 
-      <h2 className="mb-2 text-sm font-bold text-foreground">Historial</h2>
+      <h2 className="mb-2 text-sm font-bold text-foreground">{tr("Historial")}</h2>
       {entries.length === 0 ? (
         <EmptyState
           illustration={<IlluPoints />}
-          title="Sin movimientos"
-          description="Cuando se entregue tu primera remesa, ganarás puntos aquí."
+          title={tr("Sin movimientos")}
+          description={tr("Cuando se entregue tu primera remesa, ganarás puntos aquí.")}
         />
       ) : (
         <div className="space-y-2">
@@ -113,7 +117,7 @@ export default async function PuntosPage() {
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{m.label}</p>
+                  <p className="text-sm font-medium text-foreground">{tr(m.label)}</p>
                   <p className="text-xs text-muted-foreground">
                     {when(e.created_at)}
                   </p>

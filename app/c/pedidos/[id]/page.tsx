@@ -30,6 +30,8 @@ import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { ConfettiBurst } from "@/components/confetti-burst";
 import { transferFactor } from "@/lib/calc";
 import { usd, localAmount, formatDate, methodTag, pointsForOrder } from "@/lib/utils";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,8 @@ export default async function MiPedidoDetallePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const [
     order,
@@ -103,13 +107,13 @@ export default async function MiPedidoDetallePage({
         href="/c/pedidos"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Mis pedidos
+        <ArrowLeft className="h-4 w-4" /> {tr("Mis pedidos")}
       </Link>
 
       <div className="flex items-start justify-between gap-3">
         <PageHeader
           title={usd(Number(order.amount_usd))}
-          subtitle={`Para ${order.beneficiary_name || "—"}`}
+          subtitle={`${tr("Para")} ${order.beneficiary_name || "—"}`}
         />
         <OrderStatusBadge order={order} />
       </div>
@@ -117,18 +121,18 @@ export default async function MiPedidoDetallePage({
       {/* Estimado */}
       {Number(rate) > 0 && (
         <Card className="text-center">
-          <p className="text-xs text-muted-foreground">Tu familia recibe hasta</p>
+          <p className="text-xs text-muted-foreground">{tr("Tu familia recibe hasta")}</p>
           <p className="text-2xl font-extrabold text-foreground">
             {localAmount(receives)} {order.delivery_currency}
             {isTransfer && (
               <span className="ml-1.5 align-middle text-sm font-semibold text-primary">
-                🏦 transferencia
+                🏦 {tr("transferencia")}
               </span>
             )}
           </p>
           {order.discount_usd ? (
             <p className="mt-1 text-xs font-semibold text-income">
-              🎁 Descuento por puntos: −{usd(Number(order.discount_usd))}
+              🎁 {tr("Descuento por puntos:")} −{usd(Number(order.discount_usd))}
             </p>
           ) : null}
         </Card>
@@ -142,9 +146,9 @@ export default async function MiPedidoDetallePage({
               <BadgeCheck className="h-5 w-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-income">Pago confirmado</p>
+              <p className="text-sm font-bold text-income">{tr("Pago confirmado")}</p>
               <p className="text-xs text-muted-foreground">
-                El negocio recibió tu pago de {usd(Number(order.amount_usd))}.
+                {tr("El negocio recibió tu pago de")} {usd(Number(order.amount_usd))}.
               </p>
             </div>
           </Card>
@@ -177,11 +181,11 @@ export default async function MiPedidoDetallePage({
           <span className="text-foreground">
             {isDelivered ? (
               <>
-                Ganaste <span className="font-bold text-primary">+{earnedPts} puntos</span> con este envío.
+                {tr("Ganaste")} <span className="font-bold text-primary">+{earnedPts} {tr("puntos")}</span> {tr("con este envío.")}
               </>
             ) : (
               <>
-                Ganarás <span className="font-bold text-primary">+{earnedPts} puntos</span> cuando se entregue.
+                {tr("Ganarás")} <span className="font-bold text-primary">+{earnedPts} {tr("puntos")}</span> {tr("cuando se entregue.")}
               </>
             )}
           </span>
@@ -197,44 +201,45 @@ export default async function MiPedidoDetallePage({
             <div className="flex items-center justify-center gap-2 text-primary">
               <KeyRound className="h-4 w-4" />
               <p className="text-xs font-semibold uppercase tracking-wide">
-                Código de entrega
+                {tr("Código de entrega")}
               </p>
             </div>
             <p className="mt-1 font-mono text-3xl font-extrabold tracking-[0.35em] text-foreground">
               {deliveryCode.code}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Pásaselo a tu familiar. El repartidor lo pedirá al entregar el
-              dinero.
+              {tr(
+                "Pásaselo a tu familiar. El repartidor lo pedirá al entregar el dinero."
+              )}
             </p>
           </Card>
         )}
 
       {/* Datos */}
       <Card className="space-y-2.5">
-        <Row label="Beneficiario" value={order.beneficiary_name || "—"} />
+        <Row label={tr("Beneficiario")} value={order.beneficiary_name || "—"} />
         {order.beneficiary_phone && (
-          <Row label="Teléfono" value={order.beneficiary_phone} />
+          <Row label={tr("Teléfono")} value={order.beneficiary_phone} />
         )}
-        {order.province && <Row label="Provincia" value={order.province} />}
+        {order.province && <Row label={tr("Provincia")} value={order.province} />}
         <Row
-          label="Cómo recibe"
+          label={tr("Cómo recibe")}
           value={`${order.delivery_currency || "—"}${
             methodTag(order.delivery_currency, order.delivery_method)
               ? ` · ${methodTag(order.delivery_currency, order.delivery_method)}`
               : order.delivery_currency === "CUP"
-              ? " · efectivo"
+              ? ` · ${tr("efectivo")}`
               : ""
           }`}
         />
-        {order.note && <Row label="Nota" value={order.note} />}
+        {order.note && <Row label={tr("Nota")} value={order.note} />}
       </Card>
 
       {order.status === "rechazado" && order.reject_reason && (
         <Card className="border-destructive/30 bg-destructive/5">
-          <p className="text-sm font-semibold text-destructive">Rechazado</p>
+          <p className="text-sm font-semibold text-destructive">{tr("Rechazado")}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Motivo: {order.reject_reason}
+            {tr("Motivo:")} {order.reject_reason}
           </p>
         </Card>
       )}
@@ -282,7 +287,7 @@ export default async function MiPedidoDetallePage({
           pointValue={pointValue}
           beneficiaries={beneficiaries}
           variant="primary"
-          label="Enviar otra vez"
+          label={tr("Enviar otra vez")}
           initial={{
             amount: String(order.amount_usd),
             currency: order.delivery_currency || undefined,

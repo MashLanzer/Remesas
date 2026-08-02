@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Rocket, Truck, Star, type LucideIcon } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/lang-provider";
 
 const KEY = "giro_c_welcomed";
 
@@ -34,6 +35,7 @@ const SLIDES: {
 ];
 
 export function ClienteOnboarding() {
+  const t = useT();
   const [show, setShow] = useState(false);
   const [i, setI] = useState(0);
 
@@ -66,7 +68,7 @@ export function ClienteOnboarding() {
           onClick={finish}
           className="text-sm font-semibold text-white/70 transition active:scale-95"
         >
-          Saltar
+          {t("Saltar")}
         </button>
       </div>
 
@@ -82,9 +84,9 @@ export function ClienteOnboarding() {
               style={{ animation: slide.anim }}
             />
           </span>
-          <h2 className="mt-6 text-2xl font-extrabold">{slide.title}</h2>
+          <h2 className="mt-6 text-2xl font-extrabold">{t(slide.title)}</h2>
           <p className="mx-auto mt-2 max-w-xs text-sm text-white/85">
-            {slide.desc}
+            {t(slide.desc)}
           </p>
         </div>
 
@@ -128,7 +130,7 @@ export function ClienteOnboarding() {
           onClick={() => (last ? finish() : setI((v) => v + 1))}
           className="w-full rounded-2xl bg-white py-3.5 text-base font-bold text-emerald-700 shadow-lg shadow-black/10 transition active:scale-[0.98]"
         >
-          {last ? "Empezar" : "Siguiente"}
+          {last ? t("Empezar") : t("Siguiente")}
         </button>
       </div>
     </div>

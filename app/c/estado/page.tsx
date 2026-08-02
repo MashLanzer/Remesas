@@ -5,10 +5,14 @@ import { getMyOrders, getMyOperatorContact } from "@/lib/data";
 import { orderDisplay } from "@/components/order-status-badge";
 import { PageHeader } from "@/components/ui";
 import { AccountSummary } from "@/components/account-summary";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function EstadoCuentaPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const {
     data: { user },
@@ -43,12 +47,12 @@ export default async function EstadoCuentaPage() {
         href="/c/perfil"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Perfil
+        <ArrowLeft className="h-4 w-4" /> {tr("Perfil")}
       </Link>
 
       <PageHeader
-        title="Mi resumen"
-        subtitle="Lo que has enviado a tu familia"
+        title={tr("Mi resumen")}
+        subtitle={tr("Lo que has enviado a tu familia")}
         icon={Wallet}
       />
 

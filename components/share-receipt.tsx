@@ -12,6 +12,7 @@ import { PaperPlane } from "@/components/paper-plane";
 import { Button } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { shareNodeAsImage } from "@/lib/share-image";
+import { useT } from "@/components/lang-provider";
 
 export type ReceiptData = {
   brand: string;
@@ -36,6 +37,7 @@ export function ShareReceipt({
   data: ReceiptData;
   autoOpen?: boolean;
 }) {
+  const tr = useT();
   const [open, setOpen] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
@@ -48,11 +50,11 @@ export function ShareReceipt({
   const clientDigits = data.clientPhone?.replace(/\D/g, "");
   const waClient = clientDigits
     ? `https://wa.me/${clientDigits}?text=${encodeURIComponent(
-        `Hola ${data.clientName || ""}, aquí el comprobante de tu envío de ${
-          data.amountUsd
-        } para ${data.beneficiaryName || "tu familiar"}. Estado: ${
-          data.status
-        }.`
+        `${tr("Hola")} ${data.clientName || ""}, ${tr(
+          "aquí el comprobante de tu envío de"
+        )} ${data.amountUsd} ${tr("para")} ${
+          data.beneficiaryName || tr("tu familiar")
+        }. ${tr("Estado:")} ${data.status}.`
       )}`
     : null;
 
@@ -68,7 +70,7 @@ export function ShareReceipt({
     try {
       // Solo la foto, sin texto (el recibo ya lo dice todo).
       const res = await shareNodeAsImage(node, {
-        title: "Comprobante de remesa",
+        title: tr("Comprobante de remesa"),
         fileName: `comprobante-${Date.now()}.png`,
       });
       if (res.status === "fallback" && res.dataUrl) setImgUrl(res.dataUrl);
@@ -84,10 +86,10 @@ export function ShareReceipt({
   return (
     <>
       <Button variant="secondary" className="w-full" onClick={() => setOpen(true)}>
-        <Share2 className="h-4 w-4" /> Compartir comprobante
+        <Share2 className="h-4 w-4" /> {tr("Compartir comprobante")}
       </Button>
 
-      <Sheet open={open} onClose={close} title="Comprobante">
+      <Sheet open={open} onClose={close} title={tr("Comprobante")}>
         {/* Tarjeta del comprobante (estilo tarjeta de negocios) */}
         <div
           ref={cardRef}
@@ -109,20 +111,20 @@ export function ShareReceipt({
                 </span>
               </div>
               <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide backdrop-blur">
-                Comprobante
+                {tr("Comprobante")}
               </span>
             </div>
 
             {/* Monto entregado (lo que recibió la familia) */}
             <div className="mt-5">
               <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/60">
-                Entregado a la familia
+                {tr("Entregado a la familia")}
               </p>
               <p className="tabular mt-0.5 text-3xl font-extrabold">
                 {data.delivered}
               </p>
               <p className="mt-0.5 text-xs text-white/70">
-                Envío de {data.amountUsd}
+                {tr("Envío de")} {data.amountUsd}
               </p>
             </div>
 
@@ -130,27 +132,27 @@ export function ShareReceipt({
             {data.deliveryCode && (
               <div className="mt-4 rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
                 <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/70">
-                  Código de entrega
+                  {tr("Código de entrega")}
                 </p>
                 <p className="font-mono text-2xl font-extrabold tracking-[0.35em]">
                   {data.deliveryCode}
                 </p>
                 <p className="mt-0.5 text-[11px] text-white/70">
-                  Dáselo a quien recibe el dinero.
+                  {tr("Dáselo a quien recibe el dinero.")}
                 </p>
               </div>
             )}
 
             {/* Detalles */}
             <div className="mt-4 space-y-1.5 border-t border-white/20 pt-3">
-              <RRow label="Beneficiario" value={data.beneficiaryName || "—"} />
-              {data.province && <RRow label="Provincia" value={data.province} />}
-              {data.clientName && <RRow label="Cliente" value={data.clientName} />}
-              {data.rate && <RRow label="Tasa" value={data.rate} />}
-              <RRow label="Fecha" value={data.date} />
+              <RRow label={tr("Beneficiario")} value={data.beneficiaryName || "—"} />
+              {data.province && <RRow label={tr("Provincia")} value={data.province} />}
+              {data.clientName && <RRow label={tr("Cliente")} value={data.clientName} />}
+              {data.rate && <RRow label={tr("Tasa")} value={data.rate} />}
+              <RRow label={tr("Fecha")} value={data.date} />
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs font-semibold uppercase tracking-wide text-white/60">
-                  Estado
+                  {tr("Estado")}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold capitalize backdrop-blur">
                   {statusDone && <CheckCircle2 className="h-3.5 w-3.5" />}
@@ -163,12 +165,12 @@ export function ShareReceipt({
               <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/20 pt-3 text-[11px] text-white/70">
                 {data.refNumber ? (
                   <span className="font-mono tracking-wide">
-                    Nº {data.refNumber}
+                    {tr("Nº")} {data.refNumber}
                   </span>
                 ) : (
                   <span />
                 )}
-                {data.phone && <span>Contacto: {data.phone}</span>}
+                {data.phone && <span>{tr("Contacto:")} {data.phone}</span>}
               </div>
             )}
           </div>
@@ -180,11 +182,11 @@ export function ShareReceipt({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imgUrl}
-              alt="Comprobante"
+              alt={tr("Comprobante")}
               className="w-full rounded-3xl shadow-xl"
             />
             <p className="text-center text-xs text-muted-foreground">
-              Mantén presionada la imagen para guardarla o enviarla por WhatsApp.
+              {tr("Mantén presionada la imagen para guardarla o enviarla por WhatsApp.")}
             </p>
           </div>
         )}
@@ -197,14 +199,14 @@ export function ShareReceipt({
                 onClick={() => setImgUrl(null)}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
               >
-                <ArrowLeft className="h-4 w-4" /> Volver
+                <ArrowLeft className="h-4 w-4" /> {tr("Volver")}
               </button>
               <a
                 href={imgUrl}
                 download="comprobante.png"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
               >
-                <Download className="h-4 w-4" /> Descargar
+                <Download className="h-4 w-4" /> {tr("Descargar")}
               </a>
             </>
           ) : (
@@ -213,7 +215,7 @@ export function ShareReceipt({
                 onClick={close}
                 className="flex-1 rounded-xl border border-border py-3 text-sm font-semibold text-foreground transition active:scale-[0.98]"
               >
-                Cerrar
+                {tr("Cerrar")}
               </button>
               <button
                 onClick={doShare}
@@ -221,7 +223,7 @@ export function ShareReceipt({
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-70"
               >
                 <Share2 className="h-4 w-4" />
-                {sharing ? "Generando…" : "Compartir foto"}
+                {sharing ? tr("Generando…") : tr("Compartir foto")}
               </button>
             </>
           )}
@@ -235,7 +237,7 @@ export function ShareReceipt({
             rel="noopener noreferrer"
             className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-income/10 py-3 text-sm font-semibold text-income transition active:scale-[0.98]"
           >
-            <MessageCircle className="h-4 w-4" /> WhatsApp al cliente
+            <MessageCircle className="h-4 w-4" /> {tr("WhatsApp al cliente")}
           </a>
         )}
       </Sheet>

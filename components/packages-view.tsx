@@ -7,6 +7,7 @@ import { IlluStore } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
 import { FavHeart } from "@/components/fav-heart";
 import { useFavorites } from "@/lib/use-favorites";
+import { useT } from "@/components/lang-provider";
 import { createOrder } from "@/app/actions";
 import { usd, localAmount, packageQuote, deliveryOptions } from "@/lib/utils";
 import { convertDelivered, type CommissionRules } from "@/lib/calc";
@@ -19,10 +20,14 @@ const CURRENCY_EMOJI: Record<string, string> = {
   MLC: "💳",
   EUR: "💶",
 };
-function optionLabel(currency: string, method: DeliveryMethod): string {
+function optionLabel(
+  currency: string,
+  method: DeliveryMethod,
+  tr: (es: string) => string
+): string {
   const emoji = method === "transferencia" ? "🏦" : CURRENCY_EMOJI[currency] || "💰";
   if (currency === "CUP") {
-    return `${emoji} CUP ${method === "transferencia" ? "transferencia" : "efectivo"}`;
+    return `${emoji} CUP ${method === "transferencia" ? tr("transferencia") : tr("efectivo")}`;
   }
   return `${emoji} ${currency}`;
 }
@@ -44,6 +49,7 @@ export function PackagesView({
   rules?: CommissionRules;
   transferBonusPct?: number | null;
 }) {
+  const tr = useT();
   const [selected, setSelected] = useState<RemittancePackage | null>(null);
   // Opción elegida al pedir (moneda + forma), ej. "CUP-transferencia".
   const [orderKey, setOrderKey] = useState<string>("");
@@ -63,9 +69,9 @@ export function PackagesView({
         key: o.key,
         currency: o.currency,
         method: o.method,
-        label: optionLabel(o.currency, o.method),
+        label: optionLabel(o.currency, o.method, tr),
       })),
-    [rates, transferBonusPct]
+    [rates, transferBonusPct, tr]
   );
   const [selKey, setSelKey] = useState<string>(options[0]?.key ?? "USD-efectivo");
   const sel = options.find((o) => o.key === selKey) ?? options[0];
@@ -88,8 +94,8 @@ export function PackagesView({
     return (
       <EmptyState
         illustration={<IlluStore />}
-        title="Sin paquetes por ahora"
-        description="Cuando el negocio publique paquetes, aparecerán aquí. Mientras tanto, usa el botón central para enviar una remesa a tu medida."
+        title={tr("Sin paquetes por ahora")}
+        description={tr("Cuando el negocio publique paquetes, aparecerán aquí. Mientras tanto, usa el botón central para enviar una remesa a tu medida.")}
       />
     );
   }
@@ -100,7 +106,7 @@ export function PackagesView({
       {options.length > 1 && sel && (
         <div>
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Ver montos en
+            {tr("Ver montos en")}
           </p>
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {options.map((o) => (
@@ -187,7 +193,7 @@ export function PackagesView({
               <div className="flex items-stretch gap-2 rounded-2xl bg-muted/60 p-1">
                 <div className="flex-1 rounded-xl px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Pagas
+                    {tr("Pagas")}
                   </p>
                   <p className="tabular text-lg font-extrabold text-foreground">
                     {usd(Number(p.amount_usd))}
@@ -196,10 +202,10 @@ export function PackagesView({
                 <div className="flex items-center text-muted-foreground">→</div>
                 <div className="flex-1 rounded-xl bg-primary/10 px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">
-                    Recibe
+                    {tr("Recibe")}
                     {isFixed && (
                       <span className="ml-1 normal-case text-muted-foreground">
-                        (fijo)
+                        {tr("(fijo)")}
                       </span>
                     )}
                   </p>
@@ -229,7 +235,7 @@ export function PackagesView({
                 }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
               >
-                <Send className="h-4 w-4" /> Pedir este paquete
+                <Send className="h-4 w-4" /> {tr("Pedir este paquete")}
               </button>
             </div>
           </Card>
@@ -277,7 +283,7 @@ export function PackagesView({
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Gift className="h-4 w-4 text-primary" />
-                      Pagas
+                      {tr("Pagas")}
                     </span>
                     <span className="tabular text-sm font-bold text-foreground">
                       {usd(Number(selected.amount_usd))}
@@ -288,7 +294,7 @@ export function PackagesView({
                     q.receives != null && (
                       <div className="mt-1 flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                          Tu familia recibe
+                          {tr("Tu familia recibe")}
                         </span>
                         <span className="tabular text-sm font-bold text-income">
                           {fmtAmount(q.receives, cur)}
@@ -298,7 +304,7 @@ export function PackagesView({
                   ) : opts.length > 0 && chosen ? (
                     <div className="mt-2 space-y-2">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        ¿Cómo quiere recibir tu familia?
+                        {tr("¿Cómo quiere recibir tu familia?")}
                       </p>
                       {/* Selección compacta arriba (todas las opciones)… */}
                       <div className="flex flex-wrap gap-1.5">
@@ -314,14 +320,14 @@ export function PackagesView({
                                 : "border-border text-foreground")
                             }
                           >
-                            {optionLabel(o.currency, o.method)}
+                            {optionLabel(o.currency, o.method, tr)}
                           </button>
                         ))}
                       </div>
                       {/* …y el total grande abajo. */}
                       <div className="flex items-baseline justify-between rounded-lg bg-card px-3 py-2">
                         <span className="text-xs text-muted-foreground">
-                          Tu familia recibe
+                          {tr("Tu familia recibe")}
                         </span>
                         <span className="tabular text-lg font-extrabold text-income">
                           {fmtAmount(chosen.amount, chosen.currency)}
@@ -332,7 +338,7 @@ export function PackagesView({
                     q.receives != null && (
                       <div className="mt-1 flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                          Tu familia recibe
+                          {tr("Tu familia recibe")}
                         </span>
                         <span className="tabular text-sm font-bold text-income">
                           {fmtAmount(q.receives, cur)}
@@ -342,35 +348,34 @@ export function PackagesView({
                   )}
 
                   <p className="mt-2 text-[11px] text-muted-foreground">
-                    Calculado a la tasa de hoy. El monto final lo confirma el
-                    negocio al aceptar.
+                    {tr("Calculado a la tasa de hoy. El monto final lo confirma el negocio al aceptar.")}
                   </p>
                 </div>
 
                 <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  ¿Quién recibe en Cuba?
+                  {tr("¿Quién recibe en Cuba?")}
                 </p>
-                <Field label="Nombre del beneficiario">
+                <Field label={tr("Nombre del beneficiario")}>
                   <Input
                     name="beneficiary_name"
-                    placeholder="Nombre de quien recibe"
+                    placeholder={tr("Nombre de quien recibe")}
                     required
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Teléfono">
+                  <Field label={tr("Teléfono")}>
                     <Input name="beneficiary_phone" inputMode="tel" placeholder="+53…" />
                   </Field>
-                  <Field label="Provincia">
-                    <Input name="province" placeholder="Ej: La Habana" />
+                  <Field label={tr("Provincia")}>
+                    <Input name="province" placeholder={tr("Ej: La Habana")} />
                   </Field>
                 </div>
-                <Field label="Nota (opcional)">
-                  <Textarea name="note" rows={2} placeholder="Algún detalle para el negocio…" />
+                <Field label={tr("Nota (opcional)")}>
+                  <Textarea name="note" rows={2} placeholder={tr("Algún detalle para el negocio…")} />
                 </Field>
 
                 <Button type="submit" className="w-full">
-                  <Send className="h-4 w-4" /> Pedir por {usd(Number(selected.amount_usd))}
+                  <Send className="h-4 w-4" /> {tr("Pedir por")} {usd(Number(selected.amount_usd))}
                 </Button>
               </form>
             );

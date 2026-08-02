@@ -5,6 +5,7 @@ import { Copy, Check, Wallet, MessageCircle, Clock, HandCoins } from "lucide-rea
 import { Card } from "@/components/ui";
 import { clientMarkOrderPaid } from "@/app/actions";
 import type { Order } from "@/lib/types";
+import { useT } from "@/components/lang-provider";
 
 type M = { k: string; v: string };
 
@@ -26,6 +27,7 @@ export function PayInstructions({
   };
   informed?: boolean;
 }) {
+  const tr = useT();
   const [copied, setCopied] = useState<string | null>(null);
   const [marked, setMarked] = useState(informed);
   const [saving, start] = useTransition();
@@ -55,17 +57,17 @@ export function PayInstructions({
 
   const ref = order.id.slice(0, 8).toUpperCase();
   const digits = (payment.phone || "").replace(/\D/g, "");
-  const waText = `Hola${
+  const waText = `${tr("Hola")}${
     payment.businessName ? ` ${payment.businessName}` : ""
-  }, ya pagué mi envío #${ref} de $${Number(order.amount_usd)} para ${
-    order.beneficiary_name || "mi familia"
+  }, ${tr("ya pagué mi envío")} #${ref} ${tr("de")} $${Number(order.amount_usd)} ${tr("para")} ${
+    order.beneficiary_name || tr("mi familia")
   }.`;
 
   return (
     <Card className="space-y-3 border-primary/25 bg-primary/5">
       <div className="flex items-center gap-2">
         <Wallet className="h-4 w-4 text-primary" />
-        <p className="text-sm font-bold text-foreground">¿Cómo pagar tu envío?</p>
+        <p className="text-sm font-bold text-foreground">{tr("¿Cómo pagar tu envío?")}</p>
         <span
           className={
             "ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
@@ -74,13 +76,15 @@ export function PayInstructions({
               : "bg-muted text-muted-foreground")
           }
         >
-          <Clock className="h-3 w-3" /> {marked ? "Pago informado" : "Por pagar"}
+          <Clock className="h-3 w-3" /> {marked ? tr("Pago informado") : tr("Por pagar")}
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Paga <span className="font-semibold text-foreground">$
-        {Number(order.amount_usd)}</span> por cualquiera de estos medios y avísale
-        al negocio.
+        {tr("Paga")}{" "}
+        <span className="font-semibold text-foreground">
+          ${Number(order.amount_usd)}
+        </span>{" "}
+        {tr("por cualquiera de estos medios y avísale al negocio.")}
       </p>
 
       <div className="space-y-2">
@@ -101,7 +105,7 @@ export function PayInstructions({
               type="button"
               onClick={() => copy(m.k, m.v)}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition active:scale-90"
-              aria-label={`Copiar ${m.k}`}
+              aria-label={`${tr("Copiar")} ${m.k}`}
             >
               {copied === m.k ? (
                 <Check className="h-4 w-4 text-income" />
@@ -115,8 +119,7 @@ export function PayInstructions({
 
       {marked ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-center text-xs font-medium text-amber-700 dark:text-amber-300">
-          Avisaste que ya pagaste. El negocio confirmará el cobro y verás
-          “Pagado” aquí.
+          {tr("Avisaste que ya pagaste. El negocio confirmará el cobro y verás “Pagado” aquí.")}
         </div>
       ) : (
         <button
@@ -125,7 +128,7 @@ export function PayInstructions({
           disabled={saving}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98] disabled:opacity-70"
         >
-          <HandCoins className="h-4 w-4" /> Ya pagué
+          <HandCoins className="h-4 w-4" /> {tr("Ya pagué")}
         </button>
       )}
 
@@ -136,7 +139,7 @@ export function PayInstructions({
           rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-income py-2.5 text-sm font-semibold text-white transition active:scale-[0.98]"
         >
-          <MessageCircle className="h-4 w-4" /> Avisar por WhatsApp
+          <MessageCircle className="h-4 w-4" /> {tr("Avisar por WhatsApp")}
         </a>
       )}
     </Card>

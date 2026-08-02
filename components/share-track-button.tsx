@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { Share2, Check } from "lucide-react";
+import { useT } from "@/components/lang-provider";
 
 export function ShareTrackButton({ token }: { token: string }) {
+  const tr = useT();
   const [copied, setCopied] = useState(false);
 
   async function share() {
     const url = `${window.location.origin}/t/${token}`;
-    const text = `Sigue tu remesa aquí: ${url}`;
+    const text = `${tr("Sigue tu remesa aquí:")} ${url}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Seguimiento de tu remesa", text, url });
+        await navigator.share({ title: tr("Seguimiento de tu remesa"), text, url });
         return;
       }
     } catch {
@@ -32,7 +34,7 @@ export function ShareTrackButton({ token }: { token: string }) {
       className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs font-semibold text-primary transition active:scale-95"
     >
       {copied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
-      {copied ? "¡Copiado!" : "Compartir seguimiento"}
+      {copied ? tr("¡Copiado!") : tr("Compartir seguimiento")}
     </button>
   );
 }

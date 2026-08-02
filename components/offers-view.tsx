@@ -6,6 +6,7 @@ import { Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
 import { FavHeart } from "@/components/fav-heart";
 import { useFavorites } from "@/lib/use-favorites";
+import { useT } from "@/components/lang-provider";
 import { recordOfferView } from "@/app/actions";
 import { cn } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
@@ -21,24 +22,24 @@ type SendProps = {
 
 type ReferralProps = { code: string | null; bonus: number };
 
-function kindMeta(o: Offer) {
+function kindMeta(o: Offer, tr: (es: string) => string) {
   const k = OFFER_KINDS.find((x) => x.key === o.kind);
-  return { emoji: o.emoji || k?.emoji || "📣", label: k?.label ?? "Anuncio" };
+  return { emoji: o.emoji || k?.emoji || "📣", label: k?.label ?? tr("Anuncio") };
 }
 
 // Texto del botón de acción según el tipo de promoción.
-function ctaLabel(o: Offer): string {
+function ctaLabel(o: Offer, tr: (es: string) => string): string {
   switch (o.kind) {
     case "tasa":
-      return "Enviar con esta tasa";
+      return tr("Enviar con esta tasa");
     case "sin_comision":
-      return "Enviar sin comisión";
+      return tr("Enviar sin comisión");
     case "express":
-      return "Pedir entrega express";
+      return tr("Pedir entrega express");
     case "combo":
-      return "Pedir este combo";
+      return tr("Pedir este combo");
     default:
-      return "Enviar con esta promo";
+      return tr("Enviar con esta promo");
   }
 }
 
@@ -49,9 +50,9 @@ function fmt(d: string): string {
   });
 }
 
-function validity(o: Offer): string | null {
-  if (o.ends_at) return `Válido hasta ${fmt(o.ends_at)}`;
-  if (o.starts_at) return `Desde ${fmt(o.starts_at)}`;
+function validity(o: Offer, tr: (es: string) => string): string | null {
+  if (o.ends_at) return `${tr("Válido hasta")} ${fmt(o.ends_at)}`;
+  if (o.starts_at) return `${tr("Desde")} ${fmt(o.starts_at)}`;
   return null;
 }
 
@@ -64,6 +65,7 @@ export function OffersView({
   sendProps?: SendProps;
   referral?: ReferralProps | null;
 }) {
+  const tr = useT();
   const [selected, setSelected] = useState<Offer | null>(null);
   const [copied, setCopied] = useState(false);
   const { isFav, toggle } = useFavorites("offers");
@@ -94,10 +96,10 @@ export function OffersView({
   async function shareReferral() {
     const url = refLink();
     if (!url) return;
-    const text = `Te invito a Giro para enviar remesas a Cuba. Regístrate con mi enlace y los dos ganamos ${referral?.bonus ?? 50} puntos: ${url}`;
+    const text = `${tr("Te invito a Giro para enviar remesas a Cuba. Regístrate con mi enlace y los dos ganamos")} ${referral?.bonus ?? 50} ${tr("puntos")}: ${url}`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Únete a Giro", text, url });
+        await navigator.share({ title: tr("Únete a Giro"), text, url });
         return;
       }
     } catch {
@@ -137,16 +139,16 @@ export function OffersView({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={banner.image_url}
-                alt={banner.title || "Oferta"}
+                alt={banner.title || tr("Oferta")}
                 className="h-40 w-full object-cover"
               />
             ) : null}
             <div className="relative p-5">
               <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide backdrop-blur">
-                <Star className="h-3 w-3 fill-white" /> Destacada
+                <Star className="h-3 w-3 fill-white" /> {tr("Destacada")}
               </span>
               <p className="mt-3 flex items-center gap-2 text-2xl font-extrabold leading-tight">
-                {!banner.image_url && <span>{kindMeta(banner).emoji}</span>}
+                {!banner.image_url && <span>{kindMeta(banner, tr).emoji}</span>}
                 {banner.title}
               </p>
               {banner.description && (
@@ -154,9 +156,9 @@ export function OffersView({
                   {banner.description}
                 </p>
               )}
-              {validity(banner) && (
+              {validity(banner, tr) && (
                 <p className="mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur">
-                  {validity(banner)}
+                  {validity(banner, tr)}
                 </p>
               )}
             </div>
@@ -165,8 +167,8 @@ export function OffersView({
       )}
 
       {list.map((o) => {
-        const m = kindMeta(o);
-        const v = validity(o);
+        const m = kindMeta(o, tr);
+        const v = validity(o, tr);
         return (
           <button
             key={o.id}
@@ -183,7 +185,7 @@ export function OffersView({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={o.image_url}
-                  alt={o.title || "Oferta"}
+                  alt={o.title || tr("Oferta")}
                   className="h-36 w-full object-cover"
                 />
               )}
@@ -232,14 +234,14 @@ export function OffersView({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={selected.image_url}
-                alt={selected.title || "Oferta"}
+                alt={selected.title || tr("Oferta")}
                 className="w-full rounded-2xl object-cover"
               />
             )}
             <div className="flex items-center gap-2">
-              <span className="text-2xl">{kindMeta(selected).emoji}</span>
+              <span className="text-2xl">{kindMeta(selected, tr).emoji}</span>
               <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
-                {kindMeta(selected).label}
+                {kindMeta(selected, tr).label}
               </span>
             </div>
             {selected.description && (
@@ -247,9 +249,9 @@ export function OffersView({
                 {selected.description}
               </p>
             )}
-            {validity(selected) && (
+            {validity(selected, tr) && (
               <p className="text-xs font-medium text-primary">
-                {validity(selected)}
+                {validity(selected, tr)}
               </p>
             )}
             {selected.kind === "bono" && referral?.code ? (
@@ -262,17 +264,17 @@ export function OffersView({
                 >
                   {copied ? (
                     <>
-                      <Check className="h-4 w-4" /> Enlace copiado
+                      <Check className="h-4 w-4" /> {tr("Enlace copiado")}
                     </>
                   ) : (
                     <>
-                      <Share2 className="h-4 w-4" /> Invitar a un amigo
+                      <Share2 className="h-4 w-4" /> {tr("Invitar a un amigo")}
                     </>
                   )}
                 </button>
                 <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-muted-foreground">
-                  <Gift className="h-3.5 w-3.5" /> Cuando tu amigo reciba su
-                  primer envío, ganan {referral.bonus} puntos cada uno.
+                  <Gift className="h-3.5 w-3.5" /> {tr("Cuando tu amigo reciba su primer envío, ganan")}{" "}
+                  {referral.bonus} {tr("puntos cada uno.")}
                 </p>
               </div>
             ) : (
@@ -284,7 +286,7 @@ export function OffersView({
                   pointValue={sendProps.pointValue}
                   beneficiaries={sendProps.beneficiaries}
                   variant="primary"
-                  label={ctaLabel(selected)}
+                  label={ctaLabel(selected, tr)}
                   initial={{ note: `Promo: ${selected.title}` }}
                 />
               )

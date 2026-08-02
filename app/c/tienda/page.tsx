@@ -6,10 +6,14 @@ import {
   getExchangeRates,
 } from "@/lib/data";
 import { PackagesView } from "@/components/packages-view";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function TiendaPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const [packages, rates, settings, popRes] = await Promise.all([
     getActivePackages(),
@@ -43,10 +47,10 @@ export default async function TiendaPage() {
         </span>
         <div className="min-w-0">
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Paquetes para tu familia
+            {tr("Paquetes para tu familia")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Elige uno y llega a Cuba en un toque · a la tasa de hoy
+            {tr("Elige uno y llega a Cuba en un toque · a la tasa de hoy")}
           </p>
         </div>
       </div>

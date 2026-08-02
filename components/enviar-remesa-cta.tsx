@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet } from "@/components/sheet";
 import { OrderForm, type OrderInitial } from "@/components/order-form";
+import { useT } from "@/components/lang-provider";
 import type { ExchangeRate } from "@/lib/types";
 
 export function EnviarRemesaCta({
@@ -13,7 +14,7 @@ export function EnviarRemesaCta({
   redeemMin = 100,
   pointValue = 0.05,
   variant = "hero",
-  label = "Enviar una remesa",
+  label,
   beneficiaries = [],
   initial,
 }: {
@@ -27,6 +28,8 @@ export function EnviarRemesaCta({
   initial?: OrderInitial;
 }) {
   const [open, setOpen] = useState(false);
+  const tr = useT();
+  const buttonLabel = label ?? tr("Enviar una remesa");
   return (
     <>
       <button
@@ -39,13 +42,13 @@ export function EnviarRemesaCta({
             : "bg-primary text-primary-foreground shadow-primary/30"
         )}
       >
-        <Send className="h-5 w-5" /> {label}
+        <Send className="h-5 w-5" /> {buttonLabel}
       </button>
 
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
-        title="Enviar una remesa"
+        title={tr("Enviar una remesa")}
       >
         <OrderForm
           rates={rates}

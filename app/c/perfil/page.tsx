@@ -25,10 +25,14 @@ import { PinSetup } from "@/components/pin-setup";
 import { usd } from "@/lib/utils";
 import { Card, Field, Input, Button } from "@/components/ui";
 import { Settings } from "lucide-react";
+import { getLang } from "@/lib/lang";
+import { translate } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientePerfilPage() {
+  const lang = await getLang();
+  const tr = (s: string) => translate(lang, s);
   const supabase = await createClient();
   const {
     data: { user },
@@ -97,7 +101,7 @@ export default async function ClientePerfilPage() {
         href="/c"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Inicio
+        <ArrowLeft className="h-4 w-4" /> {tr("Inicio")}
       </Link>
 
       {/* Cabecera con foto o avatar de color propio + mini-stats */}
@@ -106,7 +110,7 @@ export default async function ClientePerfilPage() {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={p.avatar_url}
-            alt="Foto de perfil"
+            alt={tr("Foto de perfil")}
             className="h-20 w-20 shrink-0 rounded-full object-cover"
           />
         ) : (
@@ -121,7 +125,7 @@ export default async function ClientePerfilPage() {
           </span>
         )}
         <h1 className="mt-3 text-xl font-bold text-foreground">
-          {p.full_name || "Tu perfil"}
+          {p.full_name || tr("Tu perfil")}
         </h1>
         {user?.email && (
           <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -129,33 +133,33 @@ export default async function ClientePerfilPage() {
       </div>
 
       <Link href="/c/estado" className="grid grid-cols-3 gap-2">
-        <MiniStat icon={Send} value={String(delivered.length)} label="Envíos" />
-        <MiniStat icon={Wallet} value={usd(totalEnviado)} label="Enviado" />
-        <MiniStat icon={Star} value={String(points.balance)} label="Puntos" />
+        <MiniStat icon={Send} value={String(delivered.length)} label={tr("Envíos")} />
+        <MiniStat icon={Wallet} value={usd(totalEnviado)} label={tr("Enviado")} />
+        <MiniStat icon={Star} value={String(points.balance)} label={tr("Puntos")} />
       </Link>
       <p className="-mt-3 text-center text-[11px] text-muted-foreground">
-        Toca para ver tu resumen y descargarlo
+        {tr("Toca para ver tu resumen y descargarlo")}
       </p>
 
       <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Tus datos para los envíos
+        {tr("Tus datos para los envíos")}
       </h2>
 
       <Card>
         <form action={updateClientProfile} className="space-y-3">
-          <Field label="Nombre">
+          <Field label={tr("Nombre")}>
             <Input
               name="full_name"
               defaultValue={p.full_name ?? ""}
-              placeholder="Tu nombre"
+              placeholder={tr("Tu nombre")}
             />
           </Field>
           <Field
-            label="Foto de perfil (opcional)"
+            label={tr("Foto de perfil (opcional)")}
             hint={
               p.avatar_url
-                ? "Sube otra para reemplazarla."
-                : "Se ve en tu perfil, en vez de la inicial."
+                ? tr("Sube otra para reemplazarla.")
+                : tr("Se ve en tu perfil, en vez de la inicial.")
             }
           >
             <input
@@ -166,8 +170,8 @@ export default async function ClientePerfilPage() {
             />
           </Field>
           <Field
-            label="Teléfono / WhatsApp"
-            hint="El negocio te contactará por aquí."
+            label={tr("Teléfono / WhatsApp")}
+            hint={tr("El negocio te contactará por aquí.")}
           >
             <Input
               name="phone"
@@ -177,8 +181,8 @@ export default async function ClientePerfilPage() {
             />
           </Field>
           <Field
-            label="Segundo teléfono (opcional)"
-            hint="Por si no contestan el principal."
+            label={tr("Segundo teléfono (opcional)")}
+            hint={tr("Por si no contestan el principal.")}
           >
             <Input
               name="phone2"
@@ -188,18 +192,18 @@ export default async function ClientePerfilPage() {
             />
           </Field>
           <Field
-            label="Dirección o ciudad (opcional)"
-            hint="Ayuda al negocio a ubicarte."
+            label={tr("Dirección o ciudad (opcional)")}
+            hint={tr("Ayuda al negocio a ubicarte.")}
           >
             <Input
               name="address"
               defaultValue={p.address ?? ""}
-              placeholder="Ej: Miami, FL"
+              placeholder={tr("Ej: Miami, FL")}
             />
           </Field>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
           <Button type="submit" className="w-full">
-            Guardar
+            {tr("Guardar")}
           </Button>
         </form>
       </Card>
@@ -209,7 +213,7 @@ export default async function ClientePerfilPage() {
       {/* Ajustes de la app */}
       <section>
         <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <Settings className="h-4 w-4" /> Ajustes
+          <Settings className="h-4 w-4" /> {tr("Ajustes")}
         </h2>
         <Card className="space-y-4">
           <LangSwitch />
@@ -227,7 +231,7 @@ export default async function ClientePerfilPage() {
       {/* Ayuda y contacto */}
       <section>
         <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <HelpCircle className="h-4 w-4" /> Ayuda
+          <HelpCircle className="h-4 w-4" /> {tr("Ayuda")}
         </h2>
 
         {bizWa && (
@@ -242,12 +246,12 @@ export default async function ClientePerfilPage() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-foreground">
-                Escribir al negocio
+                {tr("Escribir al negocio")}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {contact.businessName
-                  ? `Dudas o ayuda con ${contact.businessName}`
-                  : "Dudas o ayuda con tu envío"}{" "}
+                  ? `${tr("Dudas o ayuda con")} ${contact.businessName}`
+                  : tr("Dudas o ayuda con tu envío")}{" "}
                 · WhatsApp
               </p>
             </div>
@@ -262,9 +266,9 @@ export default async function ClientePerfilPage() {
             <HelpCircle className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">Centro de ayuda</p>
+            <p className="text-sm font-bold text-foreground">{tr("Centro de ayuda")}</p>
             <p className="truncate text-xs text-muted-foreground">
-              Tarifas, tiempos y preguntas frecuentes
+              {tr("Tarifas, tiempos y preguntas frecuentes")}
             </p>
           </div>
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -278,34 +282,34 @@ export default async function ClientePerfilPage() {
             <MessageSquareQuote className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">Opiniones</p>
+            <p className="text-sm font-bold text-foreground">{tr("Opiniones")}</p>
             <p className="truncate text-xs text-muted-foreground">
-              Lo que dicen otros clientes del negocio
+              {tr("Lo que dicen otros clientes del negocio")}
             </p>
           </div>
           <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
         </Link>
 
         <Card className="p-4">
-          <p className="mb-3 text-sm font-bold text-foreground">Cómo funciona</p>
+          <p className="mb-3 text-sm font-bold text-foreground">{tr("Cómo funciona")}</p>
           <div className="space-y-3">
             <HowStep
               n={1}
               icon={Send}
-              title="Pides tu remesa"
-              desc="Eliges el monto y quién recibe en Cuba."
+              title={tr("Pides tu remesa")}
+              desc={tr("Eliges el monto y quién recibe en Cuba.")}
             />
             <HowStep
               n={2}
               icon={Check}
-              title="El negocio la acepta"
-              desc="Confirma el envío y empieza el reparto."
+              title={tr("El negocio la acepta")}
+              desc={tr("Confirma el envío y empieza el reparto.")}
             />
             <HowStep
               n={3}
               icon={PartyPopper}
-              title="Llega a tu familia"
-              desc="Sigues cada paso y ganas puntos con cada envío."
+              title={tr("Llega a tu familia")}
+              desc={tr("Sigues cada paso y ganas puntos con cada envío.")}
             />
           </div>
         </Card>
@@ -316,7 +320,7 @@ export default async function ClientePerfilPage() {
           type="submit"
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 py-3 text-sm font-semibold text-destructive transition active:scale-[0.98]"
         >
-          <LogOut className="h-4 w-4" /> Cerrar sesión
+          <LogOut className="h-4 w-4" /> {tr("Cerrar sesión")}
         </button>
       </form>
     </div>
