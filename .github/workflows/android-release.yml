@@ -1,0 +1,131 @@
+name: Build & Release APK
+
+# Compila el APK de Android y lo publica como Release descargable.
+#
+# Cómo lanzarlo:
+#   • Manual: pestaña "Actions" → "Build & Release APK" → "Run workflow"
+#     (escribe la versión, ej. 1.0.1).
+#   • Automático: al hacer push de un tag que empiece por "v" (ej. v1.0.1).
+#
+# Firma del APK:
+#   • Sin secretos configurados: genera un APK de DEBUG, instalable al momento.
+#     (Aviso: cada compilación de debug puede tener una firma distinta, así que
+#     para ACTUALIZAR sobre una instalación previa quizá haya que desinstalar
+#     primero.)
+#   • Con secretos de firma (recomendado para actualizar sin desinstalar):
+#     ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+#     ANDROID_KEY_PASSWORD → genera un APK de RELEASE firmado y estable.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión (ej. 1.0.1)"
+        required: true
+        default: "1.0.1"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determinar versión
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            V="${GITHUB_REF_NAME#v}"
+          else
+            V="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Setup Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar plataforma y build-tools
+        run: |
+          yes | sdkmanager "platforms;android-34" "build-tools;34.0.0" >/dev/null || true
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Aplicar versión al APK
+        run: |
+          cd android/app
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.ver.outputs.version }}\"/" build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" build.gradle
+
+      - name: Compilar APK
+        id: build
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          chmod +x gradlew
+          if [ -n "$KS" ]; then
+            echo "Compilando RELEASE firmado…"
+            echo "$KS" | base64 -d > app/release.keystore
+            ./gradlew --no-daemon assembleRelease \
+              -Pandroid.injected.signing.store.file="$(pwd)/app/release.keystore" \
+              -Pandroid.injected.signing.store.password="$KS_PASS" \
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+              -Pandroid.injected.signing.key.password="$KEY_PASS"
+            echo "apk=android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "Sin secretos de firma: compilando DEBUG (instalable)…"
+            ./gradlew --no-daemon assembleDebug
+            echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Preparar APK
+        run: |
+          mkdir -p dist
+          cp "${{ steps.build.outputs.apk }}" "dist/Giro-${{ steps.ver.outputs.version }}.apk"
+          ls -lh dist
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Giro ${{ steps.ver.outputs.version }}
+          body: |
+            **Giro — APK para Android**
+
+            Descarga `Giro-${{ steps.ver.outputs.version }}.apk` más abajo e instálalo en tu teléfono.
+
+            Para instalar:
+            1. Abre el APK en el teléfono.
+            2. Si Android lo pide, permite "Instalar apps de orígenes desconocidos".
+            3. Abre Giro y listo.
+
+            Incluye el desbloqueo por huella/rostro nativo. Actívalo en
+            Perfil → Seguridad (necesitas tener un PIN y una huella/rostro
+            registrada en el teléfono).
+          files: dist/Giro-${{ steps.ver.outputs.version }}.apk
