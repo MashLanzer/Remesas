@@ -12,9 +12,13 @@ type Alert = { id: string; currency: string; target_rate: number };
 export function RateAlertCard({
   rates,
   embedded = false,
+  bannerOnly = false,
 }: {
   rates: ExchangeRate[];
   embedded?: boolean;
+  // Solo muestra el aviso "¡la tasa llegó!" (para el inicio). Si no hay
+  // ninguna alerta cumplida, no dibuja nada.
+  bannerOnly?: boolean;
 }) {
   const active = useMemo(
     () => rates.filter((r) => r.active !== false && Number(r.rate) > 0),
@@ -46,6 +50,35 @@ export function RateAlertCard({
     const now = rateOf(a.currency);
     return now > 0 && now >= Number(a.target_rate);
   });
+
+  // Solo el aviso para el inicio: nada si ninguna alerta se cumplió.
+  if (bannerOnly) {
+    if (met.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        {met.map((a) => (
+          <div
+            key={`met-${a.id}`}
+            className="flex items-center gap-2 rounded-2xl border border-income/30 bg-income/10 px-4 py-3 text-sm text-income"
+          >
+            <BellRing className="h-5 w-5 shrink-0" />
+            <span className="min-w-0">
+              <span className="font-bold">¡La tasa de {a.currency} llegó!</span>{" "}
+              1 USD = {localAmount(rateOf(a.currency))} {a.currency} · buen
+              momento para enviar.
+            </span>
+            <button
+              onClick={() => remove(a.id)}
+              aria-label="Quitar alerta"
+              className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition active:scale-90"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   async function add() {
     const t = parseFloat(target);

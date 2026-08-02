@@ -36,6 +36,7 @@ import { ClienteGreeting } from "@/components/cliente-greeting";
 import { QuickSendRow } from "@/components/quick-send-row";
 import { ActiveOrderCard } from "@/components/active-order-card";
 import { HomeTools } from "@/components/home-tools";
+import { RateAlertCard } from "@/components/rate-alert-card";
 import { Send, Check, PartyPopper } from "lucide-react";
 import { getLang } from "@/lib/lang";
 import { translate } from "@/lib/i18n";
@@ -248,6 +249,9 @@ export default async function ClienteHome() {
 
       {/* Anuncios del negocio */}
       <AnnouncementsBanner items={announcements} />
+
+      {/* Aviso en vivo: una alerta de tasa se cumplió (aparece solo si toca) */}
+      <RateAlertCard rates={rates} bannerOnly />
 
       {/* Enviar rápido a tus beneficiarios */}
       <QuickSendRow {...sendProps} />

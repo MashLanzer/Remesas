@@ -32,11 +32,29 @@ function randomBytes(n: number): ArrayBuffer {
   return buf;
 }
 
-// ¿El dispositivo tiene un autenticador de plataforma (huella/rostro)?
+// ¿El dispositivo puede ofrecer desbloqueo con huella/rostro?
+//
+// Nota importante: en el WebView de Android (el APK) el método
+// isUserVerifyingPlatformAuthenticatorAvailable() a veces devuelve false aunque
+// el teléfono SÍ tenga huella/rostro, porque el WebView no expone bien esa
+// consulta. Por eso, si WebAuthn existe y estamos en un móvil, damos la opción
+// por disponible y dejamos que sea el propio dispositivo quien confirme al
+// intentar registrar la biometría (si de verdad no la tiene, fallará ahí).
 export async function biometricSupported(): Promise<boolean> {
   try {
     if (typeof window === "undefined" || !window.PublicKeyCredential) return false;
-    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    const uvpaa = await window.PublicKeyCredential
+      .isUserVerifyingPlatformAuthenticatorAvailable()
+      .catch(() => false);
+    if (uvpaa) return true;
+    // El navegador dice que no; en móviles no nos fiamos (ver nota) y dejamos
+    // intentarlo. En escritorio sin autenticador, sí lo ocultamos.
+    const ua = navigator.userAgent || "";
+    const isMobile =
+      /Android|iPhone|iPad|iPod/i.test(ua) ||
+      (typeof window.matchMedia === "function" &&
+        window.matchMedia("(pointer: coarse)").matches);
+    return isMobile;
   } catch {
     return false;
   }
