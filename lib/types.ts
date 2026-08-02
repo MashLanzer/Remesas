@@ -160,6 +160,8 @@ export interface Order {
   points_used?: number | null;
   discount_usd?: number | null;
   reject_reason?: string | null;
+  // Comprobante de pago que subió el cliente (0073).
+  payment_proof_url?: string | null;
   created_at: string;
 }
 

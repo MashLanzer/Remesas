@@ -21,6 +21,7 @@ import {
   CheckSquare,
   Coins,
   MessageSquare,
+  Receipt,
 } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { IlluOrders } from "@/components/illustrations";
@@ -95,6 +96,7 @@ export function OrdersManager({
   const router = useRouter();
   const { confirm, notify } = useDialog();
   const [busy, setBusy] = useState<string | null>(null);
+  const [proofView, setProofView] = useState<string | null>(null);
   const [, start] = useTransition();
 
   const repMap = useMemo(
@@ -512,6 +514,24 @@ export function OrdersManager({
             <p className="border-t border-border pt-1 text-muted-foreground">
               “{o.note}”
             </p>
+          )}
+          {o.payment_proof_url && (
+            <button
+              type="button"
+              onClick={() => setProofView(o.payment_proof_url!)}
+              className="mt-1 flex w-full items-center gap-2 rounded-lg border border-income/30 bg-income/10 p-2 text-left transition active:scale-[0.99]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={o.payment_proof_url}
+                alt="Comprobante de pago"
+                className="h-10 w-10 shrink-0 rounded-md object-cover"
+              />
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-income">
+                <Receipt className="h-3.5 w-3.5" /> Comprobante de pago · toca
+                para ver
+              </span>
+            </button>
           )}
         </div>
 
@@ -1020,6 +1040,27 @@ export function OrdersManager({
         }
       >
         {chatting && <OrderChat orderId={chatting.id} me="negocio" />}
+      </Sheet>
+
+      {/* Visor del comprobante de pago */}
+      <Sheet
+        open={!!proofView}
+        onClose={() => setProofView(null)}
+        title="Comprobante de pago"
+      >
+        {proofView && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={proofView}
+              alt="Comprobante de pago"
+              className="w-full rounded-2xl border border-border"
+            />
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              Verifica que el pago llegó antes de confirmar el cobro.
+            </p>
+          </>
+        )}
       </Sheet>
     </div>
   );

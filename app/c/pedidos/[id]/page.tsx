@@ -77,9 +77,14 @@ export default async function MiPedidoDetallePage({
   // Estado de pago (migración 0065). Tolerante si la función no existe aún.
   const payRow = (
     Array.isArray(payStateRes.data) ? payStateRes.data[0] : payStateRes.data
-  ) as { marked_paid_at?: string | null; confirmed?: boolean } | null;
+  ) as {
+    marked_paid_at?: string | null;
+    confirmed?: boolean;
+    proof_url?: string | null;
+  } | null;
   const paymentConfirmed = payRow?.confirmed === true;
   const paymentInformed = !!payRow?.marked_paid_at;
+  const paymentProofUrl = payRow?.proof_url ?? order.payment_proof_url ?? null;
 
   const display = orderDisplay(order);
   const isDelivered = display === "entregado" || display === "recibido";
@@ -156,6 +161,7 @@ export default async function MiPedidoDetallePage({
               order={order}
               payment={payment}
               informed={paymentInformed}
+              proofUrl={paymentProofUrl}
             />
           )
         ))}

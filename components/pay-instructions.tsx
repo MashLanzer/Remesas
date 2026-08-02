@@ -1,21 +1,35 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Copy, Check, Wallet, MessageCircle, Clock, HandCoins } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import {
+  Copy,
+  Check,
+  Wallet,
+  MessageCircle,
+  Clock,
+  HandCoins,
+  Camera,
+  Loader2,
+} from "lucide-react";
 import { Card } from "@/components/ui";
-import { clientMarkOrderPaid } from "@/app/actions";
+import {
+  clientMarkOrderPaid,
+  clientUploadPaymentProof,
+} from "@/app/actions";
 import type { Order } from "@/lib/types";
 import { useT } from "@/components/lang-provider";
 
 type M = { k: string; v: string };
 
 // Tarjeta "¿Cómo pago?" para el cliente: muestra los métodos de cobro del
-// negocio (copiables), permite marcar "ya pagué" (queda registrado) y avisar
-// por WhatsApp. El cobro real lo confirma el negocio.
+// negocio (copiables), permite adjuntar el comprobante y marcar "ya pagué"
+// (queda registrado) y avisar por WhatsApp. El cobro real lo confirma el
+// negocio.
 export function PayInstructions({
   order,
   payment,
   informed = false,
+  proofUrl = null,
 }: {
   order: Order;
   payment: {
@@ -26,15 +40,34 @@ export function PayInstructions({
     paypal: string | null;
   };
   informed?: boolean;
+  proofUrl?: string | null;
 }) {
   const tr = useT();
   const [copied, setCopied] = useState<string | null>(null);
   const [marked, setMarked] = useState(informed);
+  const [proof, setProof] = useState<string | null>(proofUrl);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [saving, start] = useTransition();
 
   function markPaid() {
     setMarked(true);
     start(() => clientMarkOrderPaid(order.id));
+  }
+
+  async function onProofPicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("proof", file);
+    const url = await clientUploadPaymentProof(order.id, fd);
+    setUploading(false);
+    if (url) {
+      setProof(url);
+      setMarked(true);
+    }
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   const methods: M[] = [
@@ -116,6 +149,58 @@ export function PayInstructions({
           </div>
         ))}
       </div>
+
+      {/* Comprobante de pago (captura) */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onProofPicked}
+      />
+      {proof ? (
+        <div className="flex items-center gap-3 rounded-xl border border-income/30 bg-income/10 p-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={proof}
+            alt={tr("Comprobante de pago")}
+            className="h-14 w-14 shrink-0 rounded-lg object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-income">
+              {tr("Comprobante enviado")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {tr("El negocio lo revisará para confirmar tu pago.")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground transition active:scale-95 disabled:opacity-60"
+          >
+            {tr("Cambiar")}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/5 py-2.5 text-sm font-semibold text-primary transition active:scale-[0.98] disabled:opacity-70"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> {tr("Subiendo…")}
+            </>
+          ) : (
+            <>
+              <Camera className="h-4 w-4" /> {tr("Adjuntar comprobante")}
+            </>
+          )}
+        </button>
+      )}
 
       {marked ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-center text-xs font-medium text-amber-700 dark:text-amber-300">

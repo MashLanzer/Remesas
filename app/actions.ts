@@ -1258,6 +1258,40 @@ export async function clientMarkOrderPaid(orderId: string): Promise<void> {
   revalidatePath(`/c/pedidos/${orderId}`);
 }
 
+// El cliente sube la captura de su pago al pedido. Guarda la imagen en el bucket
+// "receipts" (ruta payments/…) y la asocia al pedido vía RPC (marca "ya pagué").
+// Devuelve la URL para reflejarla al instante. Tolerante: si algo falla,
+// devuelve null.
+export async function clientUploadPaymentProof(
+  orderId: string,
+  formData: FormData
+): Promise<string | null> {
+  if (!orderId) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const file = formData.get("proof");
+  if (!(file instanceof File) || file.size === 0) return null;
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `payments/${orderId}/proof-${Date.now()}.${ext}`;
+  const up = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (up.error) return null;
+  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  const url = data.publicUrl;
+  const { error } = await supabase.rpc("client_set_payment_proof", {
+    p_order: orderId,
+    p_url: url,
+  });
+  if (error) return null;
+  revalidatePath(`/c/pedidos/${orderId}`);
+  revalidatePath("/pedidos");
+  return url;
+}
+
 export type ReferralFriend = {
   name: string;
   status: "premiado" | "activo" | "registrado";
