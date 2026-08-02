@@ -521,6 +521,21 @@ export const EN: Record<string, string> = {
   "Recordatorios de envío": "Transfer reminders",
   "Envío recurrente": "Recurring transfer",
 
+  // ── Menú del perfil ──
+  Cuenta: "Account",
+  "Mis datos": "My details",
+  "Nombre, foto, teléfonos y dirección": "Name, photo, phones and address",
+  "Beneficiarios guardados": "Saved beneficiaries",
+  Preferencias: "Preferences",
+  "Ajustes de la app": "App settings",
+  "Idioma, tema y ahorro de datos": "Language, theme and data saver",
+  Seguridad: "Security",
+  "PIN y desbloqueo con huella": "PIN and fingerprint unlock",
+  "El envío en 3 pasos": "The transfer in 3 steps",
+  "Exportar o eliminar": "Export or delete",
+  "Descarga tus datos o borra tu cuenta":
+    "Download your data or delete your account",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",

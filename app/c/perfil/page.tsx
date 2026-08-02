@@ -1,33 +1,11 @@
 import Link from "next/link";
-import {
-  ArrowLeft,
-  LogOut,
-  Send,
-  Wallet,
-  Star,
-  MessageCircle,
-  HelpCircle,
-  Check,
-  PartyPopper,
-  MessageSquareQuote,
-  ChevronRight,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowLeft, LogOut, Send, Wallet, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { updateClientProfile } from "@/app/actions";
 import { getMyOrders, getMyPoints, getMyOperatorContact } from "@/lib/data";
 import { orderDisplay } from "@/components/order-status-badge";
-import { SavedBeneficiaries } from "@/components/saved-beneficiaries";
-import { ThemeSwitch } from "@/components/theme-switch";
-import { LangSwitch } from "@/components/lang-switch";
-import { DataModeSwitch } from "@/components/data-mode-switch";
-import { ClearLocalData } from "@/components/clear-local-data";
-import { PinSetup } from "@/components/pin-setup";
-import { BiometricSetup } from "@/components/biometric-setup";
-import { AccountDataControls } from "@/components/account-data-controls";
+import { PerfilMenu } from "@/components/perfil-menu";
 import { usd } from "@/lib/utils";
-import { Card, Field, Input, Button } from "@/components/ui";
-import { Settings } from "lucide-react";
+import { Card } from "@/components/ui";
 import { getLang } from "@/lib/lang";
 import { translate } from "@/lib/i18n";
 
@@ -144,189 +122,19 @@ export default async function ClientePerfilPage() {
         {tr("Toca para ver tu resumen y descargarlo")}
       </p>
 
-      <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {tr("Tus datos para los envíos")}
-      </h2>
-
-      <Card>
-        <form action={updateClientProfile} className="space-y-3">
-          <Field label={tr("Nombre")}>
-            <Input
-              name="full_name"
-              defaultValue={p.full_name ?? ""}
-              placeholder={tr("Tu nombre")}
-            />
-          </Field>
-          <Field
-            label={tr("Foto de perfil (opcional)")}
-            hint={
-              p.avatar_url
-                ? tr("Sube otra para reemplazarla.")
-                : tr("Se ve en tu perfil, en vez de la inicial.")
-            }
-          >
-            <input
-              type="file"
-              name="avatar"
-              accept="image/*"
-              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
-            />
-          </Field>
-          <Field
-            label={tr("Teléfono / WhatsApp")}
-            hint={tr("El negocio te contactará por aquí.")}
-          >
-            <Input
-              name="phone"
-              inputMode="tel"
-              defaultValue={p.phone ?? ""}
-              placeholder="+1 305 000 0000"
-            />
-          </Field>
-          <Field
-            label={tr("Segundo teléfono (opcional)")}
-            hint={tr("Por si no contestan el principal.")}
-          >
-            <Input
-              name="phone2"
-              inputMode="tel"
-              defaultValue={p.phone2 ?? ""}
-              placeholder="+1 786 000 0000"
-            />
-          </Field>
-          <Field
-            label={tr("Dirección o ciudad (opcional)")}
-            hint={tr("Ayuda al negocio a ubicarte.")}
-          >
-            <Input
-              name="address"
-              defaultValue={p.address ?? ""}
-              placeholder={tr("Ej: Miami, FL")}
-            />
-          </Field>
-          <p className="text-xs text-muted-foreground">{user?.email}</p>
-          <Button type="submit" className="w-full">
-            {tr("Guardar")}
-          </Button>
-        </form>
-      </Card>
-
-      <SavedBeneficiaries />
-
-      {/* Ajustes de la app */}
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <Settings className="h-4 w-4" /> {tr("Ajustes")}
-        </h2>
-        <Card className="space-y-4">
-          <LangSwitch />
-          <div className="border-t border-border" />
-          <ThemeSwitch />
-          <div className="border-t border-border" />
-          <DataModeSwitch />
-          <div className="border-t border-border" />
-          <PinSetup />
-          <div className="border-t border-border" />
-          <BiometricSetup />
-          <div className="border-t border-border" />
-          <ClearLocalData />
-        </Card>
-      </section>
-
-      {/* Ayuda y contacto */}
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <HelpCircle className="h-4 w-4" /> {tr("Ayuda")}
-        </h2>
-
-        {bizWa && (
-          <a
-            href={bizWa}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-2 flex items-center gap-3 rounded-2xl border border-income/25 bg-income/5 p-4 transition active:scale-[0.99]"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-income/10 text-income">
-              <MessageCircle className="h-5 w-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-foreground">
-                {tr("Escribir al negocio")}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {contact.businessName
-                  ? `${tr("Dudas o ayuda con")} ${contact.businessName}`
-                  : tr("Dudas o ayuda con tu envío")}{" "}
-                · WhatsApp
-              </p>
-            </div>
-          </a>
-        )}
-
-        <Link
-          href="/c/ayuda"
-          className="mb-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition active:scale-[0.99]"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <HelpCircle className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">{tr("Centro de ayuda")}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {tr("Tarifas, tiempos y preguntas frecuentes")}
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-        </Link>
-
-        <Link
-          href="/c/opiniones"
-          className="mb-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition active:scale-[0.99]"
-        >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <MessageSquareQuote className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-foreground">{tr("Opiniones")}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {tr("Lo que dicen otros clientes del negocio")}
-            </p>
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-        </Link>
-
-        <Card className="p-4">
-          <p className="mb-3 text-sm font-bold text-foreground">{tr("Cómo funciona")}</p>
-          <div className="space-y-3">
-            <HowStep
-              n={1}
-              icon={Send}
-              title={tr("Pides tu remesa")}
-              desc={tr("Eliges el monto y quién recibe en Cuba.")}
-            />
-            <HowStep
-              n={2}
-              icon={Check}
-              title={tr("El negocio la acepta")}
-              desc={tr("Confirma el envío y empieza el reparto.")}
-            />
-            <HowStep
-              n={3}
-              icon={PartyPopper}
-              title={tr("Llega a tu familia")}
-              desc={tr("Sigues cada paso y ganas puntos con cada envío.")}
-            />
-          </div>
-        </Card>
-      </section>
-
-      {/* Cuenta y datos: exportar / eliminar */}
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <ShieldCheck className="h-4 w-4" /> {tr("Cuenta y datos")}
-        </h2>
-        <AccountDataControls />
-      </section>
+      {/* Menú del perfil: cada cosa abre en una hoja o navega */}
+      <PerfilMenu
+        profile={{
+          full_name: p.full_name,
+          phone: p.phone,
+          phone2: p.phone2,
+          address: p.address,
+        }}
+        email={user?.email ?? null}
+        hasAvatar={!!p.avatar_url}
+        bizWa={bizWa}
+        businessName={contact.businessName ?? null}
+      />
 
       <form action="/auth/signout" method="post">
         <button
@@ -362,29 +170,3 @@ function MiniStat({
   );
 }
 
-function HowStep({
-  n,
-  icon: Icon,
-  title,
-  desc,
-}: {
-  n: number;
-  icon: typeof Send;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Icon className="h-5 w-5" />
-        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-          {n}
-        </span>
-      </span>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground">{desc}</p>
-      </div>
-    </div>
-  );
-}
