@@ -35,6 +35,7 @@ import { ClienteGreeting } from "@/components/cliente-greeting";
 import { QuickSendRow } from "@/components/quick-send-row";
 import { ActiveOrderCard } from "@/components/active-order-card";
 import { RateAlertCard } from "@/components/rate-alert-card";
+import { ReminderCard } from "@/components/reminder-card";
 import { Send, Check, PartyPopper } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -379,6 +380,9 @@ export default async function ClienteHome() {
           </div>
         </section>
       )}
+
+      {/* Recordatorios de envío recurrente */}
+      <ReminderCard sendProps={sendProps} />
 
       {/* Invita y gana (referidos) — antes de Mis pedidos */}
       {referral?.code && (

@@ -928,6 +928,110 @@ export async function deleteRateAlert(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+// ===== Recordatorios de envío del cliente (0061) =====
+
+type SendReminder = {
+  id: string;
+  label: string;
+  name: string | null;
+  phone: string | null;
+  province: string | null;
+  amount_usd: number;
+  currency: string;
+  interval_days: number;
+  next_at: string;
+};
+
+function addDaysISO(from: string, days: number): string {
+  const base = from ? new Date(from + "T00:00:00") : new Date();
+  const t = Number.isNaN(base.getTime()) ? new Date() : base;
+  t.setDate(t.getDate() + days);
+  return t.toISOString().slice(0, 10);
+}
+
+export async function listReminders(): Promise<SendReminder[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return [];
+  const { data, error } = await supabase
+    .from("client_send_reminders")
+    .select("id, label, name, phone, province, amount_usd, currency, interval_days, next_at")
+    .eq("user_id", ctx.userId)
+    .order("next_at", { ascending: true });
+  if (error) return [];
+  return (data as SendReminder[]) ?? [];
+}
+
+export async function addReminder(input: {
+  label: string;
+  name?: string | null;
+  phone?: string | null;
+  province?: string | null;
+  amount_usd: number;
+  currency: string;
+  interval_days: number;
+}): Promise<SendReminder | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return null;
+  const label = (input.label || "").trim();
+  if (!label || !(input.amount_usd > 0)) return null;
+  const interval = Math.max(1, Math.round(input.interval_days) || 30);
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("client_send_reminders")
+    .insert({
+      user_id: ctx.userId,
+      label,
+      name: (input.name || "").trim() || label,
+      phone: (input.phone || "").trim() || null,
+      province: (input.province || "").trim() || null,
+      amount_usd: input.amount_usd,
+      currency: input.currency || "CUP",
+      interval_days: interval,
+      next_at: addDaysISO(today, interval),
+    })
+    .select("id, label, name, phone, province, amount_usd, currency, interval_days, next_at")
+    .maybeSingle();
+  if (error) return null;
+  return (data as SendReminder) ?? null;
+}
+
+// Pospone: mueve next_at un intervalo más allá (desde hoy si ya venció).
+export async function snoozeReminder(id: string): Promise<string | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return null;
+  const { data: cur } = await supabase
+    .from("client_send_reminders")
+    .select("interval_days, next_at")
+    .eq("id", id)
+    .eq("user_id", ctx.userId)
+    .maybeSingle();
+  const row = cur as { interval_days?: number; next_at?: string } | null;
+  if (!row) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const from = (row.next_at ?? today) < today ? today : row.next_at ?? today;
+  const next = addDaysISO(from, Math.max(1, Number(row.interval_days) || 30));
+  await supabase
+    .from("client_send_reminders")
+    .update({ next_at: next })
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
+  return next;
+}
+
+export async function deleteReminder(id: string): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return;
+  await supabase
+    .from("client_send_reminders")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
+}
+
 // El beneficiario (sin login) confirma que recibió, vía enlace público.
 export async function confirmReceived(token: string) {
   const supabase = await createClient();
