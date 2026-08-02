@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/auth") ||
     path.startsWith("/t/") || // seguimiento público del beneficiario (sin login)
+    path.startsWith("/v/") || // vaquita familiar: enlace público para aportar
     path.startsWith("/_next") ||
     path === "/favicon.ico";
 
