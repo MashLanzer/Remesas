@@ -10,6 +10,7 @@ import {
   getMyOperatorContact,
   getMyReviewMap,
   getDeliveryCode,
+  getBusinessSettings,
 } from "@/lib/data";
 import { ReviewForm } from "@/components/review-form";
 import { Card, PageHeader } from "@/components/ui";
@@ -18,12 +19,15 @@ import {
   orderDisplay,
 } from "@/components/order-status-badge";
 import { OrderTimeline } from "@/components/order-timeline";
+import { OrderEta } from "@/components/order-eta";
+import { OrderContactButton } from "@/components/order-contact-button";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { ShareReceipt } from "@/components/share-receipt";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { ConfettiBurst } from "@/components/confetti-burst";
-import { usd, localAmount, formatDate } from "@/lib/utils";
+import { transferFactor } from "@/lib/calc";
+import { usd, localAmount, formatDate, methodTag, pointsForOrder } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +38,7 @@ export default async function MiPedidoDetallePage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [order, rates, points, cfgRes, beneficiaries, contact, reviewMap] =
+  const [order, rates, points, cfgRes, beneficiaries, contact, reviewMap, settings] =
     await Promise.all([
       getMyOrder(id),
       getExchangeRates(),
@@ -43,6 +47,7 @@ export default async function MiPedidoDetallePage({
       getMyBeneficiaries(),
       getMyOperatorContact(),
       getMyReviewMap(),
+      getBusinessSettings(),
     ]);
   if (!order) notFound();
 
@@ -58,9 +63,17 @@ export default async function MiPedidoDetallePage({
   const pointValue = Number(cfg?.point_value_usd ?? 0.05) || 0.05;
   const redeemMin = Number(cfg?.redeem_min_points ?? 100) || 100;
 
-  const rate =
+  const baseRate =
     rates.find((r) => r.currency === order.delivery_currency)?.rate ?? 0;
-  const receives = Number(order.amount_usd) * Number(rate);
+  // La tasa efectiva sube si la familia recibe CUP por transferencia.
+  const isTransfer =
+    order.delivery_currency === "CUP" && order.delivery_method === "transferencia";
+  const rate = isTransfer
+    ? Number(baseRate) * transferFactor(settings.transfer_bonus_pct)
+    : Number(baseRate);
+  const receives = Number(order.amount_usd) * rate;
+  const perUsd = Number(settings.points_per_usd ?? 0.2) || 0.2;
+  const earnedPts = pointsForOrder(order.amount_usd, perUsd);
 
   return (
     <div className="space-y-5">
@@ -86,6 +99,11 @@ export default async function MiPedidoDetallePage({
           <p className="text-xs text-muted-foreground">Tu familia recibe hasta</p>
           <p className="text-2xl font-extrabold text-foreground">
             {localAmount(receives)} {order.delivery_currency}
+            {isTransfer && (
+              <span className="ml-1.5 align-middle text-sm font-semibold text-primary">
+                🏦 transferencia
+              </span>
+            )}
           </p>
           {order.discount_usd ? (
             <p className="mt-1 text-xs font-semibold text-income">
@@ -95,8 +113,9 @@ export default async function MiPedidoDetallePage({
         </Card>
       )}
 
-      {/* Seguimiento */}
-      <Card>
+      {/* Seguimiento + ¿cuándo llega? */}
+      <Card className="space-y-3">
+        <OrderEta order={order} />
         <OrderTimeline
           status={order.status}
           created_at={order.created_at}
@@ -105,6 +124,24 @@ export default async function MiPedidoDetallePage({
           received_at={order.received_at}
         />
       </Card>
+
+      {/* Puntos del envío */}
+      {order.client_id && earnedPts > 0 && (
+        <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-3 text-sm">
+          <span className="text-lg">⭐</span>
+          <span className="text-foreground">
+            {isDelivered ? (
+              <>
+                Ganaste <span className="font-bold text-primary">+{earnedPts} puntos</span> con este envío.
+              </>
+            ) : (
+              <>
+                Ganarás <span className="font-bold text-primary">+{earnedPts} puntos</span> cuando se entregue.
+              </>
+            )}
+          </span>
+        </div>
+      )}
 
       {/* Código de entrega: dáselo a tu familia (solo mientras no está entregada) */}
       {!isDelivered &&
@@ -135,7 +172,16 @@ export default async function MiPedidoDetallePage({
           <Row label="Teléfono" value={order.beneficiary_phone} />
         )}
         {order.province && <Row label="Provincia" value={order.province} />}
-        <Row label="Moneda" value={order.delivery_currency || "—"} />
+        <Row
+          label="Cómo recibe"
+          value={`${order.delivery_currency || "—"}${
+            methodTag(order.delivery_currency, order.delivery_method)
+              ? ` · ${methodTag(order.delivery_currency, order.delivery_method)}`
+              : order.delivery_currency === "CUP"
+              ? " · efectivo"
+              : ""
+          }`}
+        />
         {order.note && <Row label="Nota" value={order.note} />}
       </Card>
 
@@ -176,6 +222,14 @@ export default async function MiPedidoDetallePage({
           <ShareTrackButton token={order.track_token} />
         )}
         {order.status === "pendiente" && <CancelOrderButton id={order.id} />}
+        {!isDelivered && order.status !== "rechazado" && (
+          <OrderContactButton
+            order={order}
+            phone={contact.phone}
+            brand={contact.businessName}
+            className="w-full justify-center py-2.5"
+          />
+        )}
         <EnviarRemesaCta
           rates={rates}
           pointsBalance={points.balance}

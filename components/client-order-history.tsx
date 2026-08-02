@@ -10,7 +10,7 @@ import {
   OrderStatusBadge,
   orderDisplay,
 } from "@/components/order-status-badge";
-import { usd, cn } from "@/lib/utils";
+import { usd, cn, methodTag, pointsForOrder } from "@/lib/utils";
 import type { Order, ExchangeRate } from "@/lib/types";
 
 type SendProps = {
@@ -19,14 +19,17 @@ type SendProps = {
   redeemMin: number;
   pointValue: number;
   beneficiaries: { name: string; phone: string | null; province: string | null }[];
+  transferBonusPct?: number | null;
 };
 
 export function ClientOrderHistory({
   orders,
   sendProps,
+  perUsd,
 }: {
   orders: Order[];
   sendProps?: SendProps;
+  perUsd?: number | null;
 }) {
   const [repeatOpen, setRepeatOpen] = useState(false);
   const [repeatInitial, setRepeatInitial] = useState<OrderInitial | undefined>();
@@ -145,6 +148,11 @@ export function ClientOrderHistory({
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-foreground">
                           {usd(Number(o.amount_usd))}
+                          {methodTag(o.delivery_currency, o.delivery_method) && (
+                            <span className="ml-1 text-xs font-semibold text-primary">
+                              {methodTag(o.delivery_currency, o.delivery_method)}
+                            </span>
+                          )}
                           <span className="ml-1 text-xs font-normal text-muted-foreground">
                             · {o.beneficiary_name || "—"}
                           </span>
@@ -154,6 +162,14 @@ export function ClientOrderHistory({
                             day: "numeric",
                             month: "short",
                           })}
+                          {(() => {
+                            const d = orderDisplay(o);
+                            return d === "entregado" || d === "recibido" ? (
+                              <span className="ml-1.5 font-semibold text-income">
+                                +{pointsForOrder(o.amount_usd, perUsd)} pts
+                              </span>
+                            ) : null;
+                          })()}
                         </p>
                       </div>
                       <OrderStatusBadge order={o} />
@@ -193,6 +209,7 @@ export function ClientOrderHistory({
             redeemMin={sendProps.redeemMin}
             pointValue={sendProps.pointValue}
             beneficiaries={sendProps.beneficiaries}
+            transferBonusPct={sendProps.transferBonusPct}
             initial={repeatInitial}
           />
         </Sheet>

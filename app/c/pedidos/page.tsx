@@ -5,7 +5,12 @@ import {
   getMyPoints,
   getMyBeneficiaries,
   getBusinessSettings,
+  getMyOperatorContact,
 } from "@/lib/data";
+import { OrderEta } from "@/components/order-eta";
+import { OrderContactButton } from "@/components/order-contact-button";
+import { PointsProgress } from "@/components/points-progress";
+import { methodTag, pointsForOrder } from "@/lib/utils";
 import { Card, PageHeader } from "@/components/ui";
 import {
   OrderStatusBadge,
@@ -35,7 +40,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MisPedidosPage() {
   const supabase = await createClient();
-  const [orders, rates, points, cfgRes, beneficiaries, settings] =
+  const [orders, rates, points, cfgRes, beneficiaries, settings, contact] =
     await Promise.all([
       getMyOrders(),
       getExchangeRates(),
@@ -43,7 +48,9 @@ export default async function MisPedidosPage() {
       supabase.rpc("my_client_config"),
       getMyBeneficiaries(),
       getBusinessSettings(),
+      getMyOperatorContact(),
     ]);
+  const perUsd = Number(settings.points_per_usd ?? 0.2) || 0.2;
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -192,6 +199,15 @@ export default async function MisPedidosPage() {
         />
       </div>
 
+      {/* Progreso hacia el próximo descuento por puntos */}
+      {points.balance > 0 && (
+        <PointsProgress
+          balance={points.balance}
+          redeemMin={redeemMin}
+          pointValue={pointValue}
+        />
+      )}
+
       {/* Otros activos */}
       {otherActive.length > 0 && (
         <section>
@@ -210,11 +226,17 @@ export default async function MisPedidosPage() {
                           en {o.delivery_currency}
                         </span>
                       ) : null}
+                      {methodTag(o.delivery_currency, o.delivery_method) && (
+                        <span className="ml-1 text-xs font-semibold text-primary">
+                          {methodTag(o.delivery_currency, o.delivery_method)}
+                        </span>
+                      )}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       Para {o.beneficiary_name || "—"}
                       {o.province ? ` · ${o.province}` : ""}
                     </p>
+                    <OrderEta order={o} className="mt-1" />
                     {o.discount_usd ? (
                       <p className="mt-0.5 text-xs font-semibold text-income">
                         🎁 Descuento por puntos: −{usd(Number(o.discount_usd))}
@@ -243,6 +265,11 @@ export default async function MisPedidosPage() {
                     <ShareTrackButton token={o.track_token} />
                   )}
                   {o.status === "pendiente" && <CancelOrderButton id={o.id} />}
+                  <OrderContactButton
+                    order={o}
+                    phone={contact.phone}
+                    brand={contact.businessName}
+                  />
                   <Link
                     href={`/c/pedidos/${o.id}`}
                     className="ml-auto flex items-center gap-0.5 text-xs font-semibold text-primary"
@@ -260,12 +287,14 @@ export default async function MisPedidosPage() {
       {history.length > 0 && (
         <ClientOrderHistory
           orders={history}
+          perUsd={perUsd}
           sendProps={{
             rates,
             pointsBalance: points.balance,
             redeemMin,
             pointValue,
             beneficiaries,
+            transferBonusPct: settings.transfer_bonus_pct,
           }}
         />
       )}

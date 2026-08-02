@@ -153,6 +153,39 @@ export function deliveryOptions(
   });
 }
 
+/** "hace 2 h", "hace 3 días", "hace un momento". Para tiempos recientes. */
+export function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const mins = Math.max(0, Math.floor((Date.now() - then) / 60000));
+  if (mins < 1) return "hace un momento";
+  if (mins < 60) return `hace ${mins} min`;
+  const h = Math.floor(mins / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  return `hace ${d} día${d !== 1 ? "s" : ""}`;
+}
+
+/** Puntos que otorga (o otorgó) un envío: piso(monto * puntos por USD). */
+export function pointsForOrder(
+  amountUsd: number | null | undefined,
+  perUsd: number | null | undefined
+): number {
+  const per = Number(perUsd);
+  return Math.floor((Number(amountUsd) || 0) * (per > 0 ? per : 0.2));
+}
+
+/** Etiqueta corta de la forma de entrega (solo marca la transferencia). */
+export function methodTag(
+  currency: string | null | undefined,
+  method: string | null | undefined
+): string | null {
+  return currency === "CUP" && method === "transferencia"
+    ? "🏦 transferencia"
+    : null;
+}
+
 /** Formatea una fecha ISO a formato legible es-ES. */
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return "—";

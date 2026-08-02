@@ -4,6 +4,7 @@ import { Card } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { localAmount } from "@/lib/utils";
 import { transferFactor } from "@/lib/calc";
+import { OrderEta } from "@/components/order-eta";
 import type { Order } from "@/lib/types";
 
 // Tarjeta destacada del envío en curso, con mini-seguimiento horizontal.
@@ -55,6 +56,7 @@ export function ActiveOrderCard({
             <p className="truncate text-xs text-muted-foreground">
               para {order.beneficiary_name || "tu familia"}
             </p>
+            <OrderEta order={order} className="mt-1" />
           </div>
           <ChevronRight className="h-5 w-5 shrink-0 text-primary" />
         </div>
