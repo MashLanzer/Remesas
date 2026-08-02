@@ -45,7 +45,7 @@ export function ClienteNav({
   const right = items.slice(2);
 
   return (
-    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/90 backdrop-blur">
+    <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background">
       <div className="relative mx-auto flex max-w-md items-stretch justify-around">
         {left.map((item) => (
           <NavItem key={item.href} item={item} pathname={pathname} saver={saver} t={t} />
