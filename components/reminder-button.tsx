@@ -50,15 +50,16 @@ export function ReminderButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        title={active && label ? `Recordatorio: ${label}` : "Recordarme entregar"}
         className={
-          "mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border py-2.5 text-sm font-semibold transition active:scale-[0.98] " +
+          "flex w-full flex-col items-center justify-center gap-1 rounded-2xl border py-3 text-xs font-semibold transition active:scale-95 " +
           (active
             ? "border-primary/30 bg-primary/5 text-primary"
             : "border-border text-muted-foreground")
         }
       >
-        <Bell className="h-4 w-4" />
-        {active ? `Recordatorio: ${label}` : "Recordarme entregar"}
+        <Bell className="h-5 w-5" />
+        {active ? "Recordatorio ✓" : "Recordar"}
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="Recordatorio de entrega">

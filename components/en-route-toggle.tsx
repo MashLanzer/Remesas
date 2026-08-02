@@ -29,7 +29,7 @@ export function EnRouteToggle({
 
   if (enRoute) {
     return (
-      <div className="mb-3 space-y-2 rounded-2xl border border-info/25 bg-info/5 p-3.5">
+      <div className="space-y-2 rounded-2xl border border-info/25 bg-info/5 p-3.5">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info/10 text-info">
             <Navigation className="h-5 w-5" />

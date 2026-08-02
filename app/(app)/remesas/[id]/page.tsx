@@ -467,35 +467,34 @@ export default async function RemesaDetailPage({
         />
       </div>
 
-      {/* Repartidor: "en camino" + confirmación de entrega cuando está pendiente */}
+      {/* Repartidor: reparto en curso + confirmación de entrega (pendiente) */}
       {!ctx.isOperador && r.status === "pendiente" && (
-        <EnRouteToggle
-          id={r.id}
-          enRoute={!!r.en_route_at}
-          beneficiaryName={r.beneficiary?.name ?? null}
-          beneficiaryPhone={r.beneficiary?.phone ?? null}
-        />
-      )}
-      {!ctx.isOperador && r.status === "pendiente" && (
-        <ShareLocation remittanceId={r.id} />
-      )}
-      {!ctx.isOperador && r.status === "pendiente" && (
-        <DeliverSheet
-          id={r.id}
-          beneficiaryName={r.beneficiary?.name ?? null}
-          province={r.beneficiary?.province ?? null}
-          amountUsd={usd(r.amount_usd)}
-          delivered={`${localAmount(r.local_amount)} ${r.delivery_currency}`}
-        />
-      )}
-      {!ctx.isOperador && r.status === "pendiente" && (
-        <ReminderButton id={r.id} reminderAt={r.reminder_at ?? null} />
-      )}
-      {!ctx.isOperador && r.status === "pendiente" && (
-        <IncidentButton id={r.id} />
-      )}
-      {!ctx.isOperador && r.status === "pendiente" && r.deliverer_id && (
-        <ReturnDeliveryButton id={r.id} />
+        <div className="mb-4 space-y-3">
+          {/* Controles de reparto en curso */}
+          <EnRouteToggle
+            id={r.id}
+            enRoute={!!r.en_route_at}
+            beneficiaryName={r.beneficiary?.name ?? null}
+            beneficiaryPhone={r.beneficiary?.phone ?? null}
+          />
+          <ShareLocation remittanceId={r.id} />
+
+          {/* Acción principal */}
+          <DeliverSheet
+            id={r.id}
+            beneficiaryName={r.beneficiary?.name ?? null}
+            province={r.beneficiary?.province ?? null}
+            amountUsd={usd(r.amount_usd)}
+            delivered={`${localAmount(r.local_amount)} ${r.delivery_currency}`}
+          />
+
+          {/* Acciones secundarias, en fila compacta */}
+          <div className="grid grid-cols-3 gap-2">
+            <ReminderButton id={r.id} reminderAt={r.reminder_at ?? null} />
+            <IncidentButton id={r.id} />
+            {r.deliverer_id && <ReturnDeliveryButton id={r.id} />}
+          </div>
+        </div>
       )}
 
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

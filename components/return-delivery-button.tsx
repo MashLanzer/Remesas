@@ -25,9 +25,9 @@ export function ReturnDeliveryButton({ id }: { id: string }) {
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border py-2.5 text-sm font-semibold text-muted-foreground transition active:scale-[0.98] disabled:opacity-50"
+      className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-border py-3 text-xs font-semibold text-muted-foreground transition active:scale-95 disabled:opacity-50"
     >
-      <Undo2 className="h-4 w-4" /> Devolver al operador
+      <Undo2 className="h-5 w-5" /> Devolver
     </button>
   );
 }

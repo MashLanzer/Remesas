@@ -32,9 +32,9 @@ export function IncidentButton({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm font-semibold text-warning transition active:scale-[0.98]"
+        className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-warning/30 bg-warning/5 py-3 text-xs font-semibold text-warning transition active:scale-95"
       >
-        <AlertTriangle className="h-4 w-4" /> No pude entregar
+        <AlertTriangle className="h-5 w-5" /> No pude
       </button>
 
       <Sheet

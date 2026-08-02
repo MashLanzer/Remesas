@@ -34,7 +34,7 @@ export function DeliverSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mb-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-income px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-income/30 transition active:scale-[0.98]"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-income px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-income/30 transition active:scale-[0.98]"
       >
         <Check className="h-5 w-5" /> Marcar como entregada
       </button>
