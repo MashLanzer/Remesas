@@ -17,8 +17,12 @@ import { updateClientProfile } from "@/app/actions";
 import { getMyOrders, getMyPoints, getMyOperatorContact } from "@/lib/data";
 import { orderDisplay } from "@/components/order-status-badge";
 import { SavedBeneficiaries } from "@/components/saved-beneficiaries";
+import { ThemeSwitch } from "@/components/theme-switch";
+import { DataModeSwitch } from "@/components/data-mode-switch";
+import { ClearLocalData } from "@/components/clear-local-data";
 import { usd } from "@/lib/utils";
 import { Card, Field, Input, Button } from "@/components/ui";
+import { Settings } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -160,6 +164,20 @@ export default async function ClientePerfilPage() {
       </Card>
 
       <SavedBeneficiaries />
+
+      {/* Ajustes de la app */}
+      <section>
+        <h2 className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <Settings className="h-4 w-4" /> Ajustes
+        </h2>
+        <Card className="space-y-4">
+          <ThemeSwitch />
+          <div className="border-t border-border" />
+          <DataModeSwitch />
+          <div className="border-t border-border" />
+          <ClearLocalData />
+        </Card>
+      </section>
 
       {/* Ayuda y contacto */}
       <section>
