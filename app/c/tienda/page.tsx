@@ -50,7 +50,12 @@ export default async function TiendaPage() {
           </p>
         </div>
       </div>
-      <PackagesView packages={sortedPackages} rates={rates} rules={rules} />
+      <PackagesView
+        packages={sortedPackages}
+        rates={rates}
+        rules={rules}
+        transferBonusPct={settings.transfer_bonus_pct}
+      />
     </div>
   );
 }
