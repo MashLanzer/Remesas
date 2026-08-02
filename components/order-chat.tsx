@@ -17,6 +17,7 @@ export function OrderChat({
   orderId,
   me,
   flow = false,
+  messagesClass,
 }: {
   orderId: string;
   me: "cliente" | "negocio";
@@ -25,6 +26,9 @@ export function OrderChat({
   // anidado que provoca artefactos de compositing (fantasmas) en el WebView de
   // Android. En la hoja del panel se deja el scroll acotado (flow=false).
   flow?: boolean;
+  // Alto del área de mensajes en modo flujo (por defecto min-h-[6rem]). Permite
+  // que el chat ocupe casi toda la pantalla en su pestaña.
+  messagesClass?: string;
 }) {
   const t = useT();
   const [messages, setMessages] = useState<OrderMessage[]>([]);
@@ -69,7 +73,9 @@ export function OrderChat({
       <div
         className={
           "space-y-2 rounded-xl bg-muted/40 p-3 " +
-          (flow ? "min-h-[6rem]" : "max-h-72 min-h-[8rem] overflow-y-auto")
+          (flow
+            ? messagesClass ?? "min-h-[6rem]"
+            : "max-h-72 min-h-[8rem] overflow-y-auto")
         }
       >
         {!loaded ? (

@@ -26,7 +26,6 @@ import {
 } from "@/components/order-status-badge";
 import { OrderTimeline } from "@/components/order-timeline";
 import { OrderEta } from "@/components/order-eta";
-import { OrderContactButton } from "@/components/order-contact-button";
 import { CancelOrderButton } from "@/components/cancel-order-button";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { ShareReceipt } from "@/components/share-receipt";
@@ -198,17 +197,20 @@ export default async function MiPedidoDetallePage({
         />
       )}
 
-      {/* ¿Cuándo llega? + línea de tiempo */}
-      <Card className="space-y-3">
-        <OrderEta order={order} />
-        <OrderTimeline
-          status={order.status}
-          created_at={order.created_at}
-          accepted_at={order.accepted_at}
-          delivered_at={order.delivered_at}
-          received_at={order.received_at}
-        />
-      </Card>
+      {/* ¿Cuándo llega? + línea de tiempo (el timeline ya avisa del rechazo,
+          así que en pedidos rechazados se omite para no duplicar el cartel) */}
+      {!isRejected && (
+        <Card className="space-y-3">
+          <OrderEta order={order} />
+          <OrderTimeline
+            status={order.status}
+            created_at={order.created_at}
+            accepted_at={order.accepted_at}
+            delivered_at={order.delivered_at}
+            received_at={order.received_at}
+          />
+        </Card>
+      )}
 
       {/* Puntos del envío (no aplica a rechazado/cancelado) */}
       {order.client_id && earnedPts > 0 && !isRejected && (
@@ -241,24 +243,38 @@ export default async function MiPedidoDetallePage({
         <ShareTrackButton token={order.track_token} />
       )}
       {order.status === "pendiente" && <CancelOrderButton id={order.id} />}
+
+      {/* Acción principal: repetir el envío */}
+      <EnviarRemesaCta
+        rates={rates}
+        pointsBalance={points.balance}
+        redeemMin={redeemMin}
+        pointValue={pointValue}
+        beneficiaries={beneficiaries}
+        variant="primary"
+        label={tr("Enviar otra vez")}
+        initial={{
+          amount: String(order.amount_usd),
+          currency: order.delivery_currency || undefined,
+          name: order.beneficiary_name || undefined,
+          phone: order.beneficiary_phone || undefined,
+          province: order.province || undefined,
+          address: order.beneficiary_address || undefined,
+        }}
+      />
     </div>
   );
 
-  // ───── Pestaña: Chat ─────
+  // ───── Pestaña: Chat (ocupa casi toda la pantalla) ─────
   const chat = (
-    <div className="space-y-3">
-      <Card>
-        <OrderChat orderId={order.id} me="cliente" flow />
-      </Card>
-      {!isDelivered && (
-        <OrderContactButton
-          order={order}
-          phone={contact.phone}
-          brand={contact.businessName}
-          className="w-full justify-center py-2.5"
-        />
-      )}
-    </div>
+    <Card>
+      <OrderChat
+        orderId={order.id}
+        me="cliente"
+        flow
+        messagesClass="min-h-[calc(100dvh-22rem)]"
+      />
+    </Card>
   );
 
   // ───── Pestaña: Detalles ─────
@@ -389,25 +405,6 @@ export default async function MiPedidoDetallePage({
           { key: "chat", label: tr("Chat"), badge: unreadCount, content: chat },
           { key: "detalles", label: tr("Detalles"), content: detalles },
         ]}
-      />
-
-      {/* Acción principal siempre visible */}
-      <EnviarRemesaCta
-        rates={rates}
-        pointsBalance={points.balance}
-        redeemMin={redeemMin}
-        pointValue={pointValue}
-        beneficiaries={beneficiaries}
-        variant="primary"
-        label={tr("Enviar otra vez")}
-        initial={{
-          amount: String(order.amount_usd),
-          currency: order.delivery_currency || undefined,
-          name: order.beneficiary_name || undefined,
-          phone: order.beneficiary_phone || undefined,
-          province: order.province || undefined,
-          address: order.beneficiary_address || undefined,
-        }}
       />
     </div>
   );
