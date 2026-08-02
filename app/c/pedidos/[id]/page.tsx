@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, KeyRound, BadgeCheck, MessageCircle, MapPin } from "lucide-react";
 import { OrderChat } from "@/components/order-chat";
-import { DeliveryMap } from "@/components/delivery-map";
+import { LiveMap } from "@/components/live-map";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMyOrder,
@@ -173,15 +173,10 @@ export default async function MiPedidoDetallePage({
               {tr("Seguimiento en el mapa")}
             </p>
           </div>
-          <DeliveryMap
+          <LiveMap
+            remittanceId={order.remittance_id}
             province={order.province}
-            stage={
-              display === "entregado" || display === "recibido"
-                ? "entregado"
-                : display === "en_reparto"
-                ? "en_reparto"
-                : "pendiente"
-            }
+            live={display === "en_reparto"}
           />
         </Card>
       )}

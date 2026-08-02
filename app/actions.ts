@@ -1004,6 +1004,45 @@ export async function deleteSavedBeneficiary(id: string): Promise<void> {
     .eq("user_id", ctx.userId);
 }
 
+// ===== Ubicación en vivo del reparto (migración 0068) =====
+export type DeliveryLocation = {
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  updated_at: string;
+};
+
+// El repartidor (personal) actualiza su posición para una remesa.
+export async function updateDeliveryLocation(
+  remittanceId: string,
+  lat: number,
+  lng: number,
+  accuracy?: number | null
+): Promise<void> {
+  if (!remittanceId || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  const supabase = await createClient();
+  await supabase.rpc("update_delivery_location", {
+    p_remittance: remittanceId,
+    p_lat: lat,
+    p_lng: lng,
+    p_accuracy: accuracy ?? null,
+  });
+}
+
+// El cliente (o el personal) lee la última posición del repartidor.
+export async function getDeliveryLocation(
+  remittanceId: string
+): Promise<DeliveryLocation | null> {
+  if (!remittanceId) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_delivery_location", {
+    p_remittance: remittanceId,
+  });
+  if (error) return null;
+  const row = (Array.isArray(data) ? data[0] : data) as DeliveryLocation | null;
+  return row ?? null;
+}
+
 // ===== Chat por pedido (cliente ↔ negocio), migración 0067 =====
 export type OrderMessage = {
   id: string;

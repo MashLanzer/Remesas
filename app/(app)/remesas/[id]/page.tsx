@@ -26,6 +26,7 @@ import { RemittanceActions } from "@/components/remittance-actions";
 import { RemittanceStepper } from "@/components/remittance-stepper";
 import { DeliverSheet } from "@/components/deliver-sheet";
 import { EnRouteToggle } from "@/components/en-route-toggle";
+import { ShareLocation } from "@/components/share-location";
 import { IncidentButton } from "@/components/incident-button";
 import { ReturnDeliveryButton } from "@/components/return-delivery-button";
 import { ReminderButton } from "@/components/reminder-button";
@@ -474,6 +475,9 @@ export default async function RemesaDetailPage({
           beneficiaryName={r.beneficiary?.name ?? null}
           beneficiaryPhone={r.beneficiary?.phone ?? null}
         />
+      )}
+      {!ctx.isOperador && r.status === "pendiente" && (
+        <ShareLocation remittanceId={r.id} />
       )}
       {!ctx.isOperador && r.status === "pendiente" && (
         <DeliverSheet

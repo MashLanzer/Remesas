@@ -497,6 +497,10 @@ export const EN: Record<string, string> = {
   "En reparto en": "Out for delivery in",
   "Preparando para": "Preparing for",
   "Destino en Cuba": "Destination in Cuba",
+  "Repartidor en vivo": "Courier live",
+  "Esperando la ubicación del repartidor…":
+    "Waiting for the courier's location…",
+  "Destino de tu envío": "Your transfer's destination",
 
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
