@@ -5,6 +5,8 @@ import { Gift, Send } from "lucide-react";
 import { Card, Button, Field, Input, Textarea, EmptyState } from "@/components/ui";
 import { IlluStore } from "@/components/illustrations";
 import { Sheet } from "@/components/sheet";
+import { FavHeart } from "@/components/fav-heart";
+import { useFavorites } from "@/lib/use-favorites";
 import { createOrder } from "@/app/actions";
 import { usd, localAmount, packageQuote, deliveryOptions } from "@/lib/utils";
 import { convertDelivered, type CommissionRules } from "@/lib/calc";
@@ -45,6 +47,7 @@ export function PackagesView({
   const [selected, setSelected] = useState<RemittancePackage | null>(null);
   // Opción elegida al pedir (moneda + forma), ej. "CUP-transferencia".
   const [orderKey, setOrderKey] = useState<string>("");
+  const { isFav, toggle } = useFavorites("packages");
 
   const fx = (p: RemittancePackage) =>
     p.pricing_mode === "fixed"
@@ -66,6 +69,20 @@ export function PackagesView({
   );
   const [selKey, setSelKey] = useState<string>(options[0]?.key ?? "USD-efectivo");
   const sel = options.find((o) => o.key === selKey) ?? options[0];
+
+  // Los favoritos del cliente suben al inicio, conservando el orden original
+  // (por popularidad) para desempatar de forma estable.
+  const ordered = useMemo(
+    () =>
+      packages
+        .map((p, i) => ({ p, i }))
+        .sort(
+          (a, b) =>
+            (isFav(b.p.id) ? 1 : 0) - (isFav(a.p.id) ? 1 : 0) || a.i - b.i
+        )
+        .map((x) => x.p),
+    [packages, isFav]
+  );
 
   if (packages.length === 0) {
     return (
@@ -104,7 +121,7 @@ export function PackagesView({
         </div>
       )}
 
-      {packages.map((p) => {
+      {ordered.map((p) => {
         const q = packageQuote(
           p.amount_usd,
           p.delivery_currency,
@@ -163,6 +180,7 @@ export function PackagesView({
                     </p>
                   )}
                 </div>
+                <FavHeart active={isFav(p.id)} onToggle={() => toggle(p.id)} />
               </div>
 
               {/* Pagas → Recibe, bien claro */}

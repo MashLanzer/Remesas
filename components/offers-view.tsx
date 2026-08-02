@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Star, Share2, Gift, Check } from "lucide-react";
 import { Card } from "@/components/ui";
 import { Sheet } from "@/components/sheet";
+import { FavHeart } from "@/components/fav-heart";
+import { useFavorites } from "@/lib/use-favorites";
 import { recordOfferView } from "@/app/actions";
 import { cn } from "@/lib/utils";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
@@ -64,6 +66,23 @@ export function OffersView({
 }) {
   const [selected, setSelected] = useState<Offer | null>(null);
   const [copied, setCopied] = useState(false);
+  const { isFav, toggle } = useFavorites("offers");
+
+  // La destacada se muestra como banner grande; el resto como lista, con los
+  // favoritos del cliente arriba (orden estable).
+  const banner = offers[0]?.featured ? offers[0] : null;
+  const rest = banner ? offers.slice(1) : offers;
+  const list = useMemo(
+    () =>
+      rest
+        .map((o, i) => ({ o, i }))
+        .sort(
+          (a, b) =>
+            (isFav(b.o.id) ? 1 : 0) - (isFav(a.o.id) ? 1 : 0) || a.i - b.i
+        )
+        .map((x) => x.o),
+    [rest, isFav]
+  );
 
   if (offers.length === 0) return null;
 
@@ -99,10 +118,6 @@ export function OffersView({
     recordOfferView(o.id).catch(() => {});
   }
 
-  // La destacada se muestra como banner grande; el resto como lista.
-  const banner = offers[0]?.featured ? offers[0] : null;
-  const list = banner ? offers.slice(1) : offers;
-
   return (
     <div className="space-y-3">
       {banner && (
@@ -111,6 +126,13 @@ export function OffersView({
           className="block w-full text-left"
         >
           <div className="hero-gradient relative overflow-hidden rounded-3xl text-white shadow-lg transition active:scale-[0.99]">
+            <div className="absolute right-3 top-3 z-10">
+              <FavHeart
+                active={isFav(banner.id)}
+                onToggle={() => toggle(banner.id)}
+                className="bg-white/20 text-white backdrop-blur hover:text-white"
+              />
+            </div>
             {banner.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -192,6 +214,7 @@ export function OffersView({
                     <p className="mt-1 text-[11px] font-medium text-primary">{v}</p>
                   )}
                 </div>
+                <FavHeart active={isFav(o.id)} onToggle={() => toggle(o.id)} />
               </div>
             </Card>
           </button>
