@@ -21,6 +21,7 @@ import { PinLock } from "@/components/pin-lock";
 import { LangProvider } from "@/components/lang-provider";
 import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { ScrollReset } from "@/components/scroll-reset";
+import { BrandHueRoot } from "@/components/brand-hue-root";
 import { getLang } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
@@ -80,13 +81,14 @@ export default async function ClienteLayout({
   return (
     <LangProvider lang={lang}>
     <div
-      className="flex h-screen flex-col overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh]"
+      className="brand-scope flex h-screen flex-col overflow-hidden bg-background supports-[height:100dvh]:h-[100dvh]"
       style={
         contact.brandHue != null
           ? ({ "--brand-hue": String(contact.brandHue) } as React.CSSProperties)
           : undefined
       }
     >
+      <BrandHueRoot hue={contact.brandHue ?? null} />
       <BodyScrollLock />
       <PinLock />
       <ClienteOnboarding />
