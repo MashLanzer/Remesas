@@ -143,6 +143,8 @@ export interface Order {
   beneficiary_phone: string | null;
   province: string | null;
   delivery_currency: DeliveryCurrency | null;
+  // Forma de entrega elegida (0056). Solo aplica a CUP. null = efectivo.
+  delivery_method?: DeliveryMethod | null;
   note: string | null;
   status: OrderStatus;
   accepted_by: string | null;
@@ -233,6 +235,11 @@ export interface Announcement {
 export const DELIVERY_CURRENCIES = ["CUP", "USD", "MLC", "EUR"] as const;
 export type DeliveryCurrency = (typeof DELIVERY_CURRENCIES)[number];
 
+// Formas de entrega (0056). "transferencia" solo aplica a CUP y vale más que
+// "efectivo" (efectivo + transfer_bonus_pct%). Las demás monedas van en efectivo.
+export const DELIVERY_METHODS = ["efectivo", "transferencia"] as const;
+export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
+
 // Provincias de Cuba, para la zona de cobertura del repartidor.
 export const CUBA_PROVINCES = [
   "Pinar del Río",
@@ -319,6 +326,8 @@ export interface Remittance {
   total_received: number;
   payment_method: PaymentMethod | null;
   delivery_currency: DeliveryCurrency;
+  // Forma de entrega (0056). Solo aplica a CUP. null = efectivo.
+  delivery_method?: DeliveryMethod | null;
   exchange_rate: number;
   local_amount: number;
   exchange_profit: number; // ganancia extra por diferencial de cambio (spread)
@@ -365,6 +374,9 @@ export interface BusinessSettings {
   redeem_min_points?: number | null;
   redeem_max_pct?: number | null;
   referral_points?: number | null;
+  // Nuevo método de entrega (0056): % extra de la transferencia sobre el
+  // efectivo, solo para CUP. transferencia = efectivo * (1 + pct/100).
+  transfer_bonus_pct?: number | null;
   updated_at: string;
 }
 
@@ -386,6 +398,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   partner_name: null,
   settle_threshold: null,
   monthly_goal: null,
+  transfer_bonus_pct: 10,
   updated_at: "",
 };
 

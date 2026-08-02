@@ -40,6 +40,8 @@ const COLUMN_CHECKS: ColCheck[] = [
   { table: "offers", column: "auto_apply", feature: "Ofertas con descuento automático", migration: "0053" },
   { table: "remittance_packages", column: "pricing_mode", feature: "Paquetes con precio fijo", migration: "0054" },
   { table: "remittance_packages", column: "image_url", feature: "Foto en los paquetes", migration: "0055" },
+  { table: "business_settings", column: "transfer_bonus_pct", feature: "Entrega por transferencia (+% CUP)", migration: "0056" },
+  { table: "orders", column: "delivery_method", feature: "Forma de entrega (efectivo/transferencia)", migration: "0056" },
 ];
 
 type TableCheck = { table: string; probe: string; feature: string; migration: string };
