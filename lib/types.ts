@@ -240,6 +240,34 @@ export interface Announcement {
   created_at: string;
 }
 
+export interface VaquitaContribution {
+  id: string;
+  vaquita_id: string;
+  contributor_name: string;
+  amount_usd: number;
+  proof_url: string | null;
+  status: "informado" | "confirmado";
+  created_at: string;
+}
+
+export interface Vaquita {
+  id: string;
+  operator_id: string | null;
+  organizer_client_id: string | null;
+  title: string | null;
+  beneficiary_name: string;
+  beneficiary_phone: string | null;
+  province: string | null;
+  beneficiary_address: string | null;
+  delivery_currency: string;
+  goal_usd: number;
+  deadline: string | null;
+  status: "abierta" | "enviada" | "cerrada";
+  share_token: string;
+  order_id: string | null;
+  created_at: string;
+}
+
 export const DELIVERY_CURRENCIES = ["CUP", "USD", "MLC", "EUR"] as const;
 export type DeliveryCurrency = (typeof DELIVERY_CURRENCIES)[number];
 

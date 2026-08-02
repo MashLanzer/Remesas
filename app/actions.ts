@@ -1292,6 +1292,170 @@ export async function clientUploadPaymentProof(
   return url;
 }
 
+// ===== Vaquita familiar =====
+
+// El cliente organizador crea una vaquita para un beneficiario. Genera el token
+// del enlace público y redirige al detalle.
+export async function createVaquita(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
+  const beneficiary = str(formData.get("beneficiary_name"));
+  if (!beneficiary) return;
+  const token = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  const currency = str(formData.get("delivery_currency")) || "CUP";
+  const row = {
+    operator_id: ctx.tenantId,
+    organizer_client_id: ctx.userId,
+    title: str(formData.get("title")) || null,
+    beneficiary_name: beneficiary,
+    beneficiary_phone: str(formData.get("beneficiary_phone")) || null,
+    province: str(formData.get("province")) || null,
+    beneficiary_address: str(formData.get("beneficiary_address")) || null,
+    delivery_currency: currency,
+    goal_usd: num(formData.get("goal_usd")) || 0,
+    deadline: str(formData.get("deadline")) || null,
+    share_token: token,
+    status: "abierta",
+  };
+  const { data, error } = await supabase
+    .from("vaquitas")
+    .insert(row)
+    .select("id")
+    .single();
+  if (error) return;
+  const id = (data as { id?: string } | null)?.id;
+  revalidatePath("/c/vaquita");
+  if (id) redirect(`/c/vaquita/${id}`);
+}
+
+// Aporte por el enlace público (sin cuenta). Sube el comprobante (opcional) y
+// registra el aporte vía RPC. Devuelve ok.
+export async function contributeVaquita(
+  token: string,
+  formData: FormData
+): Promise<{ ok: boolean }> {
+  const supabase = await createClient();
+  const name = str(formData.get("name"));
+  const amount = num(formData.get("amount"));
+  if (!token || !name || !(amount > 0)) return { ok: false };
+
+  let proofUrl: string | null = null;
+  const file = formData.get("proof");
+  if (file instanceof File && file.size > 0) {
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const path = `vaquitas/${token}/c-${Date.now()}.${ext}`;
+    const up = await supabase.storage
+      .from("receipts")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (!up.error) {
+      proofUrl = supabase.storage.from("receipts").getPublicUrl(path).data
+        .publicUrl;
+    }
+  }
+
+  const { data, error } = await supabase.rpc("vaquita_contribute", {
+    p_token: token,
+    p_name: name,
+    p_amount: amount,
+    p_proof: proofUrl,
+  });
+  if (error || !data) return { ok: false };
+  revalidatePath(`/v/${token}`);
+  return { ok: true };
+}
+
+// El personal confirma que recibió un aporte.
+export async function confirmVaquitaContribution(id: string): Promise<void> {
+  if (!id) return;
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!isStaff(ctx)) return;
+  await supabase
+    .from("vaquita_contributions")
+    .update({ status: "confirmado" })
+    .eq("id", id);
+  revalidatePath("/vaquitas");
+}
+
+// El organizador convierte la vaquita en UN pedido por el total aportado.
+export async function convertVaquitaToOrder(vaquitaId: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !ctx.tenantId) return;
+
+  const { data: vRow } = await supabase
+    .from("vaquitas")
+    .select("*")
+    .eq("id", vaquitaId)
+    .maybeSingle();
+  const v = vRow as {
+    organizer_client_id?: string;
+    status?: string;
+    beneficiary_name?: string;
+    beneficiary_phone?: string | null;
+    province?: string | null;
+    beneficiary_address?: string | null;
+    delivery_currency?: string;
+    title?: string | null;
+  } | null;
+  if (!v || v.organizer_client_id !== ctx.userId || v.status !== "abierta")
+    return;
+
+  const { data: cRows } = await supabase
+    .from("vaquita_contributions")
+    .select("amount_usd")
+    .eq("vaquita_id", vaquitaId);
+  const total = ((cRows as { amount_usd: number }[]) ?? []).reduce(
+    (s, x) => s + Number(x.amount_usd),
+    0
+  );
+  if (total <= 0) return;
+
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", ctx.userId)
+    .single();
+  const p = (prof ?? {}) as { full_name?: string | null; phone?: string | null };
+
+  const orderRow: Record<string, unknown> = {
+    operator_id: ctx.tenantId,
+    client_id: ctx.userId,
+    client_name: p.full_name ?? null,
+    client_phone: p.phone ?? null,
+    amount_usd: total,
+    beneficiary_name: v.beneficiary_name,
+    beneficiary_phone: v.beneficiary_phone ?? null,
+    province: v.province ?? null,
+    beneficiary_address: v.beneficiary_address ?? null,
+    delivery_currency: v.delivery_currency ?? "CUP",
+    note: `Vaquita familiar${v.title ? `: ${v.title}` : ""}`,
+    status: "pendiente",
+  };
+  const ins = await supabase.from("orders").insert(orderRow).select("id").single();
+  let orderId: string | null = (ins.data as { id?: string } | null)?.id ?? null;
+  if (ins.error) {
+    delete orderRow.beneficiary_address;
+    const retry = await supabase
+      .from("orders")
+      .insert(orderRow)
+      .select("id")
+      .single();
+    orderId = (retry.data as { id?: string } | null)?.id ?? null;
+  }
+
+  await supabase
+    .from("vaquitas")
+    .update({ status: "enviada", order_id: orderId })
+    .eq("id", vaquitaId)
+    .eq("organizer_client_id", ctx.userId);
+
+  revalidatePath(`/c/vaquita/${vaquitaId}`);
+  revalidatePath("/c/pedidos");
+  if (orderId) redirect(`/c/pedidos/${orderId}`);
+}
+
 export type ReferralFriend = {
   name: string;
   status: "premiado" | "activo" | "registrado";

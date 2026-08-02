@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Heart,
   MessageSquare,
+  Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadOrderCounts } from "@/app/actions";
@@ -401,6 +402,24 @@ export default async function ClienteHome() {
 
       {/* Herramientas: alerta de tasa + recordatorio (chips que abren su hoja) */}
       <HomeTools rates={rates} sendProps={sendProps} />
+
+      {/* Vaquita familiar: juntar entre varios para un envío */}
+      <Link href="/c/vaquita" className="block">
+        <Card className="flex items-center gap-3 p-3.5 transition active:scale-[0.99]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Users className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-foreground">
+              {t("Vaquita familiar")}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {t("Junten entre varios para un mismo envío")}
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Card>
+      </Link>
 
       {/* Mis pedidos recientes (solo si hay) */}
       {recentOrders.length > 0 && (

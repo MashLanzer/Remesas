@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Boxes, Megaphone, Inbox, Bell, ChevronRight } from "lucide-react";
+import { ArrowLeft, Boxes, Megaphone, Inbox, Bell, Users, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   getOffers,
@@ -72,6 +72,12 @@ export default async function GestionPage() {
                 }`
               : "Publica avisos en la app del cliente"
           }
+        />
+        <HubCard
+          href="/vaquitas"
+          icon={Users}
+          title="Vaquitas familiares"
+          subtitle="Botes que juntan varios para un envío"
         />
       </div>
     </div>

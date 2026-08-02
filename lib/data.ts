@@ -527,7 +527,11 @@ export async function getMyReferral(): Promise<{
 }
 
 // === Anuncios del operador ===
-import type { Announcement } from "@/lib/types";
+import type {
+  Announcement,
+  Vaquita,
+  VaquitaContribution,
+} from "@/lib/types";
 
 // Anuncios activos del negocio del usuario para el INICIO DEL CLIENTE.
 // Filtra por audiencia en JS para ser tolerante si la columna aún no existe
@@ -585,6 +589,87 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     .order("created_at", { ascending: false });
   if (error) return [];
   return (data as Announcement[]) ?? [];
+}
+
+// === Vaquita familiar ===
+
+export type VaquitaWithRaised = Vaquita & { raised: number };
+export type VaquitaFull = {
+  vaquita: Vaquita;
+  contributions: VaquitaContribution[];
+  raised: number;
+};
+export type OperatorVaquita = Vaquita & {
+  raised: number;
+  contributions: VaquitaContribution[];
+};
+
+// Vaquitas del cliente organizador (con el total aportado). Tolerante si la
+// tabla aún no existe (migración 0074).
+export async function getMyVaquitas(): Promise<VaquitaWithRaised[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("vaquitas")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const vaquitas = (data as Vaquita[]) ?? [];
+  if (vaquitas.length === 0) return [];
+  const ids = vaquitas.map((v) => v.id);
+  const { data: c } = await supabase
+    .from("vaquita_contributions")
+    .select("vaquita_id, amount_usd")
+    .in("vaquita_id", ids);
+  const raised: Record<string, number> = {};
+  for (const x of (c as { vaquita_id: string; amount_usd: number }[]) ?? [])
+    raised[x.vaquita_id] = (raised[x.vaquita_id] ?? 0) + Number(x.amount_usd);
+  return vaquitas.map((v) => ({ ...v, raised: raised[v.id] ?? 0 }));
+}
+
+// Una vaquita con sus aportes (organizador o personal del negocio).
+export async function getVaquita(id: string): Promise<VaquitaFull | null> {
+  const supabase = await createClient();
+  const { data: v } = await supabase
+    .from("vaquitas")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!v) return null;
+  const { data: c } = await supabase
+    .from("vaquita_contributions")
+    .select("*")
+    .eq("vaquita_id", id)
+    .order("created_at", { ascending: true });
+  const contributions = (c as VaquitaContribution[]) ?? [];
+  const raised = contributions.reduce((s, x) => s + Number(x.amount_usd), 0);
+  return { vaquita: v as Vaquita, contributions, raised };
+}
+
+// Vaquitas del negocio (panel del operador), con aportes.
+export async function getOperatorVaquitas(): Promise<OperatorVaquita[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.tenantId) return [];
+  const { data } = await supabase
+    .from("vaquitas")
+    .select("*")
+    .eq("operator_id", ctx.tenantId)
+    .order("created_at", { ascending: false });
+  const vaquitas = (data as Vaquita[]) ?? [];
+  if (vaquitas.length === 0) return [];
+  const ids = vaquitas.map((v) => v.id);
+  const { data: c } = await supabase
+    .from("vaquita_contributions")
+    .select("*")
+    .in("vaquita_id", ids)
+    .order("created_at", { ascending: true });
+  const byV: Record<string, VaquitaContribution[]> = {};
+  for (const x of (c as VaquitaContribution[]) ?? [])
+    (byV[x.vaquita_id] ??= []).push(x);
+  return vaquitas.map((v) => ({
+    ...v,
+    contributions: byV[v.id] ?? [],
+    raised: (byV[v.id] ?? []).reduce((s, x) => s + Number(x.amount_usd), 0),
+  }));
 }
 
 // === Reseñas (⭐) ===
