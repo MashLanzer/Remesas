@@ -247,6 +247,25 @@ export default async function ClienteHome() {
       {/* Enviar rápido a tus beneficiarios */}
       <QuickSendRow {...sendProps} />
 
+      {/* Anuncios / ofertas (justo debajo de Enviar rápido) */}
+      {featuredOffers.length > 0 && (
+        <section>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
+            <span className="h-4 w-1 rounded-full bg-primary" />
+            <Star className="h-4 w-4 text-primary" /> Anuncios
+          </h2>
+          <OffersView
+            offers={featuredOffers}
+            sendProps={sendProps}
+            referral={
+              referral?.code
+                ? { code: referral.code, bonus: referral.bonus }
+                : null
+            }
+          />
+        </section>
+      )}
+
       {/* Envío en curso destacado */}
       {featuredActive && (
         <ActiveOrderCard
@@ -282,16 +301,6 @@ export default async function ClienteHome() {
             {deliveredCount > 1 ? "s" : ""} · gracias por cuidar a tu familia ❤️
           </p>
         </div>
-      )}
-
-      {/* Invita y gana (referidos) */}
-      {referral?.code && (
-        <ReferralCard
-          code={referral.code}
-          invited={referral.invited}
-          rewarded={referral.rewarded}
-          bonus={referral.bonus}
-        />
       )}
 
       {/* Paquetes de remesa destacados (scroll horizontal) */}
@@ -367,23 +376,14 @@ export default async function ClienteHome() {
         </section>
       )}
 
-      {/* Anuncios / ofertas (solo si hay) */}
-      {featuredOffers.length > 0 && (
-        <section>
-          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-foreground">
-            <span className="h-4 w-1 rounded-full bg-primary" />
-            <Star className="h-4 w-4 text-primary" /> Anuncios
-          </h2>
-          <OffersView
-            offers={featuredOffers}
-            sendProps={sendProps}
-            referral={
-              referral?.code
-                ? { code: referral.code, bonus: referral.bonus }
-                : null
-            }
-          />
-        </section>
+      {/* Invita y gana (referidos) — antes de Mis pedidos */}
+      {referral?.code && (
+        <ReferralCard
+          code={referral.code}
+          invited={referral.invited}
+          rewarded={referral.rewarded}
+          bonus={referral.bonus}
+        />
       )}
 
       {/* Mis pedidos recientes (solo si hay) */}
