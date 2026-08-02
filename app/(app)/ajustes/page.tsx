@@ -18,6 +18,8 @@ import { OperatorReviewsCard } from "@/components/operator-reviews-card";
 import { AnnouncementsManager } from "@/components/announcements-manager";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
+import { PinSetup } from "@/components/pin-setup";
+import { BiometricSetup } from "@/components/biometric-setup";
 import { ExportRemittances } from "@/components/export-remittances";
 import { ExportAgenda } from "@/components/export-agenda";
 import { AlertPrefs } from "@/components/alert-prefs";
@@ -137,6 +139,16 @@ export default async function AjustesPage() {
           <SettingsSheet settings={settings} />
         </section>
       )}
+
+      {/* Seguridad: bloqueo con PIN + huella/rostro (protege el panel en el
+          teléfono; vale para operador y repartidor) */}
+      <section>
+        <SectionTitle>Seguridad</SectionTitle>
+        <Card className="space-y-4">
+          <PinSetup />
+          <BiometricSetup />
+        </Card>
+      </section>
 
       {/* Apariencia */}
       <section>
