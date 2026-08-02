@@ -27,6 +27,7 @@ import { PaymentMethods } from "@/components/payment-methods";
 import { SmartImage } from "@/components/smart-image";
 import { CoverageSelector } from "@/components/coverage-selector";
 import { ExportMyDeliveries } from "@/components/export-my-deliveries";
+import { PerfilSheetsMenu } from "@/components/perfil-sheets-menu";
 import { usd, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -124,60 +125,36 @@ export default async function PerfilPage() {
     <div className="space-y-6">
       <PageHeader title="Perfil" icon={User} />
 
-      {/* Cabecera */}
-      {isOperador ? (
-        <Card>
-          <div className="flex items-center gap-3">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt="Foto de perfil"
-                className="h-14 w-14 shrink-0 rounded-full object-cover"
-              />
-            ) : (
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-                {initial}
-              </span>
-            )}
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-foreground">
-                {(p.full_name as string) || "Sin nombre"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user?.email}
-              </p>
-            </div>
-          </div>
-        </Card>
-      ) : (
-        <div className="flex flex-col items-center pt-1 text-center">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt="Foto de perfil"
-              className="h-20 w-20 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <span
-              style={{
-                background: `hsl(${hue} 60% 50% / 0.16)`,
-                color: `hsl(${hue} 55% 45%)`,
-              }}
-              className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-extrabold"
-            >
-              {initial}
-            </span>
-          )}
-          <h2 className="mt-3 text-xl font-bold text-foreground">
-            {(p.full_name as string) || "Sin nombre"}
-          </h2>
-          {user?.email && (
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-          )}
-        </div>
-      )}
+      {/* Cabecera centrada (igual para operador y repartidor) */}
+      <div className="flex flex-col items-center pt-1 text-center">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt="Foto de perfil"
+            className="h-20 w-20 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span
+            style={{
+              background: `hsl(${hue} 60% 50% / 0.16)`,
+              color: `hsl(${hue} 55% 45%)`,
+            }}
+            className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-extrabold"
+          >
+            {initial}
+          </span>
+        )}
+        <h2 className="mt-3 text-xl font-bold text-foreground">
+          {(p.full_name as string) || "Sin nombre"}
+        </h2>
+        {user?.email && (
+          <p className="text-sm text-muted-foreground">{user.email}</p>
+        )}
+        <span className="mt-1.5 rounded-full bg-muted px-3 py-0.5 text-[11px] font-semibold text-muted-foreground">
+          {isOperador ? "Operador" : "Repartidor"}
+        </span>
+      </div>
 
       {/* Enlace a la landing pública — solo visible para el dueño */}
       {user?.email === OWNER_EMAIL && (
@@ -205,23 +182,13 @@ export default async function PerfilPage() {
       )}
 
       {/* Mini-estadísticas */}
-      {isOperador ? (
-        <div className="grid grid-cols-3 gap-3">
-          <Stat label="Has ganado" value={usd(myProfit)} />
-          <Stat label="Este mes" value={usd(monthProfit)} />
-          <Stat label="Remesas" value={String(count)} />
-          <Stat label="Promedio" value={usd(avgTicket)} />
-          <Stat label="Desde" value={since ? formatDate(since) : "—"} />
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-3">
-          <StatTile icon={Wallet} tone="income" label="Has ganado" value={usd(myProfit)} />
-          <StatTile icon={CalendarDays} tone="primary" label="Este mes" value={usd(monthProfit)} />
-          <StatTile icon={Send} tone="info" label="Remesas" value={String(count)} />
-          <StatTile icon={BarChart3} tone="primary" label="Promedio" value={usd(avgTicket)} />
-          <StatTile icon={Clock} tone="info" label="Desde" value={since ? formatDate(since) : "—"} />
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile icon={Wallet} tone="income" label="Has ganado" value={usd(myProfit)} />
+        <StatTile icon={CalendarDays} tone="primary" label="Este mes" value={usd(monthProfit)} />
+        <StatTile icon={Send} tone="info" label="Remesas" value={String(count)} />
+        <StatTile icon={BarChart3} tone="primary" label="Promedio" value={usd(avgTicket)} />
+        <StatTile icon={Clock} tone="info" label="Desde" value={since ? formatDate(since) : "—"} />
+      </div>
 
       {/* Estadísticas personales (repartidor) */}
       {!isOperador && delivered.length > 0 && (
@@ -258,14 +225,6 @@ export default async function PerfilPage() {
         </section>
       )}
 
-      {/* Zona de cobertura (repartidor) */}
-      {!isOperador && <CoverageSelector initial={coverage} />}
-
-      {/* Exportar mis entregas (repartidor) */}
-      {!isOperador && remittances.length > 0 && (
-        <ExportMyDeliveries remittances={remittances} />
-      )}
-
       {/* Galería de comprobantes de entrega (repartidor) */}
       {!isOperador && proofs.length > 0 && (
         <section className="space-y-2">
@@ -291,102 +250,107 @@ export default async function PerfilPage() {
         </section>
       )}
 
-      {/* Tarjeta y datos de cobro */}
-      <section className="space-y-2">
-        <SectionTitle>Tu tarjeta y cobro</SectionTitle>
-        <ShareCard
-          name={(p.full_name as string) ?? null}
-          businessName={businessName}
-          phone={(p.phone as string) ?? null}
-          zelle={(p.zelle as string) ?? null}
-          cashapp={(p.cashapp as string) ?? null}
-          paypal={(p.paypal as string) ?? null}
-        />
-        <PaymentMethods
-          name={(p.full_name as string) ?? null}
-          brand={businessName}
-          phone={(p.phone as string) ?? null}
-          zelle={(p.zelle as string) ?? null}
-          cashapp={(p.cashapp as string) ?? null}
-          paypal={(p.paypal as string) ?? null}
-        />
-      </section>
-
-      {/* Datos */}
-      <Card>
-        <form action={updateProfile} className="space-y-3">
-          <Field label="Nombre">
-            <Input
-              name="full_name"
-              defaultValue={(p.full_name as string) ?? ""}
-              placeholder="Tu nombre"
-            />
-          </Field>
-
-          <Field
-            label="Foto de perfil (opcional)"
-            hint={avatarUrl ? "Sube otra para reemplazarla." : "Se ve en tu perfil."}
-          >
-            <input
-              type="file"
-              name="avatar"
-              accept="image/*"
-              className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Teléfono / WhatsApp">
+      {/* Menú del perfil: cada bloque se abre en una hoja */}
+      <PerfilSheetsMenu
+        datos={
+          <form action={updateProfile} className="space-y-3">
+            <Field label="Nombre">
               <Input
-                name="phone"
-                inputMode="tel"
-                defaultValue={(p.phone as string) ?? ""}
-                placeholder="+1 305 000 0000"
+                name="full_name"
+                defaultValue={(p.full_name as string) ?? ""}
+                placeholder="Tu nombre"
               />
             </Field>
-            <Field label="Mi % ganancia" hint="Editable en cada envío.">
-              <Input
-                type="number"
-                name="default_split_percent"
-                min="0"
-                max="100"
-                defaultValue={String((p.default_split_percent as number) ?? 50)}
+            <Field
+              label="Foto de perfil (opcional)"
+              hint={avatarUrl ? "Sube otra para reemplazarla." : "Se ve en tu perfil."}
+            >
+              <input
+                type="file"
+                name="avatar"
+                accept="image/*"
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-muted file:px-3 file:py-2 file:text-sm file:font-medium file:text-foreground"
               />
             </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Teléfono / WhatsApp">
+                <Input
+                  name="phone"
+                  inputMode="tel"
+                  defaultValue={(p.phone as string) ?? ""}
+                  placeholder="+1 305 000 0000"
+                />
+              </Field>
+              <Field label="Mi % ganancia" hint="Editable en cada envío.">
+                <Input
+                  type="number"
+                  name="default_split_percent"
+                  min="0"
+                  max="100"
+                  defaultValue={String((p.default_split_percent as number) ?? 50)}
+                />
+              </Field>
+            </div>
+            <p className="pt-1 text-xs font-medium text-muted-foreground">
+              Métodos de cobro (para copiar rápido al cliente)
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Zelle">
+                <Input
+                  name="zelle"
+                  defaultValue={(p.zelle as string) ?? ""}
+                  placeholder="Correo o teléfono"
+                />
+              </Field>
+              <Field label="CashApp">
+                <Input
+                  name="cashapp"
+                  defaultValue={(p.cashapp as string) ?? ""}
+                  placeholder="$tu-cashtag"
+                />
+              </Field>
+            </div>
+            <Field label="PayPal">
+              <Input
+                name="paypal"
+                defaultValue={(p.paypal as string) ?? ""}
+                placeholder="Correo de PayPal"
+              />
+            </Field>
+            <Button type="submit" className="w-full">
+              Guardar
+            </Button>
+          </form>
+        }
+        cobro={
+          <div className="space-y-3">
+            <ShareCard
+              name={(p.full_name as string) ?? null}
+              businessName={businessName}
+              phone={(p.phone as string) ?? null}
+              zelle={(p.zelle as string) ?? null}
+              cashapp={(p.cashapp as string) ?? null}
+              paypal={(p.paypal as string) ?? null}
+            />
+            <PaymentMethods
+              name={(p.full_name as string) ?? null}
+              brand={businessName}
+              phone={(p.phone as string) ?? null}
+              zelle={(p.zelle as string) ?? null}
+              cashapp={(p.cashapp as string) ?? null}
+              paypal={(p.paypal as string) ?? null}
+            />
           </div>
-
-          <p className="pt-1 text-xs font-medium text-muted-foreground">
-            Métodos de cobro (para copiar rápido al cliente)
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Zelle">
-              <Input
-                name="zelle"
-                defaultValue={(p.zelle as string) ?? ""}
-                placeholder="Correo o teléfono"
-              />
-            </Field>
-            <Field label="CashApp">
-              <Input
-                name="cashapp"
-                defaultValue={(p.cashapp as string) ?? ""}
-                placeholder="$tu-cashtag"
-              />
-            </Field>
-          </div>
-          <Field label="PayPal">
-            <Input
-              name="paypal"
-              defaultValue={(p.paypal as string) ?? ""}
-              placeholder="Correo de PayPal"
-            />
-          </Field>
-
-          <Button type="submit" className="w-full">
-            Guardar
-          </Button>
-        </form>
-      </Card>
+        }
+        cobertura={
+          !isOperador ? <CoverageSelector initial={coverage} /> : undefined
+        }
+        entregas={
+          !isOperador && remittances.length > 0 ? (
+            <ExportMyDeliveries remittances={remittances} />
+          ) : undefined
+        }
+      />
 
       {/* Cerrar sesión */}
       <form action="/auth/signout" method="post">
@@ -406,15 +370,6 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
       {children}
     </h2>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <Card className="p-3 text-center">
-      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-      <p className="tabular mt-0.5 text-sm font-bold text-foreground">{value}</p>
-    </Card>
   );
 }
 

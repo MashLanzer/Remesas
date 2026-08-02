@@ -13,22 +13,18 @@ import {
 import { Card, PageHeader } from "@/components/ui";
 import { getMigrationHealth } from "@/lib/migration-health";
 import { MigrationHealthCard } from "@/components/migration-health-card";
-import { getOperatorReviewStats, getAnnouncements } from "@/lib/data";
+import { getOperatorReviewStats } from "@/lib/data";
 import { OperatorReviewsCard } from "@/components/operator-reviews-card";
-import { AnnouncementsManager } from "@/components/announcements-manager";
-import { ThemeSwitch } from "@/components/theme-switch";
-import { DataModeSwitch } from "@/components/data-mode-switch";
-import { PinSetup } from "@/components/pin-setup";
-import { BiometricSetup } from "@/components/biometric-setup";
-import { ExportRemittances } from "@/components/export-remittances";
-import { ExportAgenda } from "@/components/export-agenda";
-import { AlertPrefs } from "@/components/alert-prefs";
-import { ClearLocalData } from "@/components/clear-local-data";
 import {
   TeamSheet,
   SettingsSheet,
   ActivitySheet,
 } from "@/components/ajustes-sheets";
+import {
+  PreferencesSheet,
+  SecuritySheet,
+  DataSheet,
+} from "@/components/ajustes-extra-sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +44,7 @@ export default async function AjustesPage() {
       getBeneficiaries(),
       getMigrationHealth(),
     ]);
-  const [reviewStats, announcements] = ctx.isOperador
-    ? await Promise.all([getOperatorReviewStats(), getAnnouncements()])
-    : [null, []];
+  const reviewStats = ctx.isOperador ? await getOperatorReviewStats() : null;
   const superAdmin = await isSuperAdmin();
 
   return (
@@ -81,14 +75,6 @@ export default async function AjustesPage() {
 
       {/* Aviso de migraciones pendientes (solo operador) */}
       <MigrationHealthCard missing={health.missing} />
-
-      {/* Anuncios a clientes (solo operador) */}
-      {ctx.isOperador && (
-        <section>
-          <SectionTitle>Anuncios a clientes</SectionTitle>
-          <AnnouncementsManager items={announcements} />
-        </section>
-      )}
 
       {/* Reputación del negocio (solo operador) */}
       {ctx.isOperador && reviewStats && (
@@ -140,59 +126,22 @@ export default async function AjustesPage() {
         </section>
       )}
 
-      {/* Seguridad: bloqueo con PIN + huella/rostro (protege el panel en el
-          teléfono; vale para operador y repartidor) */}
-      <section>
-        <SectionTitle>Seguridad</SectionTitle>
-        <Card className="space-y-4">
-          <PinSetup />
-          <BiometricSetup />
-        </Card>
+      {/* App: preferencias y seguridad (todo en hojas) */}
+      <section className="space-y-2">
+        <SectionTitle>App</SectionTitle>
+        <PreferencesSheet isOperador={ctx.isOperador} />
+        <SecuritySheet />
       </section>
 
-      {/* Apariencia */}
-      <section>
-        <SectionTitle>Apariencia</SectionTitle>
-        <Card>
-          <ThemeSwitch />
-        </Card>
-      </section>
-
-      {/* Conexión */}
-      <section>
-        <SectionTitle>Conexión</SectionTitle>
-        <Card className="space-y-3">
-          <DataModeSwitch />
-          <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-            Ideal si tienes internet lento o pocos datos. No descarga las fotos
-            de comprobantes hasta que las toques y evita cargar pantallas en
-            segundo plano. Se guarda solo en este teléfono.
-          </p>
-        </Card>
-      </section>
-
-      {/* Avisos */}
-      <section>
-        <SectionTitle>Avisos</SectionTitle>
-        <AlertPrefs isOperador={ctx.isOperador} />
-      </section>
-
-      {/* Actividad */}
-      <section>
-        <SectionTitle>Actividad</SectionTitle>
+      {/* Datos y actividad */}
+      <section className="space-y-2">
+        <SectionTitle>Datos y actividad</SectionTitle>
         <ActivitySheet entries={activity} isOperador={ctx.isOperador} />
-      </section>
-
-      {/* Datos */}
-      <section>
-        <SectionTitle>Datos</SectionTitle>
-        <Card className="space-y-3">
-          <ExportRemittances remittances={remittances} />
-          <div className="border-t border-border" />
-          <ExportAgenda clients={clients} beneficiaries={beneficiaries} />
-          <div className="border-t border-border" />
-          <ClearLocalData />
-        </Card>
+        <DataSheet
+          remittances={remittances}
+          clients={clients}
+          beneficiaries={beneficiaries}
+        />
       </section>
 
       {/* Info */}

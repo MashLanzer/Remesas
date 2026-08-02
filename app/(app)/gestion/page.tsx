@@ -2,8 +2,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Boxes, Megaphone, Inbox, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { getOffers, getPackages, getOrders, getSessionContext } from "@/lib/data";
+import {
+  getOffers,
+  getPackages,
+  getOrders,
+  getSessionContext,
+  getAnnouncements,
+} from "@/lib/data";
 import { Card, PageHeader } from "@/components/ui";
+import { AnunciosHub } from "@/components/anuncios-hub";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +19,11 @@ export default async function GestionPage() {
   const ctx = await getSessionContext();
   if (!ctx.isOperador) redirect("/");
 
-  const [offers, packages, pending] = await Promise.all([
+  const [offers, packages, pending, announcements] = await Promise.all([
     getOffers(),
     getPackages(),
     getOrders({ pendingOnly: true }),
+    getAnnouncements(),
   ]);
 
   return (
@@ -54,6 +62,7 @@ export default async function GestionPage() {
           }
           highlight={pending.length > 0}
         />
+        <AnunciosHub items={announcements} />
       </div>
     </div>
   );
