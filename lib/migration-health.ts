@@ -49,6 +49,7 @@ const TABLE_CHECKS: TableCheck[] = [
   { table: "delivery_expenses", probe: "id", feature: "Gastos de reparto", migration: "0034" },
   { table: "reviews", probe: "id", feature: "Reseñas / calificaciones", migration: "0044" },
   { table: "announcements", probe: "id", feature: "Anuncios a clientes", migration: "0045" },
+  { table: "client_saved_beneficiaries", probe: "id", feature: "Libreta de beneficiarios del cliente (nube)", migration: "0059" },
 ];
 
 type RpcCheck = { fn: string; args?: Record<string, unknown>; feature: string; migration: string };

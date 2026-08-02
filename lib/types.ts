@@ -380,6 +380,16 @@ export interface BusinessSettings {
   updated_at: string;
 }
 
+// Libreta de beneficiarios del cliente en la nube (0059).
+export interface ClientSavedBeneficiary {
+  id: string;
+  apodo: string;
+  name: string;
+  phone: string | null;
+  province: string | null;
+  favorite: boolean;
+}
+
 export interface PointsEntry {
   id: string;
   delta: number;

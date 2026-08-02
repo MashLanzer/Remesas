@@ -1,64 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BookUser, Pencil, Trash2, Check, X, Phone, MapPin } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { BookUser, Pencil, Trash2, Check, X, Phone, MapPin, Star } from "lucide-react";
 import { Card } from "@/components/ui";
 import { useDialog } from "@/components/confirm";
-
-type Saved = {
-  apodo: string;
-  name: string;
-  phone: string | null;
-  province: string | null;
-};
+import {
+  listSavedBeneficiaries,
+  addSavedBeneficiary,
+  renameSavedBeneficiary,
+  toggleFavoriteSavedBeneficiary,
+  deleteSavedBeneficiary,
+} from "@/app/actions";
+import type { ClientSavedBeneficiary } from "@/lib/types";
 
 const SAVED_KEY = "giro_c_benefs";
 
 export function SavedBeneficiaries() {
   const { confirm } = useDialog();
-  const [saved, setSaved] = useState<Saved[]>([]);
+  const [saved, setSaved] = useState<ClientSavedBeneficiary[]>([]);
   const [ready, setReady] = useState(false);
-  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [, start] = useTransition();
 
+  // Carga de la nube. Si está vacía pero hay libreta vieja en el teléfono,
+  // la importa una sola vez y luego limpia el localStorage.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SAVED_KEY);
-      if (raw) setSaved(JSON.parse(raw));
-    } catch {
-      /* nada */
-    }
-    setReady(true);
+    (async () => {
+      let list = await listSavedBeneficiaries();
+      if (list.length === 0) {
+        try {
+          const raw = localStorage.getItem(SAVED_KEY);
+          const old = raw ? (JSON.parse(raw) as ClientSavedBeneficiary[]) : [];
+          if (Array.isArray(old) && old.length > 0) {
+            for (const b of old) {
+              await addSavedBeneficiary({
+                apodo: b.apodo,
+                name: b.name,
+                phone: b.phone,
+                province: b.province,
+              });
+            }
+            list = await listSavedBeneficiaries();
+            localStorage.removeItem(SAVED_KEY);
+          }
+        } catch {
+          /* nada */
+        }
+      }
+      setSaved(list);
+      setReady(true);
+    })();
   }, []);
 
-  function persist(next: Saved[]) {
-    setSaved(next);
-    try {
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next));
-    } catch {
-      /* nada */
-    }
+  function startEdit(b: ClientSavedBeneficiary) {
+    setEditingId(b.id);
+    setDraft(b.apodo);
   }
-
-  function startEdit(i: number) {
-    setEditingIdx(i);
-    setDraft(saved[i].apodo);
-  }
-  function saveEdit(i: number) {
+  function saveEdit(id: string) {
     const val = draft.trim();
     if (!val) return;
-    const next = saved.map((s, idx) => (idx === i ? { ...s, apodo: val } : s));
-    persist(next);
-    setEditingIdx(null);
+    setSaved((s) => s.map((b) => (b.id === id ? { ...b, apodo: val } : b)));
+    setEditingId(null);
+    start(() => renameSavedBeneficiary(id, val));
   }
-  async function remove(i: number) {
+  function toggleFav(b: ClientSavedBeneficiary) {
+    setSaved((s) =>
+      s.map((x) => (x.id === b.id ? { ...x, favorite: !x.favorite } : x))
+    );
+    start(() => toggleFavoriteSavedBeneficiary(b.id, !b.favorite));
+  }
+  async function remove(b: ClientSavedBeneficiary) {
     const ok = await confirm({
       title: "Quitar de la libreta",
-      message: `¿Quitar a "${saved[i].apodo}" de tus beneficiarios guardados?`,
+      message: `¿Quitar a "${b.apodo}" de tus beneficiarios guardados?`,
       confirmLabel: "Quitar",
     });
     if (!ok) return;
-    persist(saved.filter((_, idx) => idx !== i));
+    setSaved((s) => s.filter((x) => x.id !== b.id));
+    start(() => deleteSavedBeneficiary(b.id));
   }
 
   if (!ready) return null;
@@ -78,20 +98,20 @@ export function SavedBeneficiaries() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {saved.map((s, i) => (
-            <Card key={`${s.name}-${i}`} className="flex items-center gap-3 p-3.5">
+          {saved.map((s) => (
+            <Card key={s.id} className="flex items-center gap-3 p-3.5">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                 {(s.apodo || s.name).trim().charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                {editingIdx === i ? (
+                {editingId === s.id ? (
                   <input
                     autoFocus
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") saveEdit(i);
-                      if (e.key === "Escape") setEditingIdx(null);
+                      if (e.key === "Enter") saveEdit(s.id);
+                      if (e.key === "Escape") setEditingId(null);
                     }}
                     className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm font-semibold text-foreground outline-none focus:border-primary"
                     placeholder="Apodo"
@@ -122,11 +142,11 @@ export function SavedBeneficiaries() {
                 )}
               </div>
 
-              {editingIdx === i ? (
+              {editingId === s.id ? (
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    onClick={() => saveEdit(i)}
+                    onClick={() => saveEdit(s.id)}
                     aria-label="Guardar apodo"
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary transition active:scale-90"
                   >
@@ -134,7 +154,7 @@ export function SavedBeneficiaries() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setEditingIdx(null)}
+                    onClick={() => setEditingId(null)}
                     aria-label="Cancelar"
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition active:scale-90"
                   >
@@ -145,7 +165,18 @@ export function SavedBeneficiaries() {
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    onClick={() => startEdit(i)}
+                    onClick={() => toggleFav(s)}
+                    aria-label={s.favorite ? "Quitar favorito" : "Marcar favorito"}
+                    className={
+                      "flex h-8 w-8 items-center justify-center rounded-full transition active:scale-90 " +
+                      (s.favorite ? "text-primary" : "text-muted-foreground hover:bg-muted")
+                    }
+                  >
+                    <Star className={"h-4 w-4" + (s.favorite ? " fill-primary" : "")} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(s)}
                     aria-label="Editar apodo"
                     className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-90"
                   >
@@ -153,7 +184,7 @@ export function SavedBeneficiaries() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => remove(i)}
+                    onClick={() => remove(s)}
                     aria-label="Quitar"
                     className="flex h-8 w-8 items-center justify-center rounded-full text-destructive transition hover:bg-destructive/10 active:scale-90"
                   >

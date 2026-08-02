@@ -768,6 +768,119 @@ export async function createOrder(formData: FormData) {
   redirect("/c/pedidos");
 }
 
+// ===== Libreta de beneficiarios del cliente, en la nube (0059) =====
+// Server actions que el componente cliente invoca para leer/escribir. Todas
+// tolerantes: si la tabla aún no existe, se comportan como vacío / no-op.
+
+type SavedBenef = {
+  id: string;
+  apodo: string;
+  name: string;
+  phone: string | null;
+  province: string | null;
+  favorite: boolean;
+};
+
+export async function listSavedBeneficiaries(): Promise<SavedBenef[]> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return [];
+  const { data, error } = await supabase
+    .from("client_saved_beneficiaries")
+    .select("id, apodo, name, phone, province, favorite")
+    .eq("user_id", ctx.userId)
+    .order("favorite", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return (data as SavedBenef[]) ?? [];
+}
+
+export async function addSavedBeneficiary(input: {
+  apodo: string;
+  name: string;
+  phone?: string | null;
+  province?: string | null;
+}): Promise<SavedBenef | null> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return null;
+  const name = (input.name || "").trim();
+  const apodo = (input.apodo || "").trim() || name;
+  if (!name) return null;
+  const phone = (input.phone || "").trim() || null;
+  // Evita duplicados: si ya existe ese (nombre + teléfono), actualiza el apodo.
+  let dupQ = supabase
+    .from("client_saved_beneficiaries")
+    .select("id")
+    .eq("user_id", ctx.userId)
+    .eq("name", name);
+  dupQ = phone === null ? dupQ.is("phone", null) : dupQ.eq("phone", phone);
+  const { data: existing } = await dupQ.maybeSingle();
+  const dupId = (existing as { id?: string } | null)?.id;
+  if (dupId) {
+    const { data } = await supabase
+      .from("client_saved_beneficiaries")
+      .update({ apodo, province: (input.province || "").trim() || null })
+      .eq("id", dupId)
+      .eq("user_id", ctx.userId)
+      .select("id, apodo, name, phone, province, favorite")
+      .maybeSingle();
+    return (data as SavedBenef) ?? null;
+  }
+  const { data, error } = await supabase
+    .from("client_saved_beneficiaries")
+    .insert({
+      user_id: ctx.userId,
+      apodo,
+      name,
+      phone,
+      province: (input.province || "").trim() || null,
+    })
+    .select("id, apodo, name, phone, province, favorite")
+    .maybeSingle();
+  if (error) return null;
+  return (data as SavedBenef) ?? null;
+}
+
+export async function renameSavedBeneficiary(
+  id: string,
+  apodo: string
+): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id || !apodo.trim()) return;
+  await supabase
+    .from("client_saved_beneficiaries")
+    .update({ apodo: apodo.trim() })
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
+}
+
+export async function toggleFavoriteSavedBeneficiary(
+  id: string,
+  favorite: boolean
+): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return;
+  await supabase
+    .from("client_saved_beneficiaries")
+    .update({ favorite })
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
+}
+
+export async function deleteSavedBeneficiary(id: string): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return;
+  await supabase
+    .from("client_saved_beneficiaries")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
+}
+
 // El beneficiario (sin login) confirma que recibió, vía enlace público.
 export async function confirmReceived(token: string) {
   const supabase = await createClient();

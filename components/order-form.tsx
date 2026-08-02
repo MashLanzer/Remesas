@@ -3,17 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bookmark, X } from "lucide-react";
 import { Field, Input, Select, Textarea, Button } from "@/components/ui";
-import { createOrder } from "@/app/actions";
+import {
+  createOrder,
+  listSavedBeneficiaries,
+  addSavedBeneficiary,
+  deleteSavedBeneficiary,
+} from "@/app/actions";
 import { localAmount, usd } from "@/lib/utils";
 import { transferFactor } from "@/lib/calc";
 import {
   DELIVERY_CURRENCIES,
+  type ClientSavedBeneficiary,
   type DeliveryMethod,
   type ExchangeRate,
 } from "@/lib/types";
 
 type Benef = { name: string; phone: string | null; province: string | null };
-type Saved = Benef & { apodo: string };
+type Saved = ClientSavedBeneficiary;
 
 const SAVED_KEY = "giro_c_benefs";
 
@@ -69,43 +75,58 @@ export function OrderForm({
   const [note, setNote] = useState(initial?.note ?? "");
   const [method, setMethod] = useState<DeliveryMethod>("efectivo");
 
-  // Beneficiarios guardados (con apodo) en el dispositivo.
+  // Beneficiarios guardados (con apodo) en la NUBE (0059). Se cargan de la
+  // cuenta; si había una libreta vieja en el teléfono se importa una vez.
   const [saved, setSaved] = useState<Saved[]>([]);
   const [apodo, setApodo] = useState("");
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SAVED_KEY);
-      if (raw) setSaved(JSON.parse(raw));
-    } catch {
-      /* nada */
-    }
+    (async () => {
+      let list = await listSavedBeneficiaries();
+      if (list.length === 0) {
+        try {
+          const raw = localStorage.getItem(SAVED_KEY);
+          const old = raw ? (JSON.parse(raw) as Saved[]) : [];
+          if (Array.isArray(old) && old.length > 0) {
+            for (const b of old) {
+              await addSavedBeneficiary({
+                apodo: b.apodo,
+                name: b.name,
+                phone: b.phone,
+                province: b.province,
+              });
+            }
+            list = await listSavedBeneficiaries();
+            localStorage.removeItem(SAVED_KEY);
+          }
+        } catch {
+          /* nada */
+        }
+      }
+      setSaved(list);
+    })();
   }, []);
-  function persistSaved(next: Saved[]) {
-    setSaved(next);
-    try {
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next));
-    } catch {
-      /* nada */
-    }
-  }
 
   function pick(b: Benef) {
     setBName(b.name);
     setBPhone(b.phone ?? "");
     setBProv(b.province ?? "");
   }
-  function saveCurrent() {
+  async function saveCurrent() {
     if (!bName.trim()) return;
-    const entry: Saved = {
+    const row = await addSavedBeneficiary({
       apodo: apodo.trim() || bName.trim(),
       name: bName.trim(),
       phone: bPhone.trim() || null,
       province: bProv.trim() || null,
-    };
-    persistSaved(
-      [entry, ...saved.filter((s) => s.apodo !== entry.apodo)].slice(0, 20)
-    );
+    });
+    if (row) {
+      setSaved((s) => [row, ...s.filter((x) => x.id !== row.id)]);
+    }
     setApodo("");
+  }
+  function removeSaved(id: string) {
+    setSaved((s) => s.filter((x) => x.id !== id));
+    deleteSavedBeneficiary(id);
   }
 
   // Combina guardados (apodo) + derivados de pedidos, sin duplicar.
@@ -224,9 +245,9 @@ export function OrderForm({
 
         {(saved.length > 0 || derived.length > 0) && (
           <div className="-mx-1 mb-3 flex flex-wrap gap-2 px-1">
-            {saved.map((b, i) => (
+            {saved.map((b) => (
               <span
-                key={`s-${i}`}
+                key={b.id}
                 className={
                   "flex items-center gap-1 rounded-full border py-1.5 pl-3 pr-1.5 text-xs font-semibold transition " +
                   (bName === b.name
@@ -239,13 +260,12 @@ export function OrderForm({
                   onClick={() => pick(b)}
                   className="transition active:scale-95"
                 >
+                  {b.favorite ? "⭐ " : ""}
                   {b.apodo}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    persistSaved(saved.filter((_, idx) => idx !== i))
-                  }
+                  onClick={() => removeSaved(b.id)}
                   aria-label="Borrar guardado"
                   className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition active:scale-90"
                 >
