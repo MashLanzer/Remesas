@@ -683,17 +683,20 @@ export async function createOrder(formData: FormData) {
   const ctx = await getSessionContext();
   if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
 
-  // Si el pedido viene de un paquete, el monto y la moneda salen del paquete
-  // real (fuente de verdad); el cliente no los fija. El trigger de la base lo
-  // blinda además a nivel de datos.
+  // Si el pedido viene de un paquete, el MONTO (precio) sale del paquete real y
+  // el cliente no lo fija (el trigger de la base lo blinda). La MONEDA de
+  // entrega sí la elige el cliente (0057): si mandó una válida se respeta; si
+  // no, cae a la del paquete.
+  const VALID_CURRENCIES = ["CUP", "USD", "MLC", "EUR"];
   const packageId = str(formData.get("package_id"));
   let amount = num(formData.get("amount_usd"));
-  let currency = str(formData.get("delivery_currency"));
+  const formCurrency = str(formData.get("delivery_currency"));
+  let currency = formCurrency;
   let note = str(formData.get("note"));
   if (packageId) {
     const { data: pkgRow } = await supabase
       .from("remittance_packages")
-      .select("title, amount_usd, delivery_currency, highlight, active")
+      .select("title, amount_usd, delivery_currency, highlight, active, pricing_mode")
       .eq("id", packageId)
       .eq("operator_id", ctx.tenantId)
       .maybeSingle();
@@ -703,10 +706,18 @@ export async function createOrder(formData: FormData) {
       delivery_currency?: string | null;
       highlight?: string | null;
       active?: boolean;
+      pricing_mode?: string | null;
     } | null;
     if (!pkg || pkg.active === false) return;
     amount = Number(pkg.amount_usd) || 0;
-    currency = pkg.delivery_currency ?? currency;
+    // Precio fijo: la moneda del paquete manda (su número está cerrado). En
+    // automático, el cliente puede elegir la moneda de entrega.
+    const chosen =
+      formCurrency && VALID_CURRENCIES.includes(formCurrency) ? formCurrency : null;
+    currency =
+      pkg.pricing_mode === "fixed"
+        ? pkg.delivery_currency ?? chosen
+        : chosen ?? pkg.delivery_currency ?? formCurrency;
     const label = `Paquete: ${pkg.title ?? "Paquete"}${pkg.highlight ? ` — ${pkg.highlight}` : ""}`;
     note = note ? `${label}\n${note}` : label;
   }
@@ -870,18 +881,22 @@ export async function acceptOrder(
     return;
   }
 
-  // Tasa del negocio para esa moneda. Sin tasa no se puede convertir bien:
-  // vuelve a pendiente para que configuren la tasa y reintenten.
-  const { data: rateRow } = await supabase
-    .from("exchange_rates")
-    .select("rate")
-    .eq("operator_id", tid)
-    .eq("currency", currency)
-    .maybeSingle();
-  const rate = Number((rateRow as { rate?: number } | null)?.rate ?? 0);
-  if (rate <= 0) {
-    await revertToPending();
-    return;
+  // Tasa del negocio para esa moneda. USD se entrega 1:1 (sin conversión). Para
+  // el resto, sin tasa no se puede convertir bien: vuelve a pendiente para que
+  // configuren la tasa y reintenten.
+  let rate = 1;
+  if (currency !== "USD") {
+    const { data: rateRow } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("operator_id", tid)
+      .eq("currency", currency)
+      .maybeSingle();
+    rate = Number((rateRow as { rate?: number } | null)?.rate ?? 0);
+    if (rate <= 0) {
+      await revertToPending();
+      return;
+    }
   }
 
   // Reglas de comisión, % de reparto y config de puntos.

@@ -43,8 +43,8 @@ export function PackagesView({
   transferBonusPct?: number | null;
 }) {
   const [selected, setSelected] = useState<RemittancePackage | null>(null);
-  // Forma elegida al pedir (solo relevante para CUP). Se guarda en el pedido.
-  const [orderMethod, setOrderMethod] = useState<DeliveryMethod>("efectivo");
+  // Opción elegida al pedir (moneda + forma), ej. "CUP-transferencia".
+  const [orderKey, setOrderKey] = useState<string>("");
 
   const fx = (p: RemittancePackage) =>
     p.pricing_mode === "fixed"
@@ -204,13 +204,9 @@ export function PackagesView({
 
               <button
                 onClick={() => {
-                  // Pre-selecciona la forma según lo que el cliente venía viendo
-                  // en el switch (si estaba en transferencia y el paquete es CUP).
-                  setOrderMethod(
-                    p.delivery_currency === "CUP" && sel?.method === "transferencia"
-                      ? "transferencia"
-                      : "efectivo"
-                  );
+                  // Pre-selecciona la opción que el cliente venía viendo en el
+                  // switch; si no, la moneda del paquete en efectivo.
+                  setOrderKey(sel?.key ?? `${p.delivery_currency || "USD"}-efectivo`);
                   setSelected(p);
                 }}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition active:scale-[0.98]"
@@ -239,19 +235,24 @@ export function PackagesView({
             );
             const isFixed = selected.pricing_mode === "fixed";
             const cur = selected.delivery_currency || "USD";
-            // La familia recibe en la MONEDA del paquete. Solo si es CUP puede
-            // elegir efectivo o transferencia (esta última paga más).
-            const canChooseMethod = !isFixed && cur === "CUP";
-            const chosenAmount = canChooseMethod
-              ? orderMethod === "transferencia"
-                ? q.receivesTransfer
-                : q.receives
-              : q.receives;
+            // Todas las formas en que la familia puede recibir (moneda + forma).
+            // Precio fijo no ofrece opciones: su número está cerrado.
+            const opts = isFixed
+              ? []
+              : deliveryOptions(q.deliveredUsd, cur, rates, transferBonusPct);
+            const chosen =
+              opts.find((o) => o.key === orderKey) ??
+              opts.find((o) => o.currency === cur) ??
+              opts[0] ??
+              null;
             return (
               <form action={createOrder} className="space-y-3">
                 <input type="hidden" name="package_id" value={selected.id} />
-                {canChooseMethod && (
-                  <input type="hidden" name="delivery_method" value={orderMethod} />
+                {!isFixed && chosen && (
+                  <>
+                    <input type="hidden" name="delivery_currency" value={chosen.currency} />
+                    <input type="hidden" name="delivery_method" value={chosen.method} />
+                  </>
                 )}
 
                 <div className="rounded-xl bg-muted p-3">
@@ -265,37 +266,48 @@ export function PackagesView({
                     </span>
                   </div>
 
-                  {canChooseMethod ? (
+                  {isFixed ? (
+                    q.receives != null && (
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Tu familia recibe
+                        </span>
+                        <span className="tabular text-sm font-bold text-income">
+                          {fmtAmount(q.receives, cur)}
+                        </span>
+                      </div>
+                    )
+                  ) : opts.length > 0 && chosen ? (
                     <div className="mt-2 space-y-2">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         ¿Cómo quiere recibir tu familia?
                       </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(
-                          [
-                            { m: "efectivo" as const, amt: q.receives, label: "💴 Efectivo" },
-                            { m: "transferencia" as const, amt: q.receivesTransfer, label: "🏦 Transferencia" },
-                          ]
-                        ).map(({ m, amt, label }) => (
+                      {/* Selección compacta arriba (todas las opciones)… */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {opts.map((o) => (
                           <button
-                            key={m}
+                            key={o.key}
                             type="button"
-                            onClick={() => setOrderMethod(m)}
+                            onClick={() => setOrderKey(o.key)}
                             className={
-                              "rounded-xl border p-2.5 text-left transition active:scale-[0.98] " +
-                              (orderMethod === m
-                                ? "border-primary bg-primary/10"
-                                : "border-border")
+                              "rounded-full border px-2.5 py-1 text-xs font-semibold transition active:scale-95 " +
+                              (chosen.key === o.key
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-foreground")
                             }
                           >
-                            <span className="block text-[11px] font-semibold text-muted-foreground">
-                              {label}
-                            </span>
-                            <span className="tabular block text-sm font-extrabold text-income">
-                              {amt != null ? `${localAmount(amt)} CUP` : "—"}
-                            </span>
+                            {optionLabel(o.currency, o.method)}
                           </button>
                         ))}
+                      </div>
+                      {/* …y el total grande abajo. */}
+                      <div className="flex items-baseline justify-between rounded-lg bg-card px-3 py-2">
+                        <span className="text-xs text-muted-foreground">
+                          Tu familia recibe
+                        </span>
+                        <span className="tabular text-lg font-extrabold text-income">
+                          {fmtAmount(chosen.amount, chosen.currency)}
+                        </span>
                       </div>
                     </div>
                   ) : (
