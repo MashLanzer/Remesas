@@ -19,7 +19,7 @@
     --input: 150 14% 90%;
     --ring: var(--brand-hue, 150) 72% 41%;
 
-    --income: 150 70% 40%;
+    --income: var(--brand-hue, 150) 70% 40%;
     --info: 210 90% 52%;
     --warning: 38 92% 48%;
     --business: 263 80% 58%;
@@ -41,9 +41,9 @@
     --muted-foreground: 150 8% 64%;
     --border: 158 14% 17%;
     --input: 158 14% 17%;
-    --ring: 150 80% 54%;
+    --ring: var(--brand-hue, 150) 80% 54%;
 
-    --income: 150 78% 56%;
+    --income: var(--brand-hue, 150) 78% 56%;
     --info: 210 90% 62%;
     --warning: 38 92% 58%;
     --business: 263 80% 70%;
@@ -60,12 +60,14 @@
   .brand-scope {
     --primary: var(--brand-hue, 150) 72% 41%;
     --ring: var(--brand-hue, 150) 72% 41%;
+    --income: var(--brand-hue, 150) 70% 40%;
     --hero-from: var(--brand-hue, 150) 68% 45%;
     --hero-to: var(--brand-hue, 150) 58% 30%;
   }
   .dark .brand-scope {
     --primary: var(--brand-hue, 150) 80% 54%;
     --ring: var(--brand-hue, 150) 80% 54%;
+    --income: var(--brand-hue, 150) 78% 56%;
     --hero-from: var(--brand-hue, 150) 66% 42%;
     --hero-to: var(--brand-hue, 150) 52% 20%;
   }
