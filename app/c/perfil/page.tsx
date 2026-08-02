@@ -210,6 +210,22 @@ export default async function ClientePerfilPage() {
         )}
 
         <Link
+          href="/c/ayuda"
+          className="mb-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition active:scale-[0.99]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <HelpCircle className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-foreground">Centro de ayuda</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Tarifas, tiempos y preguntas frecuentes
+            </p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+        </Link>
+
+        <Link
           href="/c/opiniones"
           className="mb-2 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition active:scale-[0.99]"
         >
