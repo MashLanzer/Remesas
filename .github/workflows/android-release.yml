@@ -17,15 +17,19 @@ name: Build & Release APK
 #     ANDROID_KEY_PASSWORD → genera un APK de RELEASE firmado y estable.
 
 on:
+  # Cada push al branch de desarrollo genera un release automático.
+  push:
+    branches:
+      - claude/remesas-app-analysis-i9rblb
+    tags:
+      - "v*"
+  # También se puede lanzar a mano con una versión concreta.
   workflow_dispatch:
     inputs:
       version:
         description: "Versión (ej. 1.0.1)"
         required: true
         default: "1.0.1"
-  push:
-    tags:
-      - "v*"
 
 permissions:
   contents: write
@@ -40,10 +44,13 @@ jobs:
       - name: Determinar versión
         id: ver
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
             V="${GITHUB_REF_NAME#v}"
           else
-            V="${{ github.event.inputs.version }}"
+            # Push al branch: versión automática por número de ejecución.
+            V="1.0.${{ github.run_number }}"
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "tag=v$V" >> "$GITHUB_OUTPUT"
