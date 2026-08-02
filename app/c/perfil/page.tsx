@@ -22,6 +22,7 @@ import { LangSwitch } from "@/components/lang-switch";
 import { DataModeSwitch } from "@/components/data-mode-switch";
 import { ClearLocalData } from "@/components/clear-local-data";
 import { PinSetup } from "@/components/pin-setup";
+import { BiometricSetup } from "@/components/biometric-setup";
 import { usd } from "@/lib/utils";
 import { Card, Field, Input, Button } from "@/components/ui";
 import { Settings } from "lucide-react";
@@ -223,6 +224,8 @@ export default async function ClientePerfilPage() {
           <DataModeSwitch />
           <div className="border-t border-border" />
           <PinSetup />
+          <div className="border-t border-border" />
+          <BiometricSetup />
           <div className="border-t border-border" />
           <ClearLocalData />
         </Card>

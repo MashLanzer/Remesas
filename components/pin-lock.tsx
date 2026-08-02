@@ -1,45 +1,72 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Delete, Lock } from "lucide-react";
+import { Delete, Lock, Fingerprint } from "lucide-react";
 import { PaperPlane } from "@/components/paper-plane";
 import { PIN_KEY, PIN_SESSION, hashPin } from "@/lib/pin";
+import { biometricEnabled, verifyBiometric } from "@/lib/biometric";
+import { useT } from "@/components/lang-provider";
 
 // Overlay de bloqueo: si hay PIN activo y la sesión no está desbloqueada, cubre
 // la app y pide el PIN. Se monta en el layout del cliente.
 export function PinLock() {
+  const t = useT();
   const [locked, setLocked] = useState(false);
   const [entry, setEntry] = useState("");
   const [error, setError] = useState(false);
+  const [bioOn, setBioOn] = useState(false);
+  const [bioBusy, setBioBusy] = useState(false);
+
+  const unlock = useCallback(() => {
+    try {
+      sessionStorage.setItem(PIN_SESSION, "1");
+    } catch {
+      /* nada */
+    }
+    setLocked(false);
+    setEntry("");
+  }, []);
+
+  const tryBio = useCallback(async () => {
+    setBioBusy(true);
+    const ok = await verifyBiometric();
+    setBioBusy(false);
+    if (ok) unlock();
+  }, [unlock]);
 
   useEffect(() => {
     try {
       const hasPin = !!localStorage.getItem(PIN_KEY);
       const unlocked = sessionStorage.getItem(PIN_SESSION) === "1";
-      setLocked(hasPin && !unlocked);
+      const bio = biometricEnabled();
+      setBioOn(bio);
+      const needsLock = hasPin && !unlocked;
+      setLocked(needsLock);
+      // Si hay biometría, la ofrecemos de inmediato (mejor esfuerzo; algunos
+      // navegadores exigen gesto del usuario y usará el botón como respaldo).
+      if (needsLock && bio) {
+        void tryBio();
+      }
     } catch {
       /* nada */
     }
-  }, []);
+  }, [tryBio]);
 
-  const submit = useCallback(async (code: string) => {
-    const stored = localStorage.getItem(PIN_KEY);
-    if (stored && (await hashPin(code)) === stored) {
-      try {
-        sessionStorage.setItem(PIN_SESSION, "1");
-      } catch {
-        /* nada */
+  const submit = useCallback(
+    async (code: string) => {
+      const stored = localStorage.getItem(PIN_KEY);
+      if (stored && (await hashPin(code)) === stored) {
+        unlock();
+      } else {
+        setError(true);
+        setTimeout(() => {
+          setError(false);
+          setEntry("");
+        }, 500);
       }
-      setLocked(false);
-      setEntry("");
-    } else {
-      setError(true);
-      setTimeout(() => {
-        setError(false);
-        setEntry("");
-      }, 500);
-    }
-  }, []);
+    },
+    [unlock]
+  );
 
   function press(d: string) {
     if (entry.length >= 4) return;
@@ -60,10 +87,10 @@ export function PinLock() {
           <Lock className="h-7 w-7" />
         </span>
         <p className="mt-4 flex items-center gap-1.5 text-lg font-bold text-foreground">
-          <PaperPlane className="h-4 w-4 text-primary" /> Ingresa tu PIN
+          <PaperPlane className="h-4 w-4 text-primary" /> {t("Ingresa tu PIN")}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Para proteger tus envíos
+          {t("Para proteger tus envíos")}
         </p>
 
         {/* Puntos */}
@@ -93,10 +120,23 @@ export function PinLock() {
         ))}
         <span />
         <PadButton onClick={() => press("0")}>0</PadButton>
-        <PadButton onClick={back} aria-label="Borrar">
+        <PadButton onClick={back} aria-label={t("Borrar")}>
           <Delete className="h-5 w-5" />
         </PadButton>
       </div>
+
+      {/* Biometría: respaldo del PIN */}
+      {bioOn && (
+        <button
+          type="button"
+          onClick={tryBio}
+          disabled={bioBusy}
+          className="mt-8 flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-foreground transition active:scale-95 disabled:opacity-60"
+        >
+          <Fingerprint className="h-5 w-5 text-primary" />
+          {bioBusy ? t("Verificando…") : t("Usar huella o rostro")}
+        </button>
+      )}
     </div>
   );
 }

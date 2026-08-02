@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { useDialog } from "@/components/confirm";
 import { PIN_KEY, PIN_SESSION, hashPin } from "@/lib/pin";
+import { disableBiometric } from "@/lib/biometric";
 
 // Control de "Bloqueo con PIN" para la sección de Ajustes. Activa, cambia o
 // quita un PIN de 4 dígitos guardado en el dispositivo.
@@ -79,6 +80,8 @@ export function PinSetup() {
     } catch {
       /* nada */
     }
+    // La biometría es un complemento del PIN: al quitar el PIN, se quita también.
+    disableBiometric();
     setEnabled(false);
     reset();
     notify("Bloqueo desactivado");

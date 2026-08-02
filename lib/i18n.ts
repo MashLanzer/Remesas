@@ -436,6 +436,25 @@ export const EN: Record<string, string> = {
     "No more beneficiaries in your address book.",
   "Sin provincia": "No province",
 
+  // ── Bloqueo: PIN + biometría ──
+  "Ingresa tu PIN": "Enter your PIN",
+  "Para proteger tus envíos": "To protect your transfers",
+  Borrar: "Delete",
+  "Usar huella o rostro": "Use fingerprint or face",
+  "Verificando…": "Verifying…",
+  "Huella o rostro": "Fingerprint or face",
+  "No disponible en este dispositivo": "Not available on this device",
+  "Activado · desbloquea sin el PIN": "On · unlock without the PIN",
+  "Desbloqueo rápido, con el PIN de respaldo":
+    "Quick unlock, with the PIN as backup",
+  "Primero activa un PIN; la biometría lo complementa.":
+    "Set up a PIN first; biometrics complements it.",
+  "Biometría activada": "Biometrics enabled",
+  "No se pudo activar la biometría.": "Couldn't enable biometrics.",
+  "Biometría desactivada": "Biometrics disabled",
+  "Activando…": "Enabling…",
+  Activar: "Enable",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",
