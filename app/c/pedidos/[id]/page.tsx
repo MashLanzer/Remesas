@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, BadgeCheck, MessageCircle } from "lucide-react";
+import { ArrowLeft, KeyRound, BadgeCheck, MessageCircle, MapPin } from "lucide-react";
 import { OrderChat } from "@/components/order-chat";
+import { DeliveryMap } from "@/components/delivery-map";
 import { createClient } from "@/lib/supabase/server";
 import {
   getMyOrder,
@@ -162,6 +163,28 @@ export default async function MiPedidoDetallePage({
             />
           )
         ))}
+
+      {/* Seguimiento en el mapa (a nivel de provincia) */}
+      {order.status !== "rechazado" && (
+        <Card className="space-y-2">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            <p className="text-sm font-bold text-foreground">
+              {tr("Seguimiento en el mapa")}
+            </p>
+          </div>
+          <DeliveryMap
+            province={order.province}
+            stage={
+              display === "entregado" || display === "recibido"
+                ? "entregado"
+                : display === "en_reparto"
+                ? "en_reparto"
+                : "pendiente"
+            }
+          />
+        </Card>
+      )}
 
       {/* Seguimiento + ¿cuándo llega? */}
       <Card className="space-y-3">

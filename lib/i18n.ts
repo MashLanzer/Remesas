@@ -491,6 +491,13 @@ export const EN: Record<string, string> = {
     "Message the business if you have questions about this transfer.",
   "Aún no hay mensajes con el cliente.": "No messages with the client yet.",
 
+  // ── Seguimiento en el mapa ──
+  "Seguimiento en el mapa": "Tracking on the map",
+  "Entregado en": "Delivered in",
+  "En reparto en": "Out for delivery in",
+  "Preparando para": "Preparing for",
+  "Destino en Cuba": "Destination in Cuba",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",
