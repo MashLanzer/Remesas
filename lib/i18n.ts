@@ -474,6 +474,16 @@ export const EN: Record<string, string> = {
   "No se pudo eliminar la cuenta. Inténtalo de nuevo.":
     "Couldn't delete the account. Please try again.",
 
+  // ── Envío a varios beneficiarios ──
+  "A uno": "To one",
+  "A varios": "To several",
+  "¿Quiénes reciben en Cuba?": "Who's receiving in Cuba?",
+  "Monto USD": "Amount USD",
+  "Total a enviar": "Total to send",
+  beneficiarios: "beneficiaries",
+  "Enviar pedidos": "Send orders",
+  pedidos: "orders",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",

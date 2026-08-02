@@ -788,6 +788,78 @@ export async function createOrder(formData: FormData) {
   redirect("/c/pedidos");
 }
 
+// Crea VARIOS pedidos de una vez (uno por beneficiario), compartiendo moneda,
+// forma de entrega y nota. No usa paquetes ni puntos (envío manual a varios).
+// El campo "recipients" viene como JSON: [{name, phone, province, amount}].
+export async function createOrdersMulti(formData: FormData) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.role !== "cliente" || !ctx.tenantId || !ctx.userId) return;
+
+  let recipients: {
+    name?: string;
+    phone?: string;
+    province?: string;
+    amount?: number | string;
+  }[] = [];
+  try {
+    const raw = str(formData.get("recipients"));
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) recipients = parsed;
+  } catch {
+    return;
+  }
+
+  const currency = str(formData.get("delivery_currency"));
+  const rawMethod = str(formData.get("delivery_method"));
+  const method =
+    currency === "CUP" && rawMethod === "transferencia" ? "transferencia" : null;
+  const note = str(formData.get("note"));
+
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name, phone")
+    .eq("id", ctx.userId)
+    .single();
+  const p = (prof ?? {}) as { full_name?: string | null; phone?: string | null };
+
+  // Normaliza y valida cada beneficiario (nombre + monto positivo).
+  const rows: Record<string, unknown>[] = [];
+  for (const r of recipients) {
+    const name = (r.name ?? "").toString().trim();
+    const amount = Number(r.amount) || 0;
+    if (!name || amount <= 0) continue;
+    const row: Record<string, unknown> = {
+      operator_id: ctx.tenantId,
+      client_id: ctx.userId,
+      client_name: p.full_name ?? null,
+      client_phone: p.phone ?? null,
+      amount_usd: amount,
+      beneficiary_name: name,
+      beneficiary_phone: (r.phone ?? "").toString().trim() || null,
+      province: (r.province ?? "").toString().trim() || null,
+      delivery_currency: currency,
+      note,
+      status: "pendiente",
+    };
+    if (method) row.delivery_method = method;
+    rows.push(row);
+  }
+  if (rows.length === 0) return;
+
+  const ins = await supabase.from("orders").insert(rows);
+  // Si la columna 0056 (delivery_method) aún no existe, reintenta sin ella.
+  if (ins.error && method) {
+    await supabase
+      .from("orders")
+      .insert(rows.map(({ delivery_method: _m, ...rest }) => rest));
+  }
+
+  revalidatePath("/c");
+  revalidatePath("/c/pedidos");
+  redirect("/c/pedidos");
+}
+
 // ===== Libreta de beneficiarios del cliente, en la nube (0059) =====
 // Server actions que el componente cliente invoca para leer/escribir. Todas
 // tolerantes: si la tabla aún no existe, se comportan como vacío / no-op.
