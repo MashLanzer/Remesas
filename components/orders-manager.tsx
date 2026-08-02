@@ -482,6 +482,12 @@ export function OrdersManager({
               {o.beneficiary_phone}
             </p>
           )}
+          {o.beneficiary_address && (
+            <p className="flex items-start gap-2 font-medium text-foreground">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span>{o.beneficiary_address}</span>
+            </p>
+          )}
           {o.note && (
             <p className="border-t border-border pt-1 text-muted-foreground">
               “{o.note}”
@@ -774,6 +780,12 @@ export function OrdersManager({
                         <OrderStatusBadge order={o} />
                       </div>
                     </div>
+                    {o.beneficiary_address && (
+                      <p className="flex items-start gap-1.5 text-xs text-foreground">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span>{o.beneficiary_address}</span>
+                      </p>
+                    )}
                     {o.status === "rechazado" && o.reject_reason && (
                       <p className="rounded-lg bg-muted/50 p-2 text-xs text-muted-foreground">
                         Motivo: {o.reject_reason}

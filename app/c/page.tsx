@@ -308,6 +308,7 @@ export default async function ClienteHome() {
               name: deliveredEvent.beneficiary_name || undefined,
               phone: deliveredEvent.beneficiary_phone || undefined,
               province: deliveredEvent.province || undefined,
+              address: deliveredEvent.beneficiary_address || undefined,
             }}
           />
         </div>

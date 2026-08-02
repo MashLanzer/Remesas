@@ -176,6 +176,7 @@ export default async function MiPedidoDetallePage({
           <LiveMap
             remittanceId={order.remittance_id}
             province={order.province}
+            address={order.beneficiary_address}
             live={display === "en_reparto"}
           />
         </Card>
@@ -252,6 +253,9 @@ export default async function MiPedidoDetallePage({
           <Row label={tr("Teléfono")} value={order.beneficiary_phone} />
         )}
         {order.province && <Row label={tr("Provincia")} value={order.province} />}
+        {order.beneficiary_address && (
+          <Row label={tr("Dirección")} value={order.beneficiary_address} />
+        )}
         <Row
           label={tr("Cómo recibe")}
           value={`${order.delivery_currency || "—"}${
@@ -324,6 +328,7 @@ export default async function MiPedidoDetallePage({
             name: order.beneficiary_name || undefined,
             phone: order.beneficiary_phone || undefined,
             province: order.province || undefined,
+            address: order.beneficiary_address || undefined,
           }}
         />
       </div>

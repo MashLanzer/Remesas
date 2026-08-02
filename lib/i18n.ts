@@ -502,6 +502,17 @@ export const EN: Record<string, string> = {
     "Waiting for the courier's location…",
   "Destino de tu envío": "Your transfer's destination",
 
+  // ── Dirección de entrega ──
+  Dirección: "Address",
+  "Dirección exacta en Cuba": "Exact address in Cuba",
+  "Dirección exacta en Cuba (opcional)": "Exact address in Cuba (optional)",
+  "Calle, número, entre calles y municipio. El repartidor la necesita.":
+    "Street, number, between streets and municipality. The courier needs it.",
+  "Ej: Calle 10 #123 e/ 5ta y 7ma, Vedado, Plaza":
+    "Ex: 10th St #123 btw 5th & 7th, Vedado, Plaza",
+  "Falta la dirección de entrega de algún beneficiario.":
+    "A beneficiary's delivery address is missing.",
+
   // ── Favoritos ──
   "Añadir a favoritos": "Add to favorites",
   "Quitar de favoritos": "Remove from favorites",

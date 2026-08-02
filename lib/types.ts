@@ -142,6 +142,8 @@ export interface Order {
   beneficiary_name: string | null;
   beneficiary_phone: string | null;
   province: string | null;
+  // Dirección exacta de entrega en Cuba (0069).
+  beneficiary_address?: string | null;
   delivery_currency: DeliveryCurrency | null;
   // Forma de entrega elegida (0056). Solo aplica a CUP. null = efectivo.
   delivery_method?: DeliveryMethod | null;
@@ -389,6 +391,7 @@ export interface ClientSavedBeneficiary {
   province: string | null;
   favorite: boolean;
   note: string | null;
+  address: string | null;
 }
 
 export interface PointsEntry {

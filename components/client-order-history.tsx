@@ -43,6 +43,7 @@ export function ClientOrderHistory({
       name: o.beneficiary_name || undefined,
       phone: o.beneficiary_phone || undefined,
       province: o.province || undefined,
+      address: o.beneficiary_address || undefined,
     });
     setRepeatOpen(true);
   }

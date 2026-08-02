@@ -769,6 +769,7 @@ export async function createOrder(formData: FormData) {
     beneficiary_name: benefName,
     beneficiary_phone: str(formData.get("beneficiary_phone")),
     province: str(formData.get("province")),
+    beneficiary_address: str(formData.get("beneficiary_address")) || null,
     delivery_currency: currency,
     note,
     package_id: packageId,
@@ -777,9 +778,10 @@ export async function createOrder(formData: FormData) {
   };
   if (method) row.delivery_method = method;
   const ins = await supabase.from("orders").insert(row);
-  // Si la columna 0056 aún no existe, reintenta sin la forma (cae a efectivo).
-  if (ins.error && method) {
+  // Si faltan columnas recientes (0056 forma, 0069 dirección), reintenta sin ellas.
+  if (ins.error) {
     delete row.delivery_method;
+    delete row.beneficiary_address;
     await supabase.from("orders").insert(row);
   }
 
@@ -800,6 +802,7 @@ export async function createOrdersMulti(formData: FormData) {
     name?: string;
     phone?: string;
     province?: string;
+    address?: string;
     amount?: number | string;
   }[] = [];
   try {
@@ -838,6 +841,7 @@ export async function createOrdersMulti(formData: FormData) {
       beneficiary_name: name,
       beneficiary_phone: (r.phone ?? "").toString().trim() || null,
       province: (r.province ?? "").toString().trim() || null,
+      beneficiary_address: (r.address ?? "").toString().trim() || null,
       delivery_currency: currency,
       note,
       status: "pendiente",
@@ -848,11 +852,11 @@ export async function createOrdersMulti(formData: FormData) {
   if (rows.length === 0) return;
 
   const ins = await supabase.from("orders").insert(rows);
-  // Si la columna 0056 (delivery_method) aún no existe, reintenta sin ella.
-  if (ins.error && method) {
-    await supabase
-      .from("orders")
-      .insert(rows.map(({ delivery_method: _m, ...rest }) => rest));
+  // Si faltan columnas recientes (0056 forma, 0069 dirección), reintenta sin ellas.
+  if (ins.error) {
+    await supabase.from("orders").insert(
+      rows.map(({ delivery_method: _m, beneficiary_address: _a, ...rest }) => rest)
+    );
   }
 
   revalidatePath("/c");
@@ -872,11 +876,13 @@ type SavedBenef = {
   province: string | null;
   favorite: boolean;
   note: string | null;
+  address: string | null;
 };
 
-// Columnas a leer. La nota (migración 0063) puede no existir aún; en ese caso
-// se reintenta sin ella para no romper la libreta.
-const SAVED_COLS = "id, apodo, name, phone, province, favorite, note";
+// Columnas a leer. La nota (0063) y la dirección (0069) pueden no existir aún;
+// se reintenta con menos columnas para no romper la libreta.
+const SAVED_COLS_FULL = "id, apodo, name, phone, province, favorite, note, address";
+const SAVED_COLS_NOTE = "id, apodo, name, phone, province, favorite, note";
 const SAVED_COLS_BASE = "id, apodo, name, phone, province, favorite";
 
 export async function listSavedBeneficiaries(): Promise<SavedBenef[]> {
@@ -890,12 +896,14 @@ export async function listSavedBeneficiaries(): Promise<SavedBenef[]> {
       .eq("user_id", ctx.userId as string)
       .order("favorite", { ascending: false })
       .order("created_at", { ascending: false });
-  let { data, error } = await run(SAVED_COLS);
+  let { data, error } = await run(SAVED_COLS_FULL);
+  if (error) ({ data, error } = await run(SAVED_COLS_NOTE));
   if (error) ({ data, error } = await run(SAVED_COLS_BASE));
   if (error) return [];
   return ((data as unknown as SavedBenef[]) ?? []).map((b) => ({
     ...b,
     note: b.note ?? null,
+    address: b.address ?? null,
   }));
 }
 
@@ -904,6 +912,7 @@ export async function addSavedBeneficiary(input: {
   name: string;
   phone?: string | null;
   province?: string | null;
+  address?: string | null;
 }): Promise<SavedBenef | null> {
   const supabase = await createClient();
   const ctx = await getSessionContext();
@@ -912,7 +921,11 @@ export async function addSavedBeneficiary(input: {
   const apodo = (input.apodo || "").trim() || name;
   if (!name) return null;
   const phone = (input.phone || "").trim() || null;
-  // Evita duplicados: si ya existe ese (nombre + teléfono), actualiza el apodo.
+  const province = (input.province || "").trim() || null;
+  const address = (input.address || "").trim() || null;
+  const norm = (row: SavedBenef | null) =>
+    row ? { ...row, note: row.note ?? null, address: row.address ?? null } : null;
+  // Evita duplicados: si ya existe ese (nombre + teléfono), actualiza sus datos.
   let dupQ = supabase
     .from("client_saved_beneficiaries")
     .select("id")
@@ -922,30 +935,57 @@ export async function addSavedBeneficiary(input: {
   const { data: existing } = await dupQ.maybeSingle();
   const dupId = (existing as { id?: string } | null)?.id;
   if (dupId) {
-    const { data } = await supabase
+    const patch: Record<string, unknown> = { apodo, province, address };
+    let res = await supabase
       .from("client_saved_beneficiaries")
-      .update({ apodo, province: (input.province || "").trim() || null })
+      .update(patch)
       .eq("id", dupId)
       .eq("user_id", ctx.userId)
       .select(SAVED_COLS_BASE)
       .maybeSingle();
-    const row = data as unknown as SavedBenef | null;
-    return row ? { ...row, note: row.note ?? null } : null;
+    if (res.error) {
+      delete patch.address;
+      res = await supabase
+        .from("client_saved_beneficiaries")
+        .update(patch)
+        .eq("id", dupId)
+        .eq("user_id", ctx.userId)
+        .select(SAVED_COLS_BASE)
+        .maybeSingle();
+    }
+    return norm(res.data as unknown as SavedBenef | null);
   }
-  const { data, error } = await supabase
+  const base = { user_id: ctx.userId, apodo, name, phone, province };
+  let res = await supabase
     .from("client_saved_beneficiaries")
-    .insert({
-      user_id: ctx.userId,
-      apodo,
-      name,
-      phone,
-      province: (input.province || "").trim() || null,
-    })
+    .insert({ ...base, address })
     .select(SAVED_COLS_BASE)
     .maybeSingle();
-  if (error) return null;
-  const row = data as unknown as SavedBenef | null;
-  return row ? { ...row, note: row.note ?? null } : null;
+  // Si la columna address (0069) no existe, reintenta sin ella.
+  if (res.error) {
+    res = await supabase
+      .from("client_saved_beneficiaries")
+      .insert(base)
+      .select(SAVED_COLS_BASE)
+      .maybeSingle();
+  }
+  if (res.error) return null;
+  return norm(res.data as unknown as SavedBenef | null);
+}
+
+// Guarda (o limpia) la dirección de un beneficiario. Tolerante (0069).
+export async function saveSavedBeneficiaryAddress(
+  id: string,
+  address: string
+): Promise<void> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId || !id) return;
+  await supabase
+    .from("client_saved_beneficiaries")
+    .update({ address: address.trim() || null })
+    .eq("id", id)
+    .eq("user_id", ctx.userId);
 }
 
 // Guarda (o limpia) la nota de un beneficiario. Tolerante: si la columna aún
@@ -1388,6 +1428,7 @@ export async function acceptOrder(
     beneficiary_name?: string | null;
     beneficiary_phone?: string | null;
     province?: string | null;
+    beneficiary_address?: string | null;
     delivery_currency?: string | null;
     delivery_method?: string | null;
     note?: string | null;
@@ -1509,19 +1550,30 @@ export async function acceptOrder(
   // Beneficiario del pedido.
   let beneficiaryId: string | null = null;
   if (order.beneficiary_name) {
-    const { data: b } = await supabase
+    const benefRow: Record<string, unknown> = {
+      name: order.beneficiary_name,
+      phone: order.beneficiary_phone,
+      province: order.province,
+      address: order.beneficiary_address ?? null,
+      preferred_currency: currency,
+      client_id: clientId,
+      operator_id: tid,
+    };
+    let bRes = await supabase
       .from("beneficiaries")
-      .insert({
-        name: order.beneficiary_name,
-        phone: order.beneficiary_phone,
-        province: order.province,
-        preferred_currency: currency,
-        client_id: clientId,
-        operator_id: tid,
-      })
+      .insert(benefRow)
       .select("id")
       .single();
-    beneficiaryId = (b as { id?: string } | null)?.id ?? null;
+    // Si 'address' aún no existe en beneficiaries, reintenta sin ella.
+    if (bRes.error) {
+      delete benefRow.address;
+      bRes = await supabase
+        .from("beneficiaries")
+        .insert(benefRow)
+        .select("id")
+        .single();
+    }
+    beneficiaryId = (bRes.data as { id?: string } | null)?.id ?? null;
   }
 
   // Comisión base. Si el cliente pidió usar puntos, la reserva se hace de forma

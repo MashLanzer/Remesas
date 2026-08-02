@@ -168,6 +168,12 @@ export function SavedBeneficiaries() {
                         )}
                       </p>
                     )}
+                    {s.address && (
+                      <p className="mt-0.5 flex items-start gap-1 text-[11px] text-muted-foreground">
+                        <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+                        <span className="line-clamp-2">{s.address}</span>
+                      </p>
+                    )}
                   </>
                 )}
               </div>

@@ -14,13 +14,35 @@ type LatLng = { lat: number; lng: number };
 
 const houseIcon = (html: string) => html;
 
+// Geocodifica una dirección con Nominatim (OpenStreetMap, sin clave). Devuelve
+// null si no hay resultado o falla la red.
+async function geocode(query: string): Promise<LatLng | null> {
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(query);
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const arr = (await res.json()) as { lat: string; lon: string }[];
+    if (!arr.length) return null;
+    const lat = parseFloat(arr[0].lat);
+    const lng = parseFloat(arr[0].lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  } catch {
+    return null;
+  }
+}
+
 export function LiveMap({
   remittanceId,
   province,
+  address,
   live,
 }: {
   remittanceId?: string | null;
   province?: string | null;
+  address?: string | null;
   live: boolean; // true durante la etapa de reparto (sondea la ubicación)
 }) {
   const t = useT();
@@ -69,6 +91,18 @@ export function LiveMap({
       mapRef.current = map;
       // Recalcula el tamaño por si el contenedor se montó oculto (sheet).
       setTimeout(() => map.invalidateSize(), 100);
+
+      // Ubica la dirección exacta (si hay); si aparece, mueve el destino ahí.
+      if (address && address.trim()) {
+        const q = [address.trim(), province?.trim(), "Cuba"]
+          .filter(Boolean)
+          .join(", ");
+        geocode(q).then((g) => {
+          if (cancelled || !g || !mapRef.current || !destMarkerRef.current) return;
+          destMarkerRef.current.setLatLng([g.lat, g.lng]);
+          if (!liveMarkerRef.current) mapRef.current.setView([g.lat, g.lng], 14);
+        });
+      }
     })();
     return () => {
       cancelled = true;

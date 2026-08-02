@@ -31,6 +31,7 @@ export type OrderInitial = {
   name?: string;
   phone?: string;
   province?: string;
+  address?: string;
   note?: string;
 };
 
@@ -75,12 +76,25 @@ export function OrderForm({
   const [bName, setBName] = useState(initial?.name ?? "");
   const [bPhone, setBPhone] = useState(initial?.phone ?? "");
   const [bProv, setBProv] = useState(initial?.province ?? "");
+  const [bAddress, setBAddress] = useState(initial?.address ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
   const [method, setMethod] = useState<DeliveryMethod>("efectivo");
 
   // Modo "varios beneficiarios": un pedido por cada uno, misma moneda/forma.
-  type Recipient = { name: string; phone: string; province: string; amount: string };
-  const emptyRec = (): Recipient => ({ name: "", phone: "", province: "", amount: "" });
+  type Recipient = {
+    name: string;
+    phone: string;
+    province: string;
+    address: string;
+    amount: string;
+  };
+  const emptyRec = (): Recipient => ({
+    name: "",
+    phone: "",
+    province: "",
+    address: "",
+    amount: "",
+  });
   const [multi, setMulti] = useState(false);
   const [recipients, setRecipients] = useState<Recipient[]>([emptyRec()]);
   function updateRec(i: number, patch: Partial<Recipient>) {
@@ -124,10 +138,11 @@ export function OrderForm({
     })();
   }, []);
 
-  function pick(b: Benef) {
+  function pick(b: Benef & { address?: string | null }) {
     setBName(b.name);
     setBPhone(b.phone ?? "");
     setBProv(b.province ?? "");
+    setBAddress(b.address ?? "");
   }
   async function saveCurrent() {
     if (!bName.trim()) return;
@@ -136,6 +151,7 @@ export function OrderForm({
       name: bName.trim(),
       phone: bPhone.trim() || null,
       province: bProv.trim() || null,
+      address: bAddress.trim() || null,
     });
     if (row) {
       setSaved((s) => [row, ...s.filter((x) => x.id !== row.id)]);
@@ -165,6 +181,11 @@ export function OrderForm({
     `${bName.trim().toLowerCase()}|${bPhone.trim() || ""}`
   );
 
+  // La dirección hace falta cuando la entrega es física (efectivo). En
+  // transferencia bancaria (solo CUP) no se va a la casa, así que es opcional.
+  const isTransfer = canChooseMethod && method === "transferencia";
+  const needsAddress = !isTransfer;
+
   const totalUsd = recipients.reduce(
     (s, r) => s + (parseFloat(r.amount) || 0),
     0
@@ -172,6 +193,9 @@ export function OrderForm({
   const validRecipients = recipients.filter(
     (r) => r.name.trim() && (parseFloat(r.amount) || 0) > 0
   );
+  // En modo varios: si hace falta dirección, todos los válidos deben tenerla.
+  const multiAddressOk =
+    !needsAddress || validRecipients.every((r) => r.address.trim());
 
   return (
     <form
@@ -184,6 +208,7 @@ export function OrderForm({
                 name: r.name.trim(),
                 phone: r.phone.trim(),
                 province: r.province.trim(),
+                address: r.address.trim(),
                 amount: parseFloat(r.amount) || 0,
               }))
             )
@@ -322,6 +347,7 @@ export function OrderForm({
                       name: b.name,
                       phone: b.phone ?? "",
                       province: b.province ?? "",
+                      address: b.address ?? "",
                       amount: "",
                     })
                   }
@@ -340,6 +366,7 @@ export function OrderForm({
                       name: b.name,
                       phone: b.phone ?? "",
                       province: b.province ?? "",
+                      address: "",
                       amount: "",
                     })
                   }
@@ -387,6 +414,16 @@ export function OrderForm({
                     onChange={(e) => updateRec(i, { province: e.target.value })}
                   />
                 </div>
+                <Input
+                  className="mt-2"
+                  placeholder={
+                    needsAddress
+                      ? tr("Dirección exacta en Cuba")
+                      : tr("Dirección exacta en Cuba (opcional)")
+                  }
+                  value={r.address}
+                  onChange={(e) => updateRec(i, { address: e.target.value })}
+                />
                 <div className="mt-2 flex items-center gap-2">
                   <Input
                     type="number"
@@ -512,6 +549,25 @@ export function OrderForm({
             />
           </Field>
         </div>
+        <div className="mt-3">
+          <Field
+            label={
+              needsAddress
+                ? tr("Dirección exacta en Cuba")
+                : tr("Dirección exacta en Cuba (opcional)")
+            }
+            hint={tr("Calle, número, entre calles y municipio. El repartidor la necesita.")}
+          >
+            <Textarea
+              name="beneficiary_address"
+              rows={2}
+              placeholder={tr("Ej: Calle 10 #123 e/ 5ta y 7ma, Vedado, Plaza")}
+              value={bAddress}
+              onChange={(e) => setBAddress(e.target.value)}
+              required={needsAddress}
+            />
+          </Field>
+        </div>
 
         {/* Guardar beneficiario con apodo */}
         {bName.trim() && !alreadySaved && (
@@ -563,10 +619,16 @@ export function OrderForm({
         </label>
       )}
 
+      {multi && validRecipients.length > 0 && !multiAddressOk && (
+        <p className="text-center text-xs font-medium text-destructive">
+          {tr("Falta la dirección de entrega de algún beneficiario.")}
+        </p>
+      )}
+
       <Button
         type="submit"
         className="w-full"
-        disabled={multi && validRecipients.length === 0}
+        disabled={multi && (validRecipients.length === 0 || !multiAddressOk)}
       >
         {multi
           ? validRecipients.length > 1
