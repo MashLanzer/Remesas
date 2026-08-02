@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Home, Gift, Package, Star, Send } from "lucide-react";
+import { Home, Gift, Package, Star, Send, Users, Plus, ChevronRight } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { OrderForm } from "@/components/order-form";
+import { VaquitaForm } from "@/components/vaquita-create";
 import { useT } from "@/components/lang-provider";
 import type { ExchangeRate } from "@/lib/types";
 
@@ -35,7 +36,9 @@ export function ClienteNav({
   const pathname = usePathname();
   const t = useT();
   const [saver, setSaver] = useState(false);
+  const [choose, setChoose] = useState(false);
   const [enviar, setEnviar] = useState(false);
+  const [vaquita, setVaquita] = useState(false);
 
   useEffect(() => {
     setSaver(document.documentElement.classList.contains("data-saver"));
@@ -58,18 +61,71 @@ export function ClienteNav({
           <NavItem key={item.href} item={item} pathname={pathname} saver={saver} t={t} />
         ))}
 
-        {/* FAB central: enviar remesa (abre en sheet) */}
+        {/* FAB central: abre el selector (remesa o vaquita) */}
         <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
           <button
             type="button"
-            onClick={() => setEnviar(true)}
-            aria-label={t("Enviar remesa")}
+            onClick={() => setChoose(true)}
+            aria-label={t("Enviar")}
             className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition active:scale-90"
           >
-            <Send className="h-6 w-6" />
+            <Plus className="h-6 w-6" />
           </button>
         </div>
       </div>
+
+      {/* Selector: ¿remesa o vaquita? */}
+      <Sheet
+        open={choose}
+        onClose={() => setChoose(false)}
+        title={t("¿Qué quieres hacer?")}
+      >
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => {
+              setChoose(false);
+              setEnviar(true);
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Send className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-foreground">
+                {t("Enviar una remesa")}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {t("Tú envías el dinero a tu familia")}
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setChoose(false);
+              setVaquita(true);
+            }}
+            className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left transition active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Users className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-foreground">
+                {t("Vaquita familiar")}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {t("Junten entre varios para un mismo envío")}
+              </span>
+            </span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          </button>
+        </div>
+      </Sheet>
 
       <Sheet
         open={enviar}
@@ -85,6 +141,14 @@ export function ClienteNav({
           beneficiaries={beneficiaries}
           transferBonusPct={transferBonusPct}
         />
+      </Sheet>
+
+      <Sheet
+        open={vaquita}
+        onClose={() => setVaquita(false)}
+        title={t("Nueva vaquita familiar")}
+      >
+        <VaquitaForm />
       </Sheet>
     </nav>
   );

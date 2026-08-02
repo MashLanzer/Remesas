@@ -15,7 +15,16 @@ export function VaquitaCreate() {
         <Plus className="h-4 w-4" /> Crear vaquita
       </Button>
       <Sheet open={open} onClose={() => setOpen(false)} title="Nueva vaquita familiar">
-        <form action={createVaquita} className="space-y-3">
+        <VaquitaForm />
+      </Sheet>
+    </>
+  );
+}
+
+// Solo el formulario (reutilizable desde el FAB del cliente).
+export function VaquitaForm() {
+  return (
+    <form action={createVaquita} className="space-y-3">
           <Field label="Nombre de la vaquita (opcional)" hint="Para reconocerla.">
             <Input name="title" placeholder="Ej: Cumple de mamá" />
           </Field>
@@ -58,7 +67,5 @@ export function VaquitaCreate() {
             Crear vaquita
           </Button>
         </form>
-      </Sheet>
-    </>
   );
 }
