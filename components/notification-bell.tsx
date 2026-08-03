@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, CheckCircle2, Package, XCircle, BellOff } from "lucide-react";
+import { Bell, CheckCircle2, Package, XCircle, BellOff, Users } from "lucide-react";
 import { Sheet } from "@/components/sheet";
 import { markNotificationsSeen } from "@/app/actions";
 import type { AppNotification } from "@/lib/data";
@@ -34,6 +34,12 @@ function Icon({ kind }: { kind: AppNotification["kind"] }) {
     return (
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
         <XCircle className="h-5 w-5" />
+      </span>
+    );
+  if (kind === "vaquita")
+    return (
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Users className="h-5 w-5" />
       </span>
     );
   return (

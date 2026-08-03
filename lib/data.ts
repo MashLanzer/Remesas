@@ -952,7 +952,7 @@ export type AppNotification = {
   body: string;
   url: string;
   at: string;
-  kind: "delivered" | "accepted" | "rejected";
+  kind: "delivered" | "accepted" | "rejected" | "vaquita";
 };
 
 export async function getMyNotifications(): Promise<{
@@ -1010,6 +1010,51 @@ export async function getMyNotifications(): Promise<{
       });
     }
   }
+  // Aportes a las vaquitas que creó el cliente (para que sepa quién aportó).
+  try {
+    const { data: vs } = await supabase
+      .from("vaquitas")
+      .select("id, title, beneficiary_name")
+      .eq("organizer_client_id", ctx.userId);
+    const vaqs =
+      (vs as { id: string; title: string | null; beneficiary_name: string }[]) ??
+      [];
+    if (vaqs.length > 0) {
+      const label = new Map(
+        vaqs.map((v) => [v.id, v.title || v.beneficiary_name])
+      );
+      const { data: cs } = await supabase
+        .from("vaquita_contributions")
+        .select("id, vaquita_id, contributor_name, amount_usd, created_at")
+        .in(
+          "vaquita_id",
+          vaqs.map((v) => v.id)
+        )
+        .order("created_at", { ascending: false })
+        .limit(30);
+      for (const c of (cs as {
+        id: string;
+        vaquita_id: string;
+        contributor_name: string;
+        amount_usd: number;
+        created_at: string;
+      }[]) ?? []) {
+        items.push({
+          id: `vc:${c.id}`,
+          title: "Nuevo aporte a tu vaquita 👥",
+          body: `${c.contributor_name} aportó $${Number(c.amount_usd)} a ${
+            label.get(c.vaquita_id) ?? "tu vaquita"
+          }.`,
+          url: `/c/vaquita/${c.vaquita_id}`,
+          at: c.created_at,
+          kind: "vaquita",
+        });
+      }
+    }
+  } catch {
+    /* tolerante: sin la migración de vaquitas, no pasa nada */
+  }
+
   items.sort((a, b) => b.at.localeCompare(a.at));
   const unread = seenAt
     ? items.filter((i) => i.at > seenAt).length
