@@ -6,7 +6,11 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { computeRemittance, calcCommission, round2, transferFactor } from "@/lib/calc";
 import { getSessionContext } from "@/lib/data";
-import { notify, notifyVaquitaContribution } from "@/lib/push";
+import {
+  notify,
+  notifyVaquitaContribution,
+  notifyAnnouncement,
+} from "@/lib/push";
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -128,6 +132,21 @@ export async function joinOperator(
   const { data: opId } = await supabase.rpc("join_operator", { p_code: code });
   if (!opId) return { error: "Código no válido. Verifícalo con tu operador." };
 
+  // Aviso al operador de que alguien quiere unirse.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const name = (prof as { full_name?: string } | null)?.full_name || "Alguien";
+  await notify([opId as unknown as string], {
+    type: "equipo_solicitud",
+    title: "Solicitud de repartidor 🛵",
+    body: `${name} quiere unirse a tu equipo.`,
+    url: "/ajustes/repartidores",
+    operatorId: opId as unknown as string,
+  });
+
   await logActivity("repartidor.solicitud");
   revalidatePath("/", "layout");
   redirect("/pendiente");
@@ -217,6 +236,14 @@ export async function createAnnouncement(formData: FormData) {
   }
 
   if (annId) await uploadAnnouncementImage(supabase, formData, annId);
+  // Al crear (no editar), avisa a la audiencia elegida.
+  if (!id) {
+    await notifyAnnouncement(ctx.tenantId, audience, {
+      emoji: values.emoji,
+      title,
+      body: values.body,
+    });
+  }
   await logActivity(id ? "anuncio.editar" : "anuncio.crear", {
     entityType: "anuncio",
     entityLabel: title,
@@ -283,6 +310,25 @@ export async function submitReview(
     p_rating: rating,
     p_comment: comment,
   });
+  // Aviso al operador de la nueva reseña.
+  const { data } = await supabase
+    .from("orders")
+    .select("operator_id, client_name")
+    .eq("id", orderId)
+    .maybeSingle();
+  const o = data as { operator_id?: string; client_name?: string } | null;
+  if (o?.operator_id) {
+    const clean = (comment || "").trim();
+    await notify([o.operator_id], {
+      type: "resena",
+      title: "Nueva reseña ⭐",
+      body: `${o.client_name || "Un cliente"} calificó con ${rating}★${
+        clean ? `: "${clean.slice(0, 80)}"` : ""
+      }.`,
+      url: "/ajustes",
+      operatorId: o.operator_id,
+    });
+  }
   revalidatePath("/c/pedidos");
   revalidatePath(`/c/pedidos/${orderId}`);
   revalidatePath("/c/opiniones");
@@ -1295,7 +1341,37 @@ export async function clientMarkOrderPaid(orderId: string): Promise<void> {
   if (!orderId) return;
   const supabase = await createClient();
   await supabase.rpc("client_mark_order_paid", { p_order: orderId });
+  await notifyPaymentInformed(supabase, orderId, false);
   revalidatePath(`/c/pedidos/${orderId}`);
+}
+
+// Avisa al operador que el cliente informó su pago (con o sin comprobante).
+async function notifyPaymentInformed(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orderId: string,
+  withProof: boolean
+): Promise<void> {
+  const { data } = await supabase
+    .from("orders")
+    .select("operator_id, client_name, amount_usd")
+    .eq("id", orderId)
+    .maybeSingle();
+  const o = data as {
+    operator_id?: string;
+    client_name?: string;
+    amount_usd?: number;
+  } | null;
+  if (o?.operator_id) {
+    await notify([o.operator_id], {
+      type: "pago_informado",
+      title: "Pago informado 💳",
+      body: `${o.client_name || "Un cliente"} dice que pagó $${o.amount_usd}${
+        withProof ? " · con comprobante" : ""
+      }.`,
+      url: "/pedidos",
+      operatorId: o.operator_id,
+    });
+  }
 }
 
 // El cliente sube la captura de su pago al pedido. Guarda la imagen en el bucket
@@ -1327,6 +1403,7 @@ export async function clientUploadPaymentProof(
     p_url: url,
   });
   if (error) return null;
+  await notifyPaymentInformed(supabase, orderId, true);
   revalidatePath(`/c/pedidos/${orderId}`);
   revalidatePath("/pedidos");
   return url;
@@ -1461,6 +1538,33 @@ export async function confirmVaquitaContribution(id: string): Promise<void> {
     .from("vaquita_contributions")
     .update({ status: "confirmado" })
     .eq("id", id);
+  // Aviso al organizador de que su aporte fue confirmado.
+  const { data: c } = await supabase
+    .from("vaquita_contributions")
+    .select("contributor_name, amount_usd, vaquita_id")
+    .eq("id", id)
+    .maybeSingle();
+  const cc = c as {
+    contributor_name?: string;
+    amount_usd?: number;
+    vaquita_id?: string;
+  } | null;
+  if (cc?.vaquita_id) {
+    const { data: v } = await supabase
+      .from("vaquitas")
+      .select("id, organizer_client_id")
+      .eq("id", cc.vaquita_id)
+      .maybeSingle();
+    const vv = v as { id: string; organizer_client_id?: string } | null;
+    if (vv?.organizer_client_id) {
+      await notify([vv.organizer_client_id], {
+        type: "vaquita_confirmado",
+        title: "Aporte confirmado ✅",
+        body: `El negocio confirmó el aporte de ${cc.contributor_name} ($${cc.amount_usd}).`,
+        url: `/c/vaquita/${vv.id}`,
+      });
+    }
+  }
   revalidatePath("/vaquitas");
 }
 
@@ -1723,7 +1827,28 @@ export async function confirmReceived(token: string) {
 // El cliente cancela su propio pedido pendiente.
 export async function cancelOrder(id: string) {
   const supabase = await createClient();
+  const { data: o } = await supabase
+    .from("orders")
+    .select("operator_id, client_name, amount_usd, beneficiary_name")
+    .eq("id", id)
+    .eq("status", "pendiente")
+    .maybeSingle();
   await supabase.from("orders").delete().eq("id", id).eq("status", "pendiente");
+  const ord = o as {
+    operator_id?: string;
+    client_name?: string;
+    amount_usd?: number;
+    beneficiary_name?: string;
+  } | null;
+  if (ord?.operator_id) {
+    await notify([ord.operator_id], {
+      type: "pedido_cancelado",
+      title: "Pedido cancelado",
+      body: `${ord.client_name || "Un cliente"} canceló su pedido de $${ord.amount_usd}.`,
+      url: "/pedidos",
+      operatorId: ord.operator_id,
+    });
+  }
   revalidatePath("/c");
   revalidatePath("/c/pedidos");
 }
@@ -2268,6 +2393,13 @@ export async function approveMember(userId: string) {
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
   await supabase.rpc("approve_member", { p_user: userId });
+  await notify([userId], {
+    type: "equipo_aprobado",
+    title: "¡Aprobado! 🎉",
+    body: "Ya formas parte del equipo. Puedes empezar a recibir entregas.",
+    url: "/",
+    operatorId: ctx.tenantId,
+  });
   await logActivity("repartidor.aceptar", {
     entityType: "repartidor",
     entityId: userId,
@@ -2285,6 +2417,13 @@ export async function removeMember(userId: string) {
   const ctx = await getSessionContext();
   if (!ctx.isOperador || !ctx.tenantId) return;
   await supabase.rpc("remove_member", { p_user: userId });
+  await notify([userId], {
+    type: "equipo_removido",
+    title: "Ya no estás en el equipo",
+    body: "El operador te desvinculó del equipo.",
+    url: "/",
+    operatorId: ctx.tenantId,
+  });
   await logActivity("repartidor.quitar", {
     entityType: "repartidor",
     entityId: userId,
@@ -2616,6 +2755,26 @@ export async function setClientPaid(id: string, paid: boolean) {
   const ctx = await getSessionContext();
   if (!ctx.isOperador) return;
   await supabase.from("remittances").update({ client_paid: paid }).eq("id", id);
+  if (paid) {
+    const { data: od } = await supabase
+      .from("orders")
+      .select("id, client_id, amount_usd")
+      .eq("remittance_id", id)
+      .maybeSingle();
+    const o = od as {
+      id: string;
+      client_id?: string;
+      amount_usd?: number;
+    } | null;
+    if (o?.client_id) {
+      await notify([o.client_id], {
+        type: "pago_confirmado",
+        title: "Pago confirmado ✅",
+        body: `El negocio recibió tu pago de $${o.amount_usd}.`,
+        url: `/c/pedidos/${o.id}`,
+      });
+    }
+  }
   await logActivity(paid ? "remesa.cobrada" : "remesa.por_cobrar", {
     entityType: "remesa",
     entityId: id,
@@ -2638,12 +2797,25 @@ export async function updateRemittanceStatus(id: string, status: string) {
       .update({ delivered_at: new Date().toISOString() })
       .eq("remittance_id", id)
       .is("delivered_at", null)
-      .select("id, client_id, amount_usd, operator_id");
+      .select("id, client_id, amount_usd, operator_id, beneficiary_name");
     const o = ord?.[0] as
-      | { id: string; client_id: string | null; amount_usd: number; operator_id: string }
+      | {
+          id: string;
+          client_id: string | null;
+          amount_usd: number;
+          operator_id: string;
+          beneficiary_name: string | null;
+        }
       | undefined;
     // Puntos por la remesa entregada (solo pedidos de clientes registrados).
     if (o?.client_id) {
+      // Aviso de entrega al cliente.
+      await notify([o.client_id], {
+        type: "remesa_entregada",
+        title: "¡Remesa entregada! ✅",
+        body: `Tu envío para ${o.beneficiary_name || "tu familia"} fue entregado.`,
+        url: `/c/pedidos/${o.id}`,
+      });
       const { data: bs } = await supabase
         .from("business_settings")
         .select("points_per_usd")
@@ -2659,6 +2831,12 @@ export async function updateRemittanceStatus(id: string, status: string) {
           reason: "remesa",
           order_id: o.id,
         });
+        await notify([o.client_id], {
+          type: "puntos",
+          title: `Ganaste +${pts} puntos ⭐`,
+          body: `Gracias por tu envío a ${o.beneficiary_name || "tu familia"}.`,
+          url: "/c/puntos",
+        });
       }
       // Bono de referido: si este cliente llegó por invitación y aún no se
       // premió, se recompensa a ambos (tolerante si falta la migración 0043).
@@ -2667,6 +2845,26 @@ export async function updateRemittanceStatus(id: string, status: string) {
       } catch {
         /* migración no aplicada aún */
       }
+    }
+  } else if (status === "en_reparto") {
+    // Aviso al cliente de que su remesa va en camino.
+    const { data: ord } = await supabase
+      .from("orders")
+      .select("id, client_id, beneficiary_name")
+      .eq("remittance_id", id)
+      .maybeSingle();
+    const o = ord as {
+      id: string;
+      client_id: string | null;
+      beneficiary_name: string | null;
+    } | null;
+    if (o?.client_id) {
+      await notify([o.client_id], {
+        type: "en_camino",
+        title: "Tu remesa va en camino 🛵",
+        body: `El repartidor salió hacia ${o.beneficiary_name || "tu familia"}. Sigue el mapa en vivo.`,
+        url: `/c/pedidos/${o.id}`,
+      });
     }
   } else if (status === "pendiente") {
     await supabase
@@ -2791,28 +2989,8 @@ export async function deliverRemittance(
       })
       .eq("id", id);
   }
+  // updateRemittanceStatus notifica la entrega al cliente (choke point único).
   await updateRemittanceStatus(id, "entregado");
-
-  // Aviso al cliente de que su remesa fue entregada.
-  const { data: od } = await supabase
-    .from("orders")
-    .select("id, client_id, beneficiary_name")
-    .eq("remittance_id", id)
-    .maybeSingle();
-  const odr = od as {
-    id: string;
-    client_id?: string;
-    beneficiary_name?: string;
-  } | null;
-  if (odr?.client_id) {
-    await notify([odr.client_id], {
-      type: "remesa_entregada",
-      title: "¡Remesa entregada! ✅",
-      body: `Tu envío para ${odr.beneficiary_name || "tu familia"} fue entregado.`,
-      url: `/c/pedidos/${odr.id}`,
-    });
-  }
-
   return { ok: true };
 }
 
@@ -3030,12 +3208,16 @@ export async function cancelAcceptedOrder(id: string) {
 
   const { data: ord } = await supabase
     .from("orders")
-    .select("remittance_id")
+    .select("remittance_id, client_id, beneficiary_name")
     .eq("id", id)
     .eq("operator_id", ctx.tenantId)
     .maybeSingle();
-  const remId =
-    (ord as { remittance_id?: string | null } | null)?.remittance_id ?? null;
+  const ordRow = ord as {
+    remittance_id?: string | null;
+    client_id?: string | null;
+    beneficiary_name?: string | null;
+  } | null;
+  const remId = ordRow?.remittance_id ?? null;
   if (remId) {
     await supabase
       .from("remittances")
@@ -3056,6 +3238,15 @@ export async function cancelAcceptedOrder(id: string) {
     .eq("id", id)
     .eq("operator_id", ctx.tenantId);
 
+  if (ordRow?.client_id) {
+    await notify([ordRow.client_id], {
+      type: "pedido_cancelado_neg",
+      title: "Envío cancelado",
+      body: `Tu envío para ${ordRow.beneficiary_name || "tu familia"} fue cancelado por el negocio.`,
+      url: `/c/pedidos/${id}`,
+      operatorId: ctx.tenantId,
+    });
+  }
   await logActivity("pedido.cancelar", { entityType: "pedido", entityId: id });
   revalidatePath("/pedidos");
   revalidatePath("/remesas");
