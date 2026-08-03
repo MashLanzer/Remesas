@@ -31,7 +31,7 @@ import { ShareTrackButton } from "@/components/share-track-button";
 import { ShareReceipt } from "@/components/share-receipt";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { ConfettiBurst } from "@/components/confetti-burst";
-import { transferFactor } from "@/lib/calc";
+import { transferFactor, calcCommission } from "@/lib/calc";
 import { usd, localAmount, formatDate, methodTag, pointsForOrder } from "@/lib/utils";
 import { getLang } from "@/lib/lang";
 import { translate } from "@/lib/i18n";
@@ -106,7 +106,17 @@ export default async function MiPedidoDetallePage({
   const rate = isTransfer
     ? Number(baseRate) * transferFactor(settings.transfer_bonus_pct)
     : Number(baseRate);
-  const receives = Number(order.amount_usd) * rate;
+  // El cliente paga el monto; la comisión se DESCUENTA de ahí. La familia recibe
+  // (monto − comisión) × tasa. Los puntos canjeados reducen la comisión.
+  const amountUsd = Number(order.amount_usd);
+  const commission = calcCommission(amountUsd, {
+    commission_threshold: settings.commission_threshold,
+    commission_percent: settings.commission_percent,
+    commission_flat: settings.commission_flat,
+  });
+  const effCommission = Math.max(0, commission - Number(order.discount_usd ?? 0));
+  const deliveredUsd = Math.max(0, amountUsd - effCommission);
+  const receives = deliveredUsd * rate;
   const perUsd = Number(settings.points_per_usd ?? 0.2) || 0.2;
   const earnedPts = pointsForOrder(order.amount_usd, perUsd);
   const isRejected = order.status === "rechazado";
@@ -162,6 +172,7 @@ export default async function MiPedidoDetallePage({
               payment={payment}
               informed={paymentInformed}
               proofUrl={paymentProofUrl}
+              commission={effCommission}
             />
           )
         ))}
@@ -308,25 +319,31 @@ export default async function MiPedidoDetallePage({
         {order.note && <Row label={tr("Nota")} value={order.note} />}
       </Card>
 
-      {/* Desglose del monto */}
+      {/* Desglose del monto (con comisión, para que sea transparente) */}
       {Number(rate) > 0 && (
         <Card className="space-y-2.5">
-          <Row label={tr("Tú envías")} value={usd(Number(order.amount_usd))} />
-          <Row
-            label={tr("Tasa")}
-            value={`${localAmount(Number(rate))} ${order.delivery_currency}/USD${
-              isTransfer ? ` · 🏦 ${tr("transferencia")}` : ""
-            }`}
-          />
+          <Row label={tr("Tú pagas")} value={usd(amountUsd)} />
+          {effCommission > 0 && (
+            <Row
+              label={tr("Comisión del envío")}
+              value={`−${usd(effCommission)}`}
+            />
+          )}
           {order.discount_usd ? (
             <Row
               label={tr("Descuento por puntos:")}
               value={`−${usd(Number(order.discount_usd))}`}
             />
           ) : null}
+          <Row
+            label={tr("Se convierte")}
+            value={`${usd(deliveredUsd)} × ${localAmount(Number(rate))}${
+              isTransfer ? ` 🏦` : ""
+            }`}
+          />
           <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2.5 text-sm">
             <span className="shrink-0 text-muted-foreground">
-              {tr("Tu familia recibe hasta")}
+              {tr("Tu familia recibe")}
             </span>
             <span className="min-w-0 truncate text-right font-bold text-foreground">
               {localAmount(receives)} {order.delivery_currency}

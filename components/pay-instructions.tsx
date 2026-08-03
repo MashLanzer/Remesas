@@ -30,6 +30,7 @@ export function PayInstructions({
   payment,
   informed = false,
   proofUrl = null,
+  commission = 0,
 }: {
   order: Order;
   payment: {
@@ -41,6 +42,7 @@ export function PayInstructions({
   };
   informed?: boolean;
   proofUrl?: string | null;
+  commission?: number;
 }) {
   const tr = useT();
   const [copied, setCopied] = useState<string | null>(null);
@@ -118,6 +120,14 @@ export function PayInstructions({
           ${Number(order.amount_usd)}
         </span>{" "}
         {tr("por cualquiera de estos medios y avísale al negocio.")}
+        {commission > 0 && (
+          <>
+            {" "}
+            <span className="text-[11px]">
+              {tr("Incluye la comisión del envío")} (${commission}).
+            </span>
+          </>
+        )}
       </p>
 
       <div className="space-y-2">
