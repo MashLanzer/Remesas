@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { Bell, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { ProfileMenu } from "@/components/profile-menu";
 import { PaperPlane } from "@/components/paper-plane";
 import { ShareCard } from "@/components/share-card";
 import { RatesHeaderButton } from "@/components/rates-header-button";
+import { NotificationBell } from "@/components/notification-bell";
 import type { ExchangeRate, RateHistory } from "@/lib/types";
+import type { StoredNotification } from "@/lib/data";
 
 export function TopBar({
   email,
@@ -13,6 +15,8 @@ export function TopBar({
   card,
   rates = [],
   rateHistory = [],
+  notifications = [],
+  notificationsUnread = 0,
 }: {
   email?: string | null;
   alertCount?: number;
@@ -27,6 +31,8 @@ export function TopBar({
   };
   rates?: ExchangeRate[];
   rateHistory?: RateHistory[];
+  notifications?: StoredNotification[];
+  notificationsUnread?: number;
 }) {
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
@@ -54,18 +60,12 @@ export function TopBar({
               </span>
             </Link>
           )}
-          <Link
-            href="/notificaciones"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted"
-            aria-label="Notificaciones"
-          >
-            <Bell className="h-5 w-5" />
-            {alertCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-                {alertCount > 9 ? "9+" : alertCount}
-              </span>
-            )}
-          </Link>
+          <NotificationBell
+            items={notifications}
+            unread={notificationsUnread}
+            alertsHref="/notificaciones"
+            alertsCount={alertCount}
+          />
           <ProfileMenu email={email} />
         </div>
       </div>

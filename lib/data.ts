@@ -955,6 +955,38 @@ export type AppNotification = {
   kind: "delivered" | "accepted" | "rejected" | "vaquita";
 };
 
+// ===== Centro de notificaciones (tabla stored) =====
+export type StoredNotification = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  url: string | null;
+  read_at: string | null;
+  created_at: string;
+};
+
+// Notificaciones guardadas del usuario actual (cualquier rol). Tolerante si la
+// tabla aún no existe (migración 0076).
+export async function getStoredNotifications(): Promise<{
+  items: StoredNotification[];
+  unread: number;
+}> {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (!ctx.userId) return { items: [], unread: 0 };
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, type, title, body, url, read_at, created_at")
+    .eq("recipient_id", ctx.userId)
+    .order("created_at", { ascending: false })
+    .limit(40);
+  if (error) return { items: [], unread: 0 };
+  const items = (data as StoredNotification[]) ?? [];
+  const unread = items.filter((i) => !i.read_at).length;
+  return { items, unread };
+}
+
 export async function getMyNotifications(): Promise<{
   items: AppNotification[];
   unread: number;

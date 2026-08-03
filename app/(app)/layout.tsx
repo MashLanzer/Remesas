@@ -7,6 +7,7 @@ import {
   getExchangeRates,
   getRateHistory,
   getOrders,
+  getStoredNotifications,
 } from "@/lib/data";
 import { BottomNav } from "@/components/nav";
 import { TopBar } from "@/components/top-bar";
@@ -39,15 +40,23 @@ export default async function AppLayout({
     redirect("/pendiente");
   }
 
-  const [alertCount, settings, rates, rateHistory, pendingOrders, profileRes] =
-    await Promise.all([
-      getAlertCount(),
-      getBusinessSettings(),
-      getExchangeRates(),
-      getRateHistory(),
-      getOrders({ pendingOnly: true }),
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-    ]);
+  const [
+    alertCount,
+    settings,
+    rates,
+    rateHistory,
+    pendingOrders,
+    profileRes,
+    notifs,
+  ] = await Promise.all([
+    getAlertCount(),
+    getBusinessSettings(),
+    getExchangeRates(),
+    getRateHistory(),
+    getOrders({ pendingOnly: true }),
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    getStoredNotifications(),
+  ]);
   const p = (profileRes.data ?? {}) as Record<string, string | null>;
 
   const card = {
@@ -71,6 +80,8 @@ export default async function AppLayout({
         card={card}
         rates={rates}
         rateHistory={rateHistory}
+        notifications={notifs.items}
+        notificationsUnread={notifs.unread}
       />
       <main className="mx-auto max-w-md animate-fade-up px-4 pb-24 pt-4">
         {children}

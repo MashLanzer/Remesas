@@ -1332,6 +1332,22 @@ export async function clientUploadPaymentProof(
   return url;
 }
 
+// ===== Centro de notificaciones (in-app) =====
+
+// Marca todas las notificaciones del usuario como leídas.
+export async function markAllNotificationsRead(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("recipient_id", user.id)
+    .is("read_at", null);
+}
+
 // ===== Notificaciones push (FCM) =====
 
 // Guarda el token del dispositivo del usuario para enviarle avisos al teléfono.

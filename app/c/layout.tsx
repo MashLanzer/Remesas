@@ -8,7 +8,7 @@ import {
   getMyPoints,
   getMyBeneficiaries,
   getMyOperatorContact,
-  getMyNotifications,
+  getStoredNotifications,
   getBusinessSettings,
 } from "@/lib/data";
 import { PaperPlane } from "@/components/paper-plane";
@@ -58,7 +58,7 @@ export default async function ClienteLayout({
         .eq("id", user.id)
         .single(),
       getMyOperatorContact(),
-      getMyNotifications(),
+      getStoredNotifications(),
       getBusinessSettings(),
     ]);
   const fullName = (profileRes.data?.full_name as string | null) ?? null;
