@@ -10,6 +10,7 @@ import { OrderForm } from "@/components/order-form";
 import { VaquitaForm } from "@/components/vaquita-create";
 import { useT } from "@/components/lang-provider";
 import type { ExchangeRate } from "@/lib/types";
+import type { CommissionRules } from "@/lib/calc";
 
 const items = [
   { href: "/c", label: "Inicio", icon: Home, exact: true },
@@ -25,6 +26,7 @@ export function ClienteNav({
   pointValue = 0.05,
   beneficiaries = [],
   transferBonusPct,
+  commissionRules,
 }: {
   rates?: ExchangeRate[];
   pointsBalance?: number;
@@ -32,6 +34,7 @@ export function ClienteNav({
   pointValue?: number;
   beneficiaries?: { name: string; phone: string | null; province: string | null }[];
   transferBonusPct?: number | null;
+  commissionRules?: CommissionRules;
 }) {
   const pathname = usePathname();
   const t = useT();
@@ -140,6 +143,7 @@ export function ClienteNav({
           pointValue={pointValue}
           beneficiaries={beneficiaries}
           transferBonusPct={transferBonusPct}
+          commissionRules={commissionRules}
         />
       </Sheet>
 

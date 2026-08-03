@@ -3,7 +3,7 @@ import { ChevronRight, MessageSquare } from "lucide-react";
 import { Card } from "@/components/ui";
 import { OrderStatusBadge } from "@/components/order-status-badge";
 import { localAmount } from "@/lib/utils";
-import { transferFactor } from "@/lib/calc";
+import { transferFactor, calcCommission, type CommissionRules } from "@/lib/calc";
 import { OrderEta } from "@/components/order-eta";
 import type { Order } from "@/lib/types";
 
@@ -13,12 +13,14 @@ export function ActiveOrderCard({
   rate,
   stage,
   transferBonusPct,
+  commissionRules,
   unread = 0,
 }: {
   order: Order;
   rate: number;
   stage: 1 | 2; // 1 = pendiente, 2 = en reparto
   transferBonusPct?: number | null;
+  commissionRules?: CommissionRules;
   unread?: number;
 }) {
   const isTransfer =
@@ -27,7 +29,11 @@ export function ActiveOrderCard({
   const effRate = isTransfer
     ? Number(rate) * transferFactor(transferBonusPct)
     : Number(rate);
-  const receives = Number(order.amount_usd) * effRate;
+  // La familia recibe (monto − comisión) × tasa.
+  const commission = commissionRules
+    ? calcCommission(Number(order.amount_usd), commissionRules)
+    : 0;
+  const receives = Math.max(0, Number(order.amount_usd) - commission) * effRate;
   const steps = ["Pedido", "En reparto", "Entregado"];
 
   return (

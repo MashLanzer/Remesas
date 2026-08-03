@@ -11,7 +11,7 @@ import {
   deleteSavedBeneficiary,
 } from "@/app/actions";
 import { localAmount, usd } from "@/lib/utils";
-import { transferFactor } from "@/lib/calc";
+import { transferFactor, calcCommission, type CommissionRules } from "@/lib/calc";
 import { useT } from "@/components/lang-provider";
 import {
   DELIVERY_CURRENCIES,
@@ -44,6 +44,7 @@ export function OrderForm({
   beneficiaries = [],
   initial,
   transferBonusPct,
+  commissionRules,
 }: {
   rates: ExchangeRate[];
   onDone?: () => void;
@@ -53,6 +54,7 @@ export function OrderForm({
   beneficiaries?: Benef[];
   initial?: OrderInitial;
   transferBonusPct?: number | null;
+  commissionRules?: CommissionRules;
 }) {
   const tr = useT();
   const ratesByCurrency = useMemo(() => {
@@ -176,7 +178,11 @@ export function OrderForm({
     canChooseMethod && method === "transferencia"
       ? rate * transferFactor(transferBonusPct)
       : rate;
-  const receives = amountNum * effRate;
+  // El cliente paga el monto; la comisión se descuenta. La familia recibe
+  // (monto − comisión) × tasa. Sin reglas de comisión, cae al bruto.
+  const netUsd = (a: number) =>
+    Math.max(0, a - (commissionRules ? calcCommission(a, commissionRules) : 0));
+  const receives = netUsd(amountNum) * effRate;
   const alreadySaved = savedKeys.has(
     `${bName.trim().toLowerCase()}|${bPhone.trim() || ""}`
   );
@@ -287,7 +293,7 @@ export function OrderForm({
               ]
             ).map(({ m, label }) => {
               const f = m === "transferencia" ? transferFactor(transferBonusPct) : 1;
-              const amt = amountNum * rate * f;
+              const amt = netUsd(amountNum) * rate * f;
               return (
                 <button
                   key={m}
@@ -436,7 +442,7 @@ export function OrderForm({
                   />
                   <span className="shrink-0 text-[11px] text-muted-foreground">
                     {(parseFloat(r.amount) || 0) > 0 && rate > 0
-                      ? `≈ ${localAmount((parseFloat(r.amount) || 0) * effRate)} ${currency}`
+                      ? `≈ ${localAmount(netUsd(parseFloat(r.amount) || 0) * effRate)} ${currency}`
                       : ""}
                   </span>
                 </div>

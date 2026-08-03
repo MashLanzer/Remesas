@@ -21,6 +21,7 @@ type SendProps = {
   pointValue: number;
   beneficiaries: { name: string; phone: string | null; province: string | null }[];
   transferBonusPct?: number | null;
+  commissionRules?: import("@/lib/calc").CommissionRules;
 };
 
 export function ClientOrderHistory({
@@ -213,6 +214,7 @@ export function ClientOrderHistory({
             pointValue={sendProps.pointValue}
             beneficiaries={sendProps.beneficiaries}
             transferBonusPct={sendProps.transferBonusPct}
+            commissionRules={sendProps.commissionRules}
             initial={repeatInitial}
           />
         </Sheet>

@@ -18,6 +18,8 @@ type SendProps = {
   redeemMin: number;
   pointValue: number;
   beneficiaries: { name: string; phone: string | null; province: string | null }[];
+  transferBonusPct?: number | null;
+  commissionRules?: import("@/lib/calc").CommissionRules;
 };
 
 type ReferralProps = { code: string | null; bonus: number };
@@ -285,6 +287,8 @@ export function OffersView({
                   redeemMin={sendProps.redeemMin}
                   pointValue={sendProps.pointValue}
                   beneficiaries={sendProps.beneficiaries}
+                  transferBonusPct={sendProps.transferBonusPct}
+                  commissionRules={sendProps.commissionRules}
                   variant="primary"
                   label={ctaLabel(selected, tr)}
                   initial={{ note: `Promo: ${selected.title}` }}

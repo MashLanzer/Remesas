@@ -25,6 +25,7 @@ import {
 import { AnnouncementsBanner } from "@/components/announcements-banner";
 import { Card } from "@/components/ui";
 import { localAmount, packageQuote, usd } from "@/lib/utils";
+import { calcCommission } from "@/lib/calc";
 import { EnviarRemesaCta } from "@/components/enviar-remesa-cta";
 import { CalculadoraSheet } from "@/components/calculadora-sheet";
 import { OffersView } from "@/components/offers-view";
@@ -168,6 +169,8 @@ export default async function ClienteHome() {
     redeemMin,
     pointValue,
     beneficiaries,
+    transferBonusPct: settings.transfer_bonus_pct,
+    commissionRules,
   };
 
   // Aviso de celebración: pedido entregado en las últimas 48 h.
@@ -283,6 +286,7 @@ export default async function ClienteHome() {
           rate={featuredRate}
           stage={featuredStage}
           transferBonusPct={settings.transfer_bonus_pct}
+          commissionRules={commissionRules}
           unread={unread[featuredActive.id] ?? 0}
         />
       )}
@@ -441,7 +445,11 @@ export default async function ClienteHome() {
               const oRate = Number(
                 rates.find((r) => r.currency === o.delivery_currency)?.rate ?? 0
               );
-              const oReceives = Number(o.amount_usd) * oRate;
+              const oReceives =
+                Math.max(
+                  0,
+                  Number(o.amount_usd) - calcCommission(Number(o.amount_usd), commissionRules)
+                ) * oRate;
               return (
                 <Link key={o.id} href={`/c/pedidos/${o.id}`} className="block">
                   <Card className="flex items-center justify-between gap-3 p-3.5 transition active:scale-[0.99]">

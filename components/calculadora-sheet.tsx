@@ -23,7 +23,7 @@ export function CalculadoraSheet({
           onClick={() => setOpen(true)}
           className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-white/85 underline underline-offset-2 transition active:scale-95"
         >
-          <Calculator className="h-3.5 w-3.5" /> Calcular cuánto recibe tu familia
+          <Calculator className="h-3.5 w-3.5" /> Conversor de tasa
         </button>
       ) : (
         <button
@@ -36,7 +36,7 @@ export function CalculadoraSheet({
               : "border border-border bg-card text-foreground")
           }
         >
-          <Calculator className="h-4 w-4" /> Calcular cuánto recibe tu familia
+          <Calculator className="h-4 w-4" /> Conversor de tasa
         </button>
       )}
 

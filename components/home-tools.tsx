@@ -15,6 +15,7 @@ type SendProps = {
   pointValue: number;
   beneficiaries: { name: string; phone: string | null; province: string | null }[];
   transferBonusPct?: number | null;
+  commissionRules?: import("@/lib/calc").CommissionRules;
 };
 
 // Fila compacta de "herramientas" del inicio: dos chips (Alerta de tasa y

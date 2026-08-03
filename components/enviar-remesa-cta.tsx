@@ -7,6 +7,7 @@ import { Sheet } from "@/components/sheet";
 import { OrderForm, type OrderInitial } from "@/components/order-form";
 import { useT } from "@/components/lang-provider";
 import type { ExchangeRate } from "@/lib/types";
+import type { CommissionRules } from "@/lib/calc";
 
 export function EnviarRemesaCta({
   rates,
@@ -17,6 +18,8 @@ export function EnviarRemesaCta({
   label,
   beneficiaries = [],
   initial,
+  transferBonusPct,
+  commissionRules,
 }: {
   rates: ExchangeRate[];
   pointsBalance?: number;
@@ -26,6 +29,8 @@ export function EnviarRemesaCta({
   label?: string;
   beneficiaries?: { name: string; phone: string | null; province: string | null }[];
   initial?: OrderInitial;
+  transferBonusPct?: number | null;
+  commissionRules?: CommissionRules;
 }) {
   const [open, setOpen] = useState(false);
   const tr = useT();
@@ -58,6 +63,8 @@ export function EnviarRemesaCta({
           pointValue={pointValue}
           beneficiaries={beneficiaries}
           initial={initial}
+          transferBonusPct={transferBonusPct}
+          commissionRules={commissionRules}
         />
       </Sheet>
     </>

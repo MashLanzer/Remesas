@@ -268,6 +268,12 @@ export default async function MiPedidoDetallePage({
         redeemMin={redeemMin}
         pointValue={pointValue}
         beneficiaries={beneficiaries}
+        transferBonusPct={settings.transfer_bonus_pct}
+        commissionRules={{
+          commission_threshold: settings.commission_threshold,
+          commission_percent: settings.commission_percent,
+          commission_flat: settings.commission_flat,
+        }}
         variant="primary"
         label={tr("Enviar otra vez")}
         initial={{

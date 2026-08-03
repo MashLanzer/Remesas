@@ -26,6 +26,8 @@ type SendProps = {
   redeemMin: number;
   pointValue: number;
   beneficiaries: { name: string; phone: string | null; province: string | null }[];
+  transferBonusPct?: number | null;
+  commissionRules?: import("@/lib/calc").CommissionRules;
 };
 
 const FREQS = [
@@ -128,6 +130,8 @@ export function ReminderCard({
                 redeemMin={sendProps.redeemMin}
                 pointValue={sendProps.pointValue}
                 beneficiaries={sendProps.beneficiaries}
+                transferBonusPct={sendProps.transferBonusPct}
+                commissionRules={sendProps.commissionRules}
                 variant="primary"
                 label="Enviar ahora"
                 initial={{

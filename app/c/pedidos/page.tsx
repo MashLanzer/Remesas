@@ -58,6 +58,11 @@ export default async function MisPedidosPage() {
       getUnreadOrderCounts(),
     ]);
   const perUsd = Number(settings.points_per_usd ?? 0.2) || 0.2;
+  const commissionRules = {
+    commission_threshold: settings.commission_threshold,
+    commission_percent: settings.commission_percent,
+    commission_flat: settings.commission_flat,
+  };
 
   const cfg = (Array.isArray(cfgRes.data) ? cfgRes.data[0] : cfgRes.data) as
     | { point_value_usd?: number | null; redeem_min_points?: number | null }
@@ -86,6 +91,8 @@ export default async function MisPedidosPage() {
               pointsBalance={points.balance}
               redeemMin={redeemMin}
               pointValue={pointValue}
+              transferBonusPct={settings.transfer_bonus_pct}
+              commissionRules={commissionRules}
               variant="primary"
             />
           </div>
@@ -183,6 +190,7 @@ export default async function MisPedidosPage() {
           rate={featuredRate}
           stage={featuredStage}
           transferBonusPct={settings.transfer_bonus_pct}
+          commissionRules={commissionRules}
           unread={unread[featuredActive.id] ?? 0}
         />
       )}
@@ -313,6 +321,7 @@ export default async function MisPedidosPage() {
             pointValue,
             beneficiaries,
             transferBonusPct: settings.transfer_bonus_pct,
+            commissionRules,
           }}
         />
       )}

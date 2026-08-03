@@ -14,12 +14,16 @@ export function QuickSendRow({
   redeemMin,
   pointValue,
   beneficiaries,
+  transferBonusPct,
+  commissionRules,
 }: {
   rates: ExchangeRate[];
   pointsBalance: number;
   redeemMin: number;
   pointValue: number;
   beneficiaries: Benef[];
+  transferBonusPct?: number | null;
+  commissionRules?: import("@/lib/calc").CommissionRules;
 }) {
   const [open, setOpen] = useState(false);
   const [initial, setInitial] = useState<OrderInitial | undefined>();
@@ -89,6 +93,8 @@ export function QuickSendRow({
           redeemMin={redeemMin}
           pointValue={pointValue}
           beneficiaries={beneficiaries}
+          transferBonusPct={transferBonusPct}
+          commissionRules={commissionRules}
           initial={initial}
         />
       </Sheet>
