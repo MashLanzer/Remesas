@@ -17,6 +17,7 @@ import {
   getMyOperatorPayment,
 } from "@/lib/data";
 import { getUnreadOrderCounts } from "@/app/actions";
+import { signDoc } from "@/lib/storage";
 import { PayInstructions } from "@/components/pay-instructions";
 import { ReviewForm } from "@/components/review-form";
 import { Card } from "@/components/ui";
@@ -84,7 +85,9 @@ export default async function MiPedidoDetallePage({
   } | null;
   const paymentConfirmed = payRow?.confirmed === true;
   const paymentInformed = !!payRow?.marked_paid_at;
-  const paymentProofUrl = payRow?.proof_url ?? order.payment_proof_url ?? null;
+  const paymentProofUrl = await signDoc(
+    payRow?.proof_url ?? order.payment_proof_url ?? null
+  );
 
   const display = orderDisplay(order);
   const isDelivered = display === "entregado" || display === "recibido";

@@ -11,6 +11,7 @@ import {
   notifyVaquitaContribution,
   notifyAnnouncement,
 } from "@/lib/push";
+import { signDoc } from "@/lib/storage";
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -1397,20 +1398,20 @@ export async function clientUploadPaymentProof(
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `payments/${orderId}/proof-${Date.now()}.${ext}`;
   const up = await supabase.storage
-    .from("receipts")
+    .from("docs")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (up.error) return null;
-  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
-  const url = data.publicUrl;
+  // Guardamos la RUTA del bucket privado (no una URL pública). Se firma al leer.
   const { error } = await supabase.rpc("client_set_payment_proof", {
     p_order: orderId,
-    p_url: url,
+    p_url: path,
   });
   if (error) return null;
   await notifyPaymentInformed(supabase, orderId, true);
   revalidatePath(`/c/pedidos/${orderId}`);
   revalidatePath("/pedidos");
-  return url;
+  // Devolvemos una URL firmada temporal para reflejarla al instante en el cliente.
+  return signDoc(path);
 }
 
 // ===== Centro de notificaciones (in-app) =====
@@ -1514,17 +1515,15 @@ export async function contributeVaquita(
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `vaquitas/${token}/c-${Date.now()}.${ext}`;
   const up = await supabase.storage
-    .from("receipts")
+    .from("docs")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (up.error) return { ok: false };
-  const proofUrl = supabase.storage.from("receipts").getPublicUrl(path).data
-    .publicUrl;
-
+  // Guardamos la RUTA del bucket privado (no una URL pública). Se firma al leer.
   const { data, error } = await supabase.rpc("vaquita_contribute", {
     p_token: token,
     p_name: name,
     p_amount: amount,
-    p_proof: proofUrl,
+    p_proof: path,
   });
   if (error || !data) return { ok: false };
   // Aviso al organizador y al operador (push).
@@ -2574,14 +2573,11 @@ async function handleReceiptUpload(
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `${table}/${id}/comprobante-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
-    .from("receipts")
+    .from("docs")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (error) return;
-  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
-  await supabase
-    .from(table)
-    .update({ receipt_url: data.publicUrl })
-    .eq("id", id);
+  // Guardamos la RUTA del bucket privado (no una URL pública). Se firma al leer.
+  await supabase.from(table).update({ receipt_url: path }).eq("id", id);
 }
 
 // Comprobante de entrega (separado del pago del cliente). Tolerante si la
@@ -2597,13 +2593,13 @@ async function handleDeliveryProof(
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `remittances/${id}/entrega-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
-    .from("receipts")
+    .from("docs")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (error) return;
-  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  // Guardamos la RUTA del bucket privado (no una URL pública). Se firma al leer.
   await supabase
     .from("remittances")
-    .update({ delivery_proof_url: data.publicUrl })
+    .update({ delivery_proof_url: path })
     .eq("id", id);
 }
 
@@ -2939,13 +2935,13 @@ async function handleSignature(
   const bytes = Buffer.from(base64, "base64");
   const path = `remittances/${id}/firma-${Date.now()}.png`;
   const { error } = await supabase.storage
-    .from("receipts")
+    .from("docs")
     .upload(path, bytes, { upsert: true, contentType: "image/png" });
   if (error) return;
-  const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+  // Guardamos la RUTA del bucket privado (no una URL pública). Se firma al leer.
   await supabase
     .from("remittances")
-    .update({ signature_url: data.publicUrl })
+    .update({ signature_url: path })
     .eq("id", id);
 }
 
@@ -3006,13 +3002,13 @@ export async function deliverRemittance(
     const ext = (idPhoto.name.split(".").pop() || "jpg").toLowerCase();
     const path = `remittances/${id}/carne-${Date.now()}.${ext}`;
     const { error } = await supabase.storage
-      .from("receipts")
+      .from("docs")
       .upload(path, idPhoto, { upsert: true, contentType: idPhoto.type });
     if (!error) {
-      const { data } = supabase.storage.from("receipts").getPublicUrl(path);
+      // Guardamos la RUTA del bucket privado (no una URL pública). Se firma al leer.
       await supabase
         .from("remittances")
-        .update({ id_photo_url: data.publicUrl })
+        .update({ id_photo_url: path })
         .eq("id", id);
     }
   }

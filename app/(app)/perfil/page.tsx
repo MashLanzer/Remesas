@@ -25,6 +25,7 @@ import { Card, Field, Input, Button, PageHeader } from "@/components/ui";
 import { ShareCard } from "@/components/share-card";
 import { PaymentMethods } from "@/components/payment-methods";
 import { SmartImage } from "@/components/smart-image";
+import { signDocMany } from "@/lib/storage";
 import { CoverageSelector } from "@/components/coverage-selector";
 import { ExportMyDeliveries } from "@/components/export-my-deliveries";
 import { PerfilSheetsMenu } from "@/components/perfil-sheets-menu";
@@ -86,7 +87,14 @@ export default async function PerfilPage() {
     : 0;
 
   // Comprobantes de entrega que ha subido el repartidor (galería).
-  const proofs = remittances.filter((r) => r.delivery_proof_url);
+  // Firmamos las URLs (bucket privado) antes de mostrarlas.
+  const proofList = remittances.filter((r) => r.delivery_proof_url).slice(0, 12);
+  const proofSigned = await signDocMany(
+    proofList.map((r) => r.delivery_proof_url)
+  );
+  const proofs = proofList
+    .map((r, i) => ({ r, url: proofSigned[i] }))
+    .filter((p) => p.url);
 
   // Estadísticas personales del repartidor.
   const delivered = remittances.filter((r) => r.status !== "pendiente");
@@ -230,14 +238,14 @@ export default async function PerfilPage() {
         <section className="space-y-2">
           <SectionTitle>Comprobantes de entrega ({proofs.length})</SectionTitle>
           <div className="grid grid-cols-3 gap-2">
-            {proofs.slice(0, 12).map((r) => (
+            {proofs.map(({ r, url }) => (
               <Link
                 key={r.id}
                 href={`/remesas/${r.id}`}
                 className="relative aspect-square overflow-hidden rounded-xl border border-border transition active:scale-95"
               >
                 <SmartImage
-                  src={r.delivery_proof_url as string}
+                  src={url as string}
                   alt="Comprobante de entrega"
                   className="h-full w-full object-cover"
                 />

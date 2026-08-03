@@ -2,6 +2,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { calcPartnerBalance } from "@/lib/calc";
+import { signDocMany } from "@/lib/storage";
 import {
   DEFAULT_SETTINGS,
   type Beneficiary,
@@ -835,7 +836,11 @@ export async function getSettlements(): Promise<Settlement[]> {
   if (ctx.tenantId) query = query.eq("operator_id", ctx.tenantId);
   if (!ctx.isOperador && ctx.userId) query = query.eq("deliverer_id", ctx.userId);
   const { data } = await query;
-  return (data as Settlement[]) ?? [];
+  const rows = (data as Settlement[]) ?? [];
+  // Comprobante de liquidación (documento sensible del bucket privado): firmar
+  // la URL antes de exponerla a la vista.
+  const signed = await signDocMany(rows.map((s) => s.receipt_url));
+  return rows.map((s, i) => ({ ...s, receipt_url: signed[i] }));
 }
 
 // Registro de actividad (log) del negocio actual.

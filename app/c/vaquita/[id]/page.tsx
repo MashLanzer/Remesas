@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users, Check, Clock } from "lucide-react";
 import { getVaquita } from "@/lib/data";
+import { signDocMany } from "@/lib/storage";
 import { Card } from "@/components/ui";
 import { VaquitaShare } from "@/components/vaquita-share";
 import { VaquitaConvert } from "@/components/vaquita-convert";
@@ -18,6 +19,12 @@ export default async function VaquitaDetallePage({
   const data = await getVaquita(id);
   if (!data) notFound();
   const { vaquita: v, contributions, raised } = data;
+  // Comprobantes de aporte: firmar las URLs (bucket privado) → mapa por id.
+  const signedProofs = await signDocMany(contributions.map((c) => c.proof_url));
+  const proofById: Record<string, string | null> = {};
+  contributions.forEach((c, i) => {
+    proofById[c.id] = signedProofs[i];
+  });
   const goal = Number(v.goal_usd) || 0;
   const pct = goal > 0 ? Math.min(100, (raised / goal) * 100) : 0;
   const sent = v.status === "enviada";
@@ -182,10 +189,10 @@ export default async function VaquitaDetallePage({
           <div className="space-y-2">
             {contributions.map((c) => (
               <Card key={c.id} className="flex items-center gap-3 p-3">
-                {c.proof_url ? (
+                {proofById[c.id] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={c.proof_url}
+                    src={proofById[c.id] as string}
                     alt="Comprobante"
                     className="h-10 w-10 shrink-0 rounded-lg object-cover"
                   />

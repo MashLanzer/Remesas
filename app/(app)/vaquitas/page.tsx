@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users, Check, Clock } from "lucide-react";
 import { getOperatorVaquitas, getSessionContext } from "@/lib/data";
+import { signDocMany } from "@/lib/storage";
 import { Card, PageHeader, EmptyState } from "@/components/ui";
 import { VaquitaConfirmButton } from "@/components/vaquita-confirm-button";
 import { usd } from "@/lib/utils";
@@ -12,6 +13,14 @@ export default async function OperadorVaquitasPage() {
   const ctx = await getSessionContext();
   if (ctx.isCliente) redirect("/");
   const vaquitas = await getOperatorVaquitas();
+
+  // Comprobantes de aporte: firmar las URLs (bucket privado) → mapa por id.
+  const allContribs = vaquitas.flatMap((v) => v.contributions);
+  const signedProofs = await signDocMany(allContribs.map((c) => c.proof_url));
+  const proofById: Record<string, string | null> = {};
+  allContribs.forEach((c, i) => {
+    proofById[c.id] = signedProofs[i];
+  });
 
   return (
     <div>
@@ -79,16 +88,16 @@ export default async function OperadorVaquitasPage() {
                   <div className="space-y-1.5 border-t border-border pt-2.5">
                     {v.contributions.map((c) => (
                       <div key={c.id} className="flex items-center gap-2 text-sm">
-                        {c.proof_url ? (
+                        {proofById[c.id] ? (
                           <a
-                            href={c.proof_url}
+                            href={proofById[c.id] as string}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="shrink-0"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={c.proof_url}
+                              src={proofById[c.id] as string}
                               alt="Comprobante"
                               className="h-9 w-9 rounded-md object-cover"
                             />

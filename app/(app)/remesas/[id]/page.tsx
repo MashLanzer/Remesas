@@ -35,6 +35,7 @@ import { ShareReceipt } from "@/components/share-receipt";
 import { ShareTrackButton } from "@/components/share-track-button";
 import { ClientPaidToggle } from "@/components/client-paid-toggle";
 import { SmartImage } from "@/components/smart-image";
+import { signDoc } from "@/lib/storage";
 import type { RemittanceStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,15 @@ export default async function RemesaDetailPage({
   }
   const creatorName = r.created_by ? names[r.created_by] : null;
   const delivererName = r.deliverer_id ? names[r.deliverer_id] : null;
+
+  // Documentos sensibles del bucket privado: firmar la URL antes de mostrarla.
+  const [receiptUrl, idPhotoUrl, signatureUrl, deliveryProofUrl] =
+    await Promise.all([
+      signDoc(r.receipt_url),
+      signDoc(r.id_photo_url),
+      signDoc(r.signature_url),
+      signDoc(r.delivery_proof_url),
+    ]);
 
   // Pedido vinculado (si nació de la app del cliente): confirmación de la familia.
   const supabaseOrder = await createClient();
@@ -343,13 +353,13 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
-      {r.receipt_url && (
+      {receiptUrl && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Comprobante de pago del cliente
           </p>
           <SmartImage
-            src={r.receipt_url}
+            src={receiptUrl}
             alt="Comprobante de pago"
             className="w-full rounded-xl border border-border"
           />
@@ -370,39 +380,39 @@ export default async function RemesaDetailPage({
         </Card>
       )}
 
-      {r.id_photo_url && (
+      {idPhotoUrl && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Foto del carné
           </p>
           <SmartImage
-            src={r.id_photo_url}
+            src={idPhotoUrl}
             alt="Foto del carné"
             className="w-full rounded-xl border border-border"
           />
         </Card>
       )}
 
-      {r.signature_url && (
+      {signatureUrl && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Firma de recepción
           </p>
           <SmartImage
-            src={r.signature_url}
+            src={signatureUrl}
             alt="Firma de recepción"
             className="w-full rounded-xl border border-border bg-white"
           />
         </Card>
       )}
 
-      {r.delivery_proof_url && (
+      {deliveryProofUrl && (
         <Card className="mb-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Comprobante de entrega
           </p>
           <SmartImage
-            src={r.delivery_proof_url}
+            src={deliveryProofUrl}
             alt="Comprobante de entrega"
             className="w-full rounded-xl border border-border"
           />

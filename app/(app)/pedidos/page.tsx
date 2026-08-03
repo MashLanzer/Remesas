@@ -8,6 +8,7 @@ import {
   getSessionContext,
 } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
+import { signDocMany } from "@/lib/storage";
 import { PageHeader } from "@/components/ui";
 import { OrdersManager } from "@/components/orders-manager";
 
@@ -34,6 +35,13 @@ export default async function PedidosPage() {
       : Promise.resolve({ data: null }),
   ]);
 
+  // Comprobantes de pago: firmar la URL (bucket privado) antes de mostrarla.
+  const signedProofs = await signDocMany(orders.map((o) => o.payment_proof_url));
+  const ordersSigned = orders.map((o, i) => ({
+    ...o,
+    payment_proof_url: signedProofs[i],
+  }));
+
   // Estimación de ganancia del repartidor antes de aceptar (misma fórmula que
   // al aceptar: comisión según reglas del negocio + su % de reparto).
   const earn = ctx.isOperador
@@ -57,7 +65,7 @@ export default async function PedidosPage() {
         icon={ctx.isOperador ? undefined : Inbox}
       />
       <OrdersManager
-        orders={orders}
+        orders={ordersSigned}
         rates={rates}
         earn={earn}
         transferBonusPct={settings.transfer_bonus_pct}
