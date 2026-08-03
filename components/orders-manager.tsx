@@ -515,7 +515,7 @@ export function OrdersManager({
               “{o.note}”
             </p>
           )}
-          {o.payment_proof_url && (
+          {o.payment_proof_url ? (
             <button
               type="button"
               onClick={() => setProofView(o.payment_proof_url!)}
@@ -532,6 +532,11 @@ export function OrdersManager({
                 para ver
               </span>
             </button>
+          ) : (
+            <p className="mt-1 flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 p-2 text-xs font-medium text-warning">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              El cliente aún no subió el comprobante de pago
+            </p>
           )}
         </div>
 
@@ -902,6 +907,19 @@ export function OrdersManager({
               </span>{" "}
               para {accepting.beneficiary_name || "el beneficiario"}.
             </p>
+
+            {!accepting.payment_proof_url && (
+              <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  <span className="font-semibold">
+                    El cliente aún no subió el comprobante de pago.
+                  </span>{" "}
+                  Puedes aceptar de todos modos, pero verifica que el pago te
+                  haya llegado antes de continuar.
+                </span>
+              </div>
+            )}
 
             {repartidores.length > 0 && (
               <div>
