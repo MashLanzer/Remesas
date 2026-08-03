@@ -263,6 +263,7 @@ async function uploadAnnouncementImage(
 ) {
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return;
+  if (!(await validUpload(file))) return;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `announcements/${announcementId}/img-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
@@ -361,7 +362,7 @@ export async function updateClientProfile(formData: FormData) {
   }
   // Foto de perfil (tolerante — columna 0027).
   const avatar = formData.get("avatar");
-  if (avatar instanceof File && avatar.size > 0) {
+  if (avatar instanceof File && avatar.size > 0 && (await validUpload(avatar))) {
     const ext = (avatar.name.split(".").pop() || "jpg").toLowerCase();
     const path = `avatars/${user.id}/a-${Date.now()}.${ext}`;
     const { error } = await supabase.storage
@@ -453,6 +454,7 @@ async function uploadOfferImage(
 ) {
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return;
+  if (!(await validUpload(file))) return;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `offers/${offerId}/img-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
@@ -608,6 +610,7 @@ async function uploadPackageImage(
 ) {
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return;
+  if (!(await validUpload(file))) return;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `packages/${packageId}/img-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
@@ -1390,6 +1393,7 @@ export async function clientUploadPaymentProof(
   if (!user) return null;
   const file = formData.get("proof");
   if (!(file instanceof File) || file.size === 0) return null;
+  if (!(await validUpload(file, { allowPdf: true }))) return null;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `payments/${orderId}/proof-${Date.now()}.${ext}`;
   const up = await supabase.storage
@@ -1506,6 +1510,7 @@ export async function contributeVaquita(
   // El comprobante es OBLIGATORIO.
   const file = formData.get("proof");
   if (!(file instanceof File) || file.size === 0) return { ok: false };
+  if (!(await validUpload(file, { allowPdf: true }))) return { ok: false };
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `vaquitas/${token}/c-${Date.now()}.${ext}`;
   const up = await supabase.storage
@@ -2442,6 +2447,38 @@ export async function regenerateCode() {
   revalidatePath("/ajustes/repartidores");
 }
 
+// ===== Validación de subidas de archivos =====
+// Auditoría (Alto): las subidas no validaban tipo ni tamaño y confiaban en
+// file.type (controlado por el cliente). Aquí verificamos el tamaño y el tipo
+// REAL por los "magic bytes" del contenido, no por la extensión ni la cabecera.
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+// Lee los primeros bytes y confirma que el contenido es una imagen conocida
+// (o un PDF, si se permite). No confía en file.type ni en la extensión.
+async function sniffAllowed(file: File, allowPdf: boolean): Promise<boolean> {
+  const buf = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const at = (sig: number[], off = 0) => sig.every((b, i) => buf[off + i] === b);
+  if (at([0xff, 0xd8, 0xff])) return true; // JPEG
+  if (at([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return true; // PNG
+  if (at([0x47, 0x49, 0x46, 0x38])) return true; // GIF
+  if (at([0x52, 0x49, 0x46, 0x46]) && at([0x57, 0x45, 0x42, 0x50], 8)) return true; // WEBP
+  // HEIC/HEIF: caja "ftyp" en el offset 4 (típico de fotos de iPhone).
+  if (at([0x66, 0x74, 0x79, 0x70], 4)) return true;
+  if (allowPdf && at([0x25, 0x50, 0x44, 0x46])) return true; // %PDF
+  return false;
+}
+
+// Valida un archivo ya conocido como File no vacío: tamaño dentro del límite y
+// tipo real permitido. Devuelve true si puede subirse.
+async function validUpload(
+  file: File,
+  opts: { allowPdf?: boolean } = {}
+): Promise<boolean> {
+  if (file.size > MAX_UPLOAD_BYTES) return false;
+  return sniffAllowed(file, !!opts.allowPdf);
+}
+
 function num(v: FormDataEntryValue | null): number {
   let s = String(v ?? "").trim().replace(/\s/g, "");
   if (!s) return 0;
@@ -2533,6 +2570,7 @@ async function handleReceiptUpload(
 ) {
   const file = formData.get("receipt");
   if (!(file instanceof File) || file.size === 0) return;
+  if (!(await validUpload(file, { allowPdf: true }))) return;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `${table}/${id}/comprobante-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
@@ -2555,6 +2593,7 @@ async function handleDeliveryProof(
 ) {
   const file = formData.get("delivery_proof");
   if (!(file instanceof File) || file.size === 0) return;
+  if (!(await validUpload(file, { allowPdf: true }))) return;
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `remittances/${id}/entrega-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
@@ -2963,7 +3002,7 @@ export async function deliverRemittance(
   await handleSignature(supabase, formData, id);
   // Foto del carné de quien recibe (tolerante — columna 0039).
   const idPhoto = formData.get("id_photo");
-  if (idPhoto instanceof File && idPhoto.size > 0) {
+  if (idPhoto instanceof File && idPhoto.size > 0 && (await validUpload(idPhoto, { allowPdf: true }))) {
     const ext = (idPhoto.name.split(".").pop() || "jpg").toLowerCase();
     const path = `remittances/${id}/carne-${Date.now()}.${ext}`;
     const { error } = await supabase.storage
@@ -3863,7 +3902,7 @@ export async function updateProfile(formData: FormData) {
     .eq("id", user.id);
   // Foto de perfil (tolerante — columna 0027).
   const avatar = formData.get("avatar");
-  if (avatar instanceof File && avatar.size > 0) {
+  if (avatar instanceof File && avatar.size > 0 && (await validUpload(avatar))) {
     const ext = (avatar.name.split(".").pop() || "jpg").toLowerCase();
     const path = `avatars/${user.id}/a-${Date.now()}.${ext}`;
     const { error } = await supabase.storage
