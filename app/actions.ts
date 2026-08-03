@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { computeRemittance, calcCommission, round2, transferFactor } from "@/lib/calc";
 import { getSessionContext } from "@/lib/data";
-import { sendPushToUsers, notifyVaquitaContribution } from "@/lib/push";
+import { notify, notifyVaquitaContribution } from "@/lib/push";
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -856,10 +856,12 @@ export async function createOrder(formData: FormData) {
   }
 
   // Aviso al negocio de que llegó un pedido.
-  await sendPushToUsers([ctx.tenantId], {
+  await notify([ctx.tenantId], {
+    type: "pedido_nuevo",
     title: "Nuevo pedido 📦",
     body: `${p.full_name || "Un cliente"} pidió $${amount} para ${benefName}.`,
     url: "/pedidos",
+    operatorId: ctx.tenantId,
   });
 
   revalidatePath("/c");
@@ -1207,10 +1209,12 @@ export async function sendOrderMessage(
       const recipients = fromCliente
         ? [o.operator_id, o.accepted_by]
         : [o.client_id];
-      await sendPushToUsers(recipients, {
+      await notify(recipients, {
+        type: "chat",
         title: fromCliente ? "Mensaje de un cliente 💬" : "Mensaje del negocio 💬",
         body: text.slice(0, 120),
         url: fromCliente ? "/pedidos" : `/c/pedidos/${orderId}`,
+        operatorId: o.operator_id ?? null,
       });
     }
   } catch {
@@ -1731,12 +1735,14 @@ export async function rejectOrder(id: string, reason?: string) {
     .maybeSingle();
   const rr = ro as { client_id?: string; beneficiary_name?: string } | null;
   if (rr?.client_id) {
-    await sendPushToUsers([rr.client_id], {
+    await notify([rr.client_id], {
+      type: "pedido_rechazado",
       title: "Pedido rechazado",
       body: clean
         ? `Motivo: ${clean}`
         : `Tu envío para ${rr.beneficiary_name || "tu familia"} no se pudo procesar.`,
       url: `/c/pedidos/${id}`,
+      operatorId: ctx.tenantId,
     });
   }
   await logActivity("pedido.rechazar", { entityType: "pedido", entityId: id });
@@ -2212,10 +2218,24 @@ export async function acceptOrder(
 
   // Aviso al cliente de que su envío fue aceptado.
   if (order.client_id) {
-    await sendPushToUsers([order.client_id], {
+    await notify([order.client_id], {
+      type: "pedido_aceptado",
       title: "Envío aceptado 📦",
       body: `Ya preparamos tu envío para ${order.beneficiary_name || "tu familia"}.`,
       url: `/c/pedidos/${id}`,
+      operatorId: tid,
+    });
+  }
+  // Aviso al repartidor asignado (si el operador asignó uno).
+  if (delivererId && delivererId !== ctx.userId) {
+    await notify([delivererId], {
+      type: "reparto_asignado",
+      title: "Entrega asignada 🛵",
+      body: `Se te asignó $${amountUsd} para ${order.beneficiary_name || "un beneficiario"}${
+        order.province ? ` en ${order.province}` : ""
+      }.`,
+      url: remId ? `/remesas/${remId}` : "/remesas",
+      operatorId: tid,
     });
   }
 
@@ -2769,7 +2789,8 @@ export async function deliverRemittance(
     beneficiary_name?: string;
   } | null;
   if (odr?.client_id) {
-    await sendPushToUsers([odr.client_id], {
+    await notify([odr.client_id], {
+      type: "remesa_entregada",
       title: "¡Remesa entregada! ✅",
       body: `Tu envío para ${odr.beneficiary_name || "tu familia"} fue entregado.`,
       url: `/c/pedidos/${odr.id}`,

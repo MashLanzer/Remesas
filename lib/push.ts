@@ -30,6 +30,51 @@ function adminSb() {
 
 export type PushPayload = { title: string; body: string; url?: string };
 
+export type NotifyPayload = {
+  type: string;
+  title: string;
+  body?: string;
+  url?: string;
+  operatorId?: string | null;
+};
+
+// Notificación COMPLETA: guarda la fila in-app (campana) para cada destinatario
+// Y manda el push. Un solo lugar por evento. Tolerante: si falta el service_role
+// no guarda in-app; si falta Firebase, no manda push; nunca rompe la acción.
+export async function notify(
+  userIds: (string | null | undefined)[],
+  payload: NotifyPayload
+): Promise<void> {
+  const ids = Array.from(new Set(userIds.filter(Boolean) as string[]));
+  if (ids.length === 0) return;
+
+  // 1) In-app (tabla notifications) con el cliente admin (fuera de RLS).
+  try {
+    const sb = adminSb();
+    if (sb) {
+      await sb.from("notifications").insert(
+        ids.map((id) => ({
+          recipient_id: id,
+          operator_id: payload.operatorId ?? null,
+          type: payload.type,
+          title: payload.title,
+          body: payload.body ?? null,
+          url: payload.url ?? null,
+        }))
+      );
+    }
+  } catch {
+    /* nada */
+  }
+
+  // 2) Push al teléfono.
+  await sendPushToUsers(ids, {
+    title: payload.title,
+    body: payload.body ?? "",
+    url: payload.url,
+  });
+}
+
 // Envía a todos los dispositivos de los usuarios indicados. Fire-and-forget:
 // nunca lanza (los errores se tragan) para no romper la acción que lo llama.
 export async function sendPushToUsers(
@@ -106,15 +151,19 @@ export async function notifyVaquitaContribution(
     } | null;
     if (!v) return;
     const label = v.title || v.beneficiary_name;
-    await sendPushToUsers([v.organizer_client_id], {
+    await notify([v.organizer_client_id], {
+      type: "vaquita_aporte",
       title: "Nuevo aporte a tu vaquita 👥",
       body: `${name} aportó $${amount} a ${label}.`,
       url: `/c/vaquita/${v.id}`,
+      operatorId: v.operator_id,
     });
-    await sendPushToUsers([v.operator_id], {
+    await notify([v.operator_id], {
+      type: "vaquita_aporte_confirmar",
       title: "Aporte de vaquita por confirmar 👥",
       body: `${name} aportó $${amount} · ${label}.`,
       url: "/vaquitas",
+      operatorId: v.operator_id,
     });
   } catch {
     /* nada */
