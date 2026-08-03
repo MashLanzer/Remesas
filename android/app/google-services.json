@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "168712760689",
+    "project_id": "remesas-9ead0",
+    "storage_bucket": "remesas-9ead0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:168712760689:android:d99aa63c67faa3095f9ad0",
+        "android_client_info": {
+          "package_name": "com.remesas.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEzkP9145av9HjtfJoYu2Btl_WGscdK0k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

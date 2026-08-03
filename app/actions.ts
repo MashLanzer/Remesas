@@ -1292,6 +1292,36 @@ export async function clientUploadPaymentProof(
   return url;
 }
 
+// ===== Notificaciones push (FCM) =====
+
+// Guarda el token del dispositivo del usuario para enviarle avisos al teléfono.
+export async function savePushToken(
+  token: string,
+  platform = "android"
+): Promise<void> {
+  if (!token) return;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("push_tokens").upsert(
+    {
+      user_id: user.id,
+      token,
+      platform,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,token" }
+  );
+}
+
+export async function deletePushToken(token: string): Promise<void> {
+  if (!token) return;
+  const supabase = await createClient();
+  await supabase.from("push_tokens").delete().eq("token", token);
+}
+
 // ===== Vaquita familiar =====
 
 // El cliente organizador crea una vaquita para un beneficiario. Genera el token

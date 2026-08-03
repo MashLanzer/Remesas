@@ -22,6 +22,7 @@ import { LangProvider } from "@/components/lang-provider";
 import { BodyScrollLock } from "@/components/body-scroll-lock";
 import { ScrollReset } from "@/components/scroll-reset";
 import { BrandHueRoot } from "@/components/brand-hue-root";
+import { PushRegister } from "@/components/push-register";
 import { getLang } from "@/lib/lang";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +90,7 @@ export default async function ClienteLayout({
       }
     >
       <BrandHueRoot hue={contact.brandHue ?? null} />
+      <PushRegister />
       <BodyScrollLock />
       <PinLock />
       <ClienteOnboarding />

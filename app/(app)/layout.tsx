@@ -12,6 +12,7 @@ import { BottomNav } from "@/components/nav";
 import { TopBar } from "@/components/top-bar";
 import { RepartidorOnboarding } from "@/components/repartidor-onboarding";
 import { PinLock } from "@/components/pin-lock";
+import { PushRegister } from "@/components/push-register";
 
 export default async function AppLayout({
   children,
@@ -61,6 +62,7 @@ export default async function AppLayout({
   return (
     <div className="min-h-screen bg-background">
       <PinLock />
+      <PushRegister />
       {!ctx.isOperador && ctx.role === "repartidor" && <RepartidorOnboarding />}
       <TopBar
         email={user.email}
