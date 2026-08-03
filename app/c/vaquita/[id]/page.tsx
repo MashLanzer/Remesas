@@ -24,9 +24,28 @@ export default async function VaquitaDetallePage({
   const confirmedTotal = contributions
     .filter((c) => c.status === "confirmado")
     .reduce((s, c) => s + Number(c.amount_usd), 0);
+  const pendingTotal = raised - confirmedTotal;
+  const confirmedCount = contributions.filter(
+    (c) => c.status === "confirmado"
+  ).length;
   const allConfirmed =
     contributions.length > 0 &&
     contributions.every((c) => c.status === "confirmado");
+
+  // Barra de dos tonos: confirmado (sólido) + por confirmar (tenue), relativa a
+  // la meta si la hay, si no al total recaudado.
+  const denom = goal > 0 ? goal : raised;
+  const confirmedPct = denom > 0 ? Math.min(100, (confirmedTotal / denom) * 100) : 0;
+  const pendingPct =
+    denom > 0 ? Math.min(100 - confirmedPct, (pendingTotal / denom) * 100) : 0;
+  const remaining = goal > 0 ? Math.max(0, goal - raised) : 0;
+
+  // Días restantes según la fecha límite.
+  let daysLeft: number | null = null;
+  if (v.deadline) {
+    const diff = new Date(v.deadline + "T23:59:59").getTime() - Date.now();
+    daysLeft = Math.ceil(diff / 86400000);
+  }
 
   return (
     <div className="space-y-5">
@@ -53,21 +72,81 @@ export default async function VaquitaDetallePage({
         </div>
         <div>
           <div className="flex items-end justify-between">
-            <p className="text-2xl font-extrabold text-foreground">{usd(raised)}</p>
+            <div>
+              <p className="text-2xl font-extrabold text-foreground">
+                {usd(raised)}
+              </p>
+              <p className="text-[11px] text-muted-foreground">recaudado</p>
+            </div>
             {goal > 0 && (
-              <p className="text-sm text-muted-foreground">meta {usd(goal)}</p>
+              <p className="text-sm text-muted-foreground">
+                meta {usd(goal)} · {Math.round(pct)}%
+              </p>
             )}
           </div>
-          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
+
+          {/* Barra de dos tonos: confirmado + por confirmar */}
+          <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${goal > 0 ? pct : raised > 0 ? 100 : 0}%` }}
+              className="h-full bg-primary transition-all"
+              style={{ width: `${confirmedPct}%` }}
+            />
+            <div
+              className="h-full bg-primary/40 transition-all"
+              style={{ width: `${pendingPct}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {contributions.length} aporte{contributions.length === 1 ? "" : "s"}
-          </p>
+          <div className="mt-1.5 flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-primary" /> Confirmado
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-primary/40" /> Por confirmar
+            </span>
+          </div>
         </div>
+
+        {/* Desglose */}
+        <div className="grid grid-cols-3 gap-2">
+          <MiniStat label="Confirmado" value={usd(confirmedTotal)} tone="income" />
+          <MiniStat label="Por confirmar" value={usd(pendingTotal)} tone="muted" />
+          <MiniStat
+            label={`Aporte${contributions.length === 1 ? "" : "s"}`}
+            value={`${confirmedCount}/${contributions.length}`}
+            tone="plain"
+          />
+        </div>
+
+        {/* Meta / fecha límite */}
+        {(goal > 0 || daysLeft != null) && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            {goal > 0 && (
+              <span className="rounded-full bg-muted px-2.5 py-1 font-medium text-foreground">
+                {remaining > 0
+                  ? `Faltan ${usd(remaining)} para la meta`
+                  : "🎉 ¡Meta alcanzada!"}
+              </span>
+            )}
+            {daysLeft != null && (
+              <span
+                className={
+                  "rounded-full px-2.5 py-1 font-medium " +
+                  (daysLeft < 0
+                    ? "bg-destructive/10 text-destructive"
+                    : daysLeft <= 3
+                    ? "bg-warning/10 text-warning"
+                    : "bg-muted text-muted-foreground")
+                }
+              >
+                {daysLeft < 0
+                  ? "Fecha límite vencida"
+                  : daysLeft === 0
+                  ? "Cierra hoy"
+                  : `Cierra en ${daysLeft} día${daysLeft === 1 ? "" : "s"}`}
+              </span>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Compartir / convertir */}
@@ -139,6 +218,29 @@ export default async function VaquitaDetallePage({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "income" | "muted" | "plain";
+}) {
+  const cls =
+    tone === "income"
+      ? "text-income"
+      : tone === "muted"
+      ? "text-amber-600 dark:text-amber-400"
+      : "text-foreground";
+  return (
+    <div className="rounded-xl bg-muted/50 p-2.5 text-center">
+      <p className={"tabular text-sm font-bold " + cls}>{value}</p>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
   );
 }
