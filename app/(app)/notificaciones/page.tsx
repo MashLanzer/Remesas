@@ -17,7 +17,9 @@ import {
   getExchangeRates,
   getTeam,
   getSessionContext,
+  getPendingVaquitaContributions,
 } from "@/lib/data";
+import { Users } from "lucide-react";
 import { calcPartnerBalance } from "@/lib/calc";
 import { usd, formatDate } from "@/lib/utils";
 import { Card, PageHeader } from "@/components/ui";
@@ -39,6 +41,9 @@ export default async function NotificacionesPage() {
     getSessionContext(),
   ]);
   const pendingMembers = team.pending.length;
+  const vaquitaPending = ctx.isOperador
+    ? await getPendingVaquitaContributions()
+    : [];
 
   const pendientes = all
     .filter((r) => r.status === "pendiente")
@@ -62,7 +67,8 @@ export default async function NotificacionesPage() {
     porCobrar.length === 0 &&
     !saldoAlto &&
     !tasasViejas &&
-    pendingMembers === 0;
+    pendingMembers === 0 &&
+    vaquitaPending.length === 0;
 
   return (
     <div>
@@ -105,6 +111,40 @@ export default async function NotificacionesPage() {
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </Card>
             </Link>
+          )}
+
+          {vaquitaPending.length > 0 && (
+            <section>
+              <h2 className="mb-2 flex items-center gap-2 text-sm font-bold text-foreground">
+                <Users className="h-4 w-4 text-primary" /> Aportes de vaquita por
+                confirmar
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                  {vaquitaPending.length}
+                </span>
+              </h2>
+              <div className="space-y-2">
+                {vaquitaPending.map((c) => (
+                  <Link key={c.id} href="/vaquitas" className="block">
+                    <Card className="flex items-center justify-between p-3.5 transition active:scale-[0.99]">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Users className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">
+                            {c.contributor_name} aportó {usd(c.amount_usd)}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            Vaquita: {c.label} · toca para confirmar
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </section>
           )}
 
           {saldoAlto && (

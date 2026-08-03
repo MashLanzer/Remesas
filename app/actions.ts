@@ -1340,19 +1340,17 @@ export async function contributeVaquita(
   const amount = num(formData.get("amount"));
   if (!token || !name || !(amount > 0)) return { ok: false };
 
-  let proofUrl: string | null = null;
+  // El comprobante es OBLIGATORIO.
   const file = formData.get("proof");
-  if (file instanceof File && file.size > 0) {
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-    const path = `vaquitas/${token}/c-${Date.now()}.${ext}`;
-    const up = await supabase.storage
-      .from("receipts")
-      .upload(path, file, { upsert: true, contentType: file.type });
-    if (!up.error) {
-      proofUrl = supabase.storage.from("receipts").getPublicUrl(path).data
-        .publicUrl;
-    }
-  }
+  if (!(file instanceof File) || file.size === 0) return { ok: false };
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+  const path = `vaquitas/${token}/c-${Date.now()}.${ext}`;
+  const up = await supabase.storage
+    .from("receipts")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (up.error) return { ok: false };
+  const proofUrl = supabase.storage.from("receipts").getPublicUrl(path).data
+    .publicUrl;
 
   const { data, error } = await supabase.rpc("vaquita_contribute", {
     p_token: token,
@@ -1404,12 +1402,13 @@ export async function convertVaquitaToOrder(vaquitaId: string) {
 
   const { data: cRows } = await supabase
     .from("vaquita_contributions")
-    .select("amount_usd")
+    .select("amount_usd, status")
     .eq("vaquita_id", vaquitaId);
-  const total = ((cRows as { amount_usd: number }[]) ?? []).reduce(
-    (s, x) => s + Number(x.amount_usd),
-    0
-  );
+  const rows = (cRows as { amount_usd: number; status: string }[]) ?? [];
+  // Debe haber aportes y TODOS confirmados por el negocio.
+  if (rows.length === 0) return;
+  if (rows.some((x) => x.status !== "confirmado")) return;
+  const total = rows.reduce((s, x) => s + Number(x.amount_usd), 0);
   if (total <= 0) return;
 
   const { data: prof } = await supabase

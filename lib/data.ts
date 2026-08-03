@@ -456,6 +456,16 @@ export async function getAlertCount(): Promise<number> {
     ordersAlert = (count ?? 0) + (sc ?? 0);
   }
 
+  // Aportes de vaquita por confirmar (solo operador). Tolerante.
+  let vaquitaAlert = 0;
+  if (ctx.isOperador) {
+    try {
+      vaquitaAlert = (await getPendingVaquitaContributions()).length;
+    } catch {
+      vaquitaAlert = 0;
+    }
+  }
+
   // Preferencias de avisos: el usuario puede silenciar categorías (cookie).
   let muted: Set<string>;
   try {
@@ -471,6 +481,7 @@ export async function getAlertCount(): Promise<number> {
   if (!muted.has("tasas")) total += ratesAlert;
   if (!muted.has("equipo")) total += teamAlert;
   if (!muted.has("pedidos")) total += ordersAlert;
+  if (!muted.has("pedidos")) total += vaquitaAlert;
   return total;
 }
 
@@ -670,6 +681,35 @@ export async function getOperatorVaquitas(): Promise<OperatorVaquita[]> {
     contributions: byV[v.id] ?? [],
     raised: (byV[v.id] ?? []).reduce((s, x) => s + Number(x.amount_usd), 0),
   }));
+}
+
+// Aportes de vaquita pendientes de confirmar (para avisar al operador).
+export type PendingVaquitaContribution = {
+  id: string;
+  contributor_name: string;
+  amount_usd: number;
+  vaquita_id: string;
+  label: string;
+};
+export async function getPendingVaquitaContributions(): Promise<
+  PendingVaquitaContribution[]
+> {
+  const vaquitas = await getOperatorVaquitas();
+  const out: PendingVaquitaContribution[] = [];
+  for (const v of vaquitas) {
+    for (const c of v.contributions) {
+      if (c.status === "informado") {
+        out.push({
+          id: c.id,
+          contributor_name: c.contributor_name,
+          amount_usd: Number(c.amount_usd),
+          vaquita_id: v.id,
+          label: v.title || v.beneficiary_name,
+        });
+      }
+    }
+  }
+  return out;
 }
 
 // === Reseñas (⭐) ===

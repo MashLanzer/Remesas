@@ -21,6 +21,12 @@ export default async function VaquitaDetallePage({
   const goal = Number(v.goal_usd) || 0;
   const pct = goal > 0 ? Math.min(100, (raised / goal) * 100) : 0;
   const sent = v.status === "enviada";
+  const confirmedTotal = contributions
+    .filter((c) => c.status === "confirmado")
+    .reduce((s, c) => s + Number(c.amount_usd), 0);
+  const allConfirmed =
+    contributions.length > 0 &&
+    contributions.every((c) => c.status === "confirmado");
 
   return (
     <div className="space-y-5">
@@ -75,7 +81,12 @@ export default async function VaquitaDetallePage({
       ) : (
         <div className="space-y-2">
           <VaquitaShare token={v.share_token} title={v.beneficiary_name} />
-          <VaquitaConvert id={v.id} total={raised} />
+          <VaquitaConvert
+            id={v.id}
+            total={confirmedTotal}
+            allConfirmed={allConfirmed}
+            hasContributions={contributions.length > 0}
+          />
         </div>
       )}
 

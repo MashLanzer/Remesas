@@ -13,19 +13,29 @@ export function VaquitaContribute({ token }: { token: string }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !(parseFloat(amount) > 0) || busy) return;
+    const f = fileRef.current?.files?.[0];
+    if (!f) {
+      setErr("Adjunta el comprobante de tu pago para poder aportar.");
+      return;
+    }
+    setErr(null);
     setBusy(true);
     const fd = new FormData();
     fd.append("name", name.trim());
     fd.append("amount", amount);
-    const f = fileRef.current?.files?.[0];
-    if (f) fd.append("proof", f);
+    fd.append("proof", f);
     const res = await contributeVaquita(token, fd);
     setBusy(false);
+    if (!res.ok) {
+      setErr("No se pudo registrar tu aporte. Revisa el comprobante e intenta de nuevo.");
+      return;
+    }
     if (res.ok) {
       setDone(true);
       setName("");
@@ -84,16 +94,27 @@ export function VaquitaContribute({ token }: { token: string }) {
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+        onChange={(e) => {
+          setFileName(e.target.files?.[0]?.name ?? null);
+          setErr(null);
+        }}
       />
       <button
         type="button"
         onClick={() => fileRef.current?.click()}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/5 py-2.5 text-sm font-semibold text-primary transition active:scale-[0.98]"
+        className={
+          "flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition active:scale-[0.98] " +
+          (fileName
+            ? "border-income/40 bg-income/10 text-income"
+            : "border-primary/40 bg-primary/5 text-primary")
+        }
       >
         <Camera className="h-4 w-4" />
-        {fileName ? "Comprobante adjunto ✓" : "Adjuntar comprobante (opcional)"}
+        {fileName ? "Comprobante adjunto ✓" : "Adjuntar comprobante (obligatorio)"}
       </button>
+      {err && (
+        <p className="text-center text-xs font-medium text-destructive">{err}</p>
+      )}
       <button
         type="submit"
         disabled={busy}
