@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { computeRemittance, calcCommission, round2, transferFactor } from "@/lib/calc";
 import { getSessionContext } from "@/lib/data";
+import { sendPushToUsers, notifyVaquitaContribution } from "@/lib/push";
 
 const YEAR = 60 * 60 * 24 * 365;
 
@@ -854,6 +855,13 @@ export async function createOrder(formData: FormData) {
     await supabase.from("orders").insert(row);
   }
 
+  // Aviso al negocio de que llegó un pedido.
+  await sendPushToUsers([ctx.tenantId], {
+    title: "Nuevo pedido 📦",
+    body: `${p.full_name || "Un cliente"} pidió $${amount} para ${benefName}.`,
+    url: "/pedidos",
+  });
+
   revalidatePath("/c");
   revalidatePath("/c/pedidos");
   redirect("/c/pedidos");
@@ -1180,6 +1188,34 @@ export async function sendOrderMessage(
   if (!orderId || !text) return;
   const supabase = await createClient();
   await supabase.rpc("send_order_message", { p_order: orderId, p_body: text });
+
+  // Aviso al otro lado del chat.
+  try {
+    const ctx = await getSessionContext();
+    const { data } = await supabase
+      .from("orders")
+      .select("client_id, operator_id, accepted_by")
+      .eq("id", orderId)
+      .maybeSingle();
+    const o = data as {
+      client_id?: string | null;
+      operator_id?: string | null;
+      accepted_by?: string | null;
+    } | null;
+    if (o) {
+      const fromCliente = ctx.role === "cliente";
+      const recipients = fromCliente
+        ? [o.operator_id, o.accepted_by]
+        : [o.client_id];
+      await sendPushToUsers(recipients, {
+        title: fromCliente ? "Mensaje de un cliente 💬" : "Mensaje del negocio 💬",
+        body: text.slice(0, 120),
+        url: fromCliente ? "/pedidos" : `/c/pedidos/${orderId}`,
+      });
+    }
+  } catch {
+    /* nada */
+  }
 }
 
 // Marca el chat de un pedido como leído por el usuario actual.
@@ -1389,6 +1425,8 @@ export async function contributeVaquita(
     p_proof: proofUrl,
   });
   if (error || !data) return { ok: false };
+  // Aviso al organizador y al operador (push).
+  await notifyVaquitaContribution(token, name, amount);
   revalidatePath(`/v/${token}`);
   return { ok: true };
 }
@@ -1684,6 +1722,22 @@ export async function rejectOrder(id: string, reason?: string) {
   const clean = reason?.trim();
   if (clean) {
     await supabase.from("orders").update({ reject_reason: clean }).eq("id", id);
+  }
+  // Aviso al cliente del rechazo.
+  const { data: ro } = await supabase
+    .from("orders")
+    .select("client_id, beneficiary_name")
+    .eq("id", id)
+    .maybeSingle();
+  const rr = ro as { client_id?: string; beneficiary_name?: string } | null;
+  if (rr?.client_id) {
+    await sendPushToUsers([rr.client_id], {
+      title: "Pedido rechazado",
+      body: clean
+        ? `Motivo: ${clean}`
+        : `Tu envío para ${rr.beneficiary_name || "tu familia"} no se pudo procesar.`,
+      url: `/c/pedidos/${id}`,
+    });
   }
   await logActivity("pedido.rechazar", { entityType: "pedido", entityId: id });
   revalidatePath("/pedidos");
@@ -2155,6 +2209,15 @@ export async function acceptOrder(
     entityLabel: `$${amountUsd}`,
     details: pointsUsed > 0 ? { descuento: discount, puntos: pointsUsed } : undefined,
   });
+
+  // Aviso al cliente de que su envío fue aceptado.
+  if (order.client_id) {
+    await sendPushToUsers([order.client_id], {
+      title: "Envío aceptado 📦",
+      body: `Ya preparamos tu envío para ${order.beneficiary_name || "tu familia"}.`,
+      url: `/c/pedidos/${id}`,
+    });
+  }
 
   revalidatePath("/pedidos");
   revalidatePath("/remesas");
@@ -2693,6 +2756,26 @@ export async function deliverRemittance(
       .eq("id", id);
   }
   await updateRemittanceStatus(id, "entregado");
+
+  // Aviso al cliente de que su remesa fue entregada.
+  const { data: od } = await supabase
+    .from("orders")
+    .select("id, client_id, beneficiary_name")
+    .eq("remittance_id", id)
+    .maybeSingle();
+  const odr = od as {
+    id: string;
+    client_id?: string;
+    beneficiary_name?: string;
+  } | null;
+  if (odr?.client_id) {
+    await sendPushToUsers([odr.client_id], {
+      title: "¡Remesa entregada! ✅",
+      body: `Tu envío para ${odr.beneficiary_name || "tu familia"} fue entregado.`,
+      url: `/c/pedidos/${odr.id}`,
+    });
+  }
+
   return { ok: true };
 }
 
