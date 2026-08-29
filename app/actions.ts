@@ -1651,6 +1651,30 @@ export async function convertVaquitaToOrder(vaquitaId: string) {
   if (orderId) redirect(`/c/pedidos/${orderId}`);
 }
 
+// El organizador borra su propia vaquita (mientras no se haya convertido en
+// pedido). Los aportes se borran en cascada. RLS lo refuerza (política 0081).
+export async function deleteVaquita(vaquitaId: string) {
+  const supabase = await createClient();
+  const ctx = await getSessionContext();
+  if (ctx.role !== "cliente" || !ctx.userId) return;
+
+  const { data: vRow } = await supabase
+    .from("vaquitas")
+    .select("organizer_client_id, order_id")
+    .eq("id", vaquitaId)
+    .maybeSingle();
+  const v = vRow as {
+    organizer_client_id?: string;
+    order_id?: string | null;
+  } | null;
+  // Solo el organizador, y solo si aún no se convirtió en pedido.
+  if (!v || v.organizer_client_id !== ctx.userId || v.order_id) return;
+
+  await supabase.from("vaquitas").delete().eq("id", vaquitaId);
+  revalidatePath("/c/vaquita");
+  redirect("/c/vaquita");
+}
+
 export type ReferralFriend = {
   name: string;
   status: "premiado" | "activo" | "registrado";

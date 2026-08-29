@@ -6,6 +6,7 @@ import { signDocMany } from "@/lib/storage";
 import { Card } from "@/components/ui";
 import { VaquitaShare } from "@/components/vaquita-share";
 import { VaquitaConvert } from "@/components/vaquita-convert";
+import { VaquitaDeleteButton } from "@/components/vaquita-delete-button";
 import { usd } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -225,6 +226,14 @@ export default async function VaquitaDetallePage({
           </div>
         )}
       </section>
+
+      {/* Borrar la vaquita (solo el organizador, si aún no se convirtió) */}
+      {!sent && (
+        <VaquitaDeleteButton
+          id={v.id}
+          hasContributions={contributions.length > 0}
+        />
+      )}
     </div>
   );
 }
